@@ -274,7 +274,10 @@
 
     <!-- Kết quả -->
     <div class="card">
-        <h3 style="margin-top:0">Bảng Kết Quả & Mã HTML</h3>
+        <h3 style="margin-top:0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <span>Bảng Kết Quả & Mã HTML</span>
+            <button id="btnExportCSV" class="btn btn-success" onclick="exportCSV()" style="font-size:12px; padding:6px 12px; display:none;">📋 Tạo nội dung cho file input.csv</button>
+        </h3>
         <div style="overflow-x: auto;">
             <table>
                 <thead>
@@ -292,6 +295,13 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+
+        <!-- Khu vực hiển thị nội dung CSV -->
+        <div id="csvBox" style="margin-top:20px; display:none; padding-top:15px; border-top:1px dashed var(--border);">
+            <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--success);">Nội dung dành cho Robot (Sếp Copy và dán đè vào file input.csv, nhớ sửa lại pass nhé):</label>
+            <textarea id="csvContent" readonly style="height:120px; border-color:var(--success); background:rgba(16, 185, 129, 0.05);"></textarea>
+            <button class="btn" style="margin-top:10px; width:100%;" onclick="copyToClipboard(this, document.getElementById('csvContent').value)">📋 Copy toàn bộ nội dung CSV</button>
         </div>
     </div>
 </div>
@@ -491,7 +501,36 @@
         isRunning = false;
         btnStart.innerHTML = `🚀 Chạy Lại (Hoàn Tất)`;
         btnStart.disabled = false;
-        // alert(`Đã xử lý xong ${domains.length} Website!`);
+        document.getElementById('btnExportCSV').style.display = 'inline-flex';
+    }
+
+    function exportCSV() {
+        const rows = document.querySelectorAll('#resultBody tr[id^="row_"]');
+        let csvText = "domain,username,password,meta_tag\n";
+        let count = 0;
+        
+        rows.forEach(row => {
+            const domain = row.querySelector('.domain-cell a').innerText;
+            const metaCell = row.querySelector('td[id^="meta_"]');
+            const metaTagSpan = metaCell.querySelector('.code-box span');
+            
+            if (metaTagSpan) {
+                // Lấy title (lưu nguyên bản lúc nãy) hoặc innerText
+                let metaText = metaTagSpan.getAttribute('title') || metaTagSpan.innerText;
+                // Phục hồi lại ký tự HTML
+                metaText = metaText.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&apos;/g, "'").replace(/&quot;/g, '"');
+                csvText += `${domain},admin,mat_khau_cua_sep,${metaText}\n`;
+                count++;
+            }
+        });
+
+        if (count === 0) {
+            alert("Chưa có Website nào lấy được mã thành công!");
+            return;
+        }
+
+        document.getElementById('csvContent').value = csvText;
+        document.getElementById('csvBox').style.display = 'block';
     }
 
     function copyToClipboard(btnElement, text) {
