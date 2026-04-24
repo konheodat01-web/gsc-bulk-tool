@@ -364,15 +364,16 @@
                 <table>
                     <thead>
                         <tr>
-                            <th width="35%">Website URL</th>
-                            <th width="15%">Trạng thái</th>
-                            <th width="15%">HTTP Code</th>
-                            <th width="35%">WP-Admin</th>
+                            <th width="25%">Website URL</th>
+                            <th width="12%">Trạng thái</th>
+                            <th width="10%">HTTP Code</th>
+                            <th width="25%">WP-Admin</th>
+                            <th width="28%">Đăng nhập</th>
                         </tr>
                     </thead>
                     <tbody id="checkResultBody">
                         <tr>
-                            <td colspan="4" style="text-align:center; color:var(--text-muted); padding:30px;">
+                            <td colspan="5" style="text-align:center; color:var(--text-muted); padding:30px;">
                                 Chưa có dữ liệu. Hãy nhập domain và bấm Kiểm Tra.
                             </td>
                         </tr>
@@ -689,12 +690,14 @@
 
         // Parse input
         const sites = lines.map(line => {
-            const parts = line.split(/\s+/);
+            const parts = line.split(/[\t ]+/);
             let url = parts[0];
             if (!url.startsWith('http')) url = 'https://' + url;
             if (!url.endsWith('/')) url += '/';
             const adminPath = parts[1] || 'wp-admin';
-            return { url, adminPath };
+            const user = parts[2] || '';
+            const pass = parts[3] || '';
+            return { url, adminPath, user, pass };
         });
 
         // Render dòng chờ
@@ -706,6 +709,7 @@
                 <td id="chkStatus_${idx}"><span class="status-badge status-pending">Đang chờ</span></td>
                 <td id="chkCode_${idx}" style="color:var(--text-muted)">...</td>
                 <td id="chkAdmin_${idx}" style="color:var(--text-muted)">...</td>
+                <td id="chkLogin_${idx}" style="color:var(--text-muted)">${site.user ? '...' : '<span style="color:var(--text-muted)">- Không có TK -</span>'}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -733,7 +737,7 @@
                             break;
                         }
                     }
-                } catch(e) { /* thử proxy tiếp */ }
+                } catch(e) {}
             }
 
             if (siteOk) {
@@ -755,7 +759,6 @@
                         const res = await fetch(proxyFn(adminUrl));
                         if (res.ok) {
                             const html = await res.text();
-                            // Nhận diện trang login WordPress
                             if (html.includes('wp-login') || html.includes('wp-submit') || html.includes('loginform') || html.includes('user_login')) {
                                 adminOk = true;
                                 break;
@@ -771,6 +774,48 @@
                 }
             } else {
                 document.getElementById(`chkAdmin_${i}`).innerHTML = '<span style="color:var(--text-muted)">- Bỏ qua (web die) -</span>';
+            }
+
+            // --- CHECK 3: Đăng nhập WordPress qua XML-RPC ---
+            if (siteOk && site.user && site.pass) {
+                document.getElementById(`chkLogin_${i}`).innerHTML = '<span style="color:var(--warning);font-size:12px">Đang thử đăng nhập...</span>';
+                const xmlrpcUrl = site.url + 'xmlrpc.php';
+                const xmlBody = `<?xml version="1.0"?><methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>${site.user}</string></value></param><param><value><string>${site.pass}</string></value></param></params></methodCall>`;
+                
+                let loginResult = 'unknown';
+                try {
+                    const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(xmlrpcUrl)}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/xml' },
+                        body: xmlBody
+                    });
+                    if (res.ok) {
+                        const xml = await res.text();
+                        if (xml.includes('<name>blogid</name>') || xml.includes('<name>url</name>')) {
+                            loginResult = 'success';
+                        } else if (xml.includes('faultCode') || xml.includes('Incorrect username') || xml.includes('incorrect_password')) {
+                            loginResult = 'wrong';
+                        } else {
+                            loginResult = 'blocked';
+                        }
+                    } else {
+                        loginResult = 'blocked';
+                    }
+                } catch(e) {
+                    loginResult = 'error';
+                }
+
+                if (loginResult === 'success') {
+                    document.getElementById(`chkLogin_${i}`).innerHTML = `<span class="status-badge status-success">✅ ${site.user} đúng</span>`;
+                } else if (loginResult === 'wrong') {
+                    document.getElementById(`chkLogin_${i}`).innerHTML = `<span class="status-badge status-error">❌ Sai user hoặc pass</span>`;
+                } else {
+                    document.getElementById(`chkLogin_${i}`).innerHTML = `<span class="status-badge status-pending">⚠️ XML-RPC bị chặn</span>`;
+                }
+            } else if (!site.user) {
+                // Không có thông tin tài khoản - giữ nguyên
+            } else if (!siteOk) {
+                document.getElementById(`chkLogin_${i}`).innerHTML = '<span style="color:var(--text-muted)">- Bỏ qua -</span>';
             }
 
             progressFill.style.width = `${((i + 1) / sites.length) * 100}%`;
