@@ -267,6 +267,33 @@
         }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+
+        /* Check Options */
+        .check-options {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+            padding: 12px 15px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .check-options label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text);
+            font-weight: 500;
+        }
+        .check-options input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -351,6 +378,11 @@
             <div class="form-group">
                 <label>Nhập theo mẫu: <b>Tên miền [cách] đuôi_admin [cách] user [cách] pass</b> (Ví dụ: anythingsurf.co.uk web_auth seo 0Sg0h...)</label>
                 <textarea id="checkDomainList" placeholder="anythingsurf.co.uk	web_auth	seo	0Sg0hd19CrJWNA6H&#10;domain2.com  wp-admin  admin  123456"></textarea>
+            </div>
+            <div class="check-options">
+                <label><input type="checkbox" id="optWebsite" checked> 🌐 Trạng thái Website</label>
+                <label><input type="checkbox" id="optAdmin" checked> 🔑 Đuôi quản trị (WP-Admin)</label>
+                <label><input type="checkbox" id="optLogin" checked> 🔐 Kiểm tra đăng nhập</label>
             </div>
             <button id="btnCheck" class="btn btn-success" onclick="startCheck()">🔍 Bắt đầu Kiểm Tra</button>
             <div id="checkProgressBar" class="progress-bar">
@@ -675,6 +707,16 @@
             return;
         }
 
+        // Đọc trạng thái checkbox
+        const doWebsite = document.getElementById('optWebsite').checked;
+        const doAdmin = document.getElementById('optAdmin').checked;
+        const doLogin = document.getElementById('optLogin').checked;
+
+        if (!doWebsite && !doAdmin && !doLogin) {
+            alert('Vui lòng chọn ít nhất 1 tiêu chí kiểm tra!');
+            return;
+        }
+
         isChecking = true;
         const btn = document.getElementById('btnCheck');
         btn.disabled = true;
@@ -685,7 +727,13 @@
         progressBar.style.display = 'block';
         progressFill.style.width = '0%';
 
+        // Build dynamic table header
         const tbody = document.getElementById('checkResultBody');
+        const thead = tbody.closest('table').querySelector('thead tr');
+        thead.innerHTML = '<th>Website URL</th>';
+        if (doWebsite) thead.innerHTML += '<th>Trạng thái</th><th>HTTP Code</th>';
+        if (doAdmin) thead.innerHTML += '<th>WP-Admin</th>';
+        if (doLogin) thead.innerHTML += '<th>Đăng nhập</th>';
         tbody.innerHTML = '';
 
         // Parse input
@@ -704,13 +752,11 @@
         sites.forEach((site, idx) => {
             const tr = document.createElement('tr');
             tr.id = `chk_${idx}`;
-            tr.innerHTML = `
-                <td class="domain-cell"><a href="${site.url}" target="_blank" style="color:var(--primary);text-decoration:none">${site.url}</a></td>
-                <td id="chkStatus_${idx}"><span class="status-badge status-pending">Đang chờ</span></td>
-                <td id="chkCode_${idx}" style="color:var(--text-muted)">...</td>
-                <td id="chkAdmin_${idx}" style="color:var(--text-muted)">...</td>
-                <td id="chkLogin_${idx}" style="color:var(--text-muted)">${site.user ? '...' : '<span style="color:var(--text-muted)">- Không có TK -</span>'}</td>
-            `;
+            let cells = `<td class="domain-cell"><a href="${site.url}" target="_blank" style="color:var(--primary);text-decoration:none">${site.url}</a></td>`;
+            if (doWebsite) cells += `<td id="chkStatus_${idx}"><span class="status-badge status-pending">Đang chờ</span></td><td id="chkCode_${idx}" style="color:var(--text-muted)">...</td>`;
+            if (doAdmin) cells += `<td id="chkAdmin_${idx}" style="color:var(--text-muted)">...</td>`;
+            if (doLogin) cells += `<td id="chkLogin_${idx}" style="color:var(--text-muted)">${site.user ? '...' : '<span style="color:var(--text-muted)">- Không có TK -</span>'}</td>`;
+            tr.innerHTML = cells;
             tbody.appendChild(tr);
         });
 
@@ -723,116 +769,113 @@
 
         for (let i = 0; i < sites.length; i++) {
             const site = sites[i];
-            document.getElementById(`chkStatus_${i}`).innerHTML = '<span class="status-badge status-running">Đang check...</span>';
-
-            // --- CHECK 1: Website chính ---
             let siteOk = false;
             let isBlocked = false;
-            let httpCode = '???';
 
-            for (const proxyFn of proxies) {
-                try {
-                    const res = await fetch(proxyFn(site.url));
-                    httpCode = res.status;
-                    
-                    if (res.status === 403) {
-                        isBlocked = true; // Đánh dấu bị firewall chặn nhưng web vẫn sống
-                    }
+            // --- CHECK 1: Website chính ---
+            if (doWebsite) {
+                document.getElementById(`chkStatus_${i}`).innerHTML = '<span class="status-badge status-running">Đang check...</span>';
+                let httpCode = '???';
 
-                    if (res.ok) {
-                        const html = await res.text();
-                        if (html && html.length > 100) {
-                            siteOk = true;
-                            isBlocked = false;
-                            break;
+                for (const proxyFn of proxies) {
+                    try {
+                        const res = await fetch(proxyFn(site.url));
+                        httpCode = res.status;
+                        if (res.status === 403) isBlocked = true;
+                        if (res.ok) {
+                            const html = await res.text();
+                            if (html && html.length > 100) {
+                                siteOk = true;
+                                isBlocked = false;
+                                break;
+                            }
                         }
-                    }
-                } catch(e) {}
-            }
+                    } catch(e) {}
+                }
 
-            if (siteOk) {
-                document.getElementById(`chkStatus_${i}`).innerHTML = '<span class="status-badge status-success">✅ Live</span>';
-                document.getElementById(`chkCode_${i}`).innerHTML = `<span style="color:var(--success);font-weight:bold">${httpCode}</span>`;
-            } else if (isBlocked || httpCode === 403) {
-                document.getElementById(`chkStatus_${i}`).innerHTML = '<span class="status-badge status-warning">🛡️ Bị Firewall chặn</span>';
-                document.getElementById(`chkCode_${i}`).innerHTML = `<span style="color:var(--warning);font-weight:bold">403</span>`;
+                if (siteOk) {
+                    document.getElementById(`chkStatus_${i}`).innerHTML = '<span class="status-badge status-success">✅ Live</span>';
+                    document.getElementById(`chkCode_${i}`).innerHTML = `<span style="color:var(--success);font-weight:bold">${httpCode}</span>`;
+                } else if (isBlocked || httpCode === 403) {
+                    document.getElementById(`chkStatus_${i}`).innerHTML = '<span class="status-badge" style="background:var(--warning);color:#fff">🛡️ Firewall</span>';
+                    document.getElementById(`chkCode_${i}`).innerHTML = '<span style="color:var(--warning);font-weight:bold">403</span>';
+                } else {
+                    document.getElementById(`chkStatus_${i}`).innerHTML = '<span class="status-badge status-error">❌ Die / Lỗi</span>';
+                    document.getElementById(`chkCode_${i}`).innerHTML = `<span style="color:var(--danger);font-weight:bold">${httpCode}</span>`;
+                }
             } else {
-                document.getElementById(`chkStatus_${i}`).innerHTML = '<span class="status-badge status-error">❌ Die / Lỗi</span>';
-                document.getElementById(`chkCode_${i}`).innerHTML = `<span style="color:var(--danger);font-weight:bold">${httpCode}</span>`;
+                // Nếu không check website, mặc định coi là sống để các check sau vẫn chạy
+                siteOk = true;
             }
 
             // --- CHECK 2: WP-Admin ---
-            if (siteOk || isBlocked) {
-                document.getElementById(`chkAdmin_${i}`).innerHTML = '<span style="color:var(--warning);font-size:12px">Đang check admin...</span>';
-                const adminUrl = site.url + site.adminPath;
-                let adminOk = false;
+            if (doAdmin) {
+                if (siteOk || isBlocked) {
+                    document.getElementById(`chkAdmin_${i}`).innerHTML = '<span style="color:var(--warning);font-size:12px">Đang check...</span>';
+                    const adminUrl = site.url + site.adminPath;
+                    let adminOk = false;
 
-                for (const proxyFn of proxies) {
-                    try {
-                        const res = await fetch(proxyFn(adminUrl));
-                        if (res.ok) {
-                            const html = await res.text();
-                            if (html.includes('wp-login') || html.includes('wp-submit') || html.includes('loginform') || html.includes('user_login')) {
-                                adminOk = true;
-                                break;
+                    for (const proxyFn of proxies) {
+                        try {
+                            const res = await fetch(proxyFn(adminUrl));
+                            if (res.ok) {
+                                const html = await res.text();
+                                if (html.includes('wp-login') || html.includes('wp-submit') || html.includes('loginform') || html.includes('user_login')) {
+                                    adminOk = true;
+                                    break;
+                                }
                             }
-                        } else if (res.status === 403) {
-                             // Nếu 403 ở wp-admin nhưng 200 ở trang chủ, có thể là đúng đường dẫn nhưng bị chặn IP
-                             // Ở đây ta tạm coi là chưa xác định được
-                        }
-                    } catch(e) {}
-                }
+                        } catch(e) {}
+                    }
 
-                if (adminOk) {
-                    document.getElementById(`chkAdmin_${i}`).innerHTML = `<span class="status-badge status-success">✅ ${site.adminPath} đúng</span>`;
+                    if (adminOk) {
+                        document.getElementById(`chkAdmin_${i}`).innerHTML = `<span class="status-badge status-success">✅ ${site.adminPath} đúng</span>`;
+                    } else {
+                        document.getElementById(`chkAdmin_${i}`).innerHTML = '<span class="status-badge status-error">❌ Sai hoặc bị chặn</span>';
+                    }
                 } else {
-                    document.getElementById(`chkAdmin_${i}`).innerHTML = `<span class="status-badge status-error">❌ Sai hoặc bị chặn</span>`;
+                    document.getElementById(`chkAdmin_${i}`).innerHTML = '<span style="color:var(--text-muted)">- Web die -</span>';
                 }
-            } else {
-                document.getElementById(`chkAdmin_${i}`).innerHTML = '<span style="color:var(--text-muted)">- Bỏ qua (web die) -</span>';
             }
 
             // --- CHECK 3: Đăng nhập WordPress qua XML-RPC ---
-            if ((siteOk || isBlocked) && site.user && site.pass) {
-                document.getElementById(`chkLogin_${i}`).innerHTML = '<span style="color:var(--warning);font-size:12px">Đang thử đăng nhập...</span>';
-                const xmlrpcUrl = site.url + 'xmlrpc.php';
-                const xmlBody = `<?xml version="1.0"?><methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>${site.user}</string></value></param><param><value><string>${site.pass}</string></value></param></params></methodCall>`;
-                
-                let loginResult = 'unknown';
-                // Thử XML-RPC qua tất cả proxy
-                for (const proxyFn of proxies) {
-                    try {
-                        const res = await fetch(proxyFn(xmlrpcUrl), {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'text/xml' },
-                            body: xmlBody
-                        });
-                        if (res.ok) {
-                            const xml = await res.text();
-                            if (xml.includes('<name>blogid</name>') || xml.includes('<name>url</name>')) {
-                                loginResult = 'success';
-                                break;
-                            } else if (xml.includes('faultCode') || xml.includes('Incorrect username') || xml.includes('incorrect_password')) {
-                                loginResult = 'wrong';
-                                break;
+            if (doLogin && site.user && site.pass) {
+                if (siteOk || isBlocked) {
+                    document.getElementById(`chkLogin_${i}`).innerHTML = '<span style="color:var(--warning);font-size:12px">Đang thử...</span>';
+                    const xmlrpcUrl = site.url + 'xmlrpc.php';
+                    const xmlBody = `<?xml version="1.0"?><methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>${site.user}</string></value></param><param><value><string>${site.pass}</string></value></param></params></methodCall>`;
+                    
+                    let loginResult = 'unknown';
+                    for (const proxyFn of proxies) {
+                        try {
+                            const res = await fetch(proxyFn(xmlrpcUrl), {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'text/xml' },
+                                body: xmlBody
+                            });
+                            if (res.ok) {
+                                const xml = await res.text();
+                                if (xml.includes('<name>blogid</name>') || xml.includes('<name>url</name>')) {
+                                    loginResult = 'success'; break;
+                                } else if (xml.includes('faultCode') || xml.includes('Incorrect username') || xml.includes('incorrect_password')) {
+                                    loginResult = 'wrong'; break;
+                                }
+                            } else if (res.status === 403) {
+                                loginResult = 'blocked';
                             }
-                        } else if (res.status === 403) {
-                            loginResult = 'blocked';
-                        }
-                    } catch(e) {}
-                }
+                        } catch(e) {}
+                    }
 
-                if (loginResult === 'success') {
-                    document.getElementById(`chkLogin_${i}`).innerHTML = `<span class="status-badge status-success">✅ ${site.user} đúng</span>`;
-                } else if (loginResult === 'wrong') {
-                    document.getElementById(`chkLogin_${i}`).innerHTML = `<span class="status-badge status-error">❌ Sai user hoặc pass</span>`;
+                    if (loginResult === 'success') {
+                        document.getElementById(`chkLogin_${i}`).innerHTML = `<span class="status-badge status-success">✅ ${site.user} đúng</span>`;
+                    } else if (loginResult === 'wrong') {
+                        document.getElementById(`chkLogin_${i}`).innerHTML = '<span class="status-badge status-error">❌ Sai user/pass</span>';
+                    } else {
+                        document.getElementById(`chkLogin_${i}`).innerHTML = '<span class="status-badge" style="background:var(--warning);color:#fff">⚠️ XML-RPC chặn</span>';
+                    }
                 } else {
-                    document.getElementById(`chkLogin_${i}`).innerHTML = `<span class="status-badge status-pending">⚠️ XML-RPC bị chặn</span>`;
+                    document.getElementById(`chkLogin_${i}`).innerHTML = '<span style="color:var(--text-muted)">- Web die -</span>';
                 }
-            } else if (!site.user) {
-                // Không có thông tin tài khoản - giữ nguyên
-            } else if (!siteOk && !isBlocked) {
-                document.getElementById(`chkLogin_${i}`).innerHTML = '<span style="color:var(--text-muted)">- Bỏ qua -</span>';
             }
 
             progressFill.style.width = `${((i + 1) / sites.length) * 100}%`;
