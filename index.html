@@ -894,7 +894,7 @@
         const thead = tbody.closest('table').querySelector('thead tr');
         thead.innerHTML = '<th>Website URL</th>';
         if (doWebsite) thead.innerHTML += '<th>Trạng thái</th><th>HTTP Code</th>';
-        if (do301) thead.innerHTML += '<th>URL cuối (301)</th>';
+        if (do301) thead.innerHTML += '<th>Chuỗi Redirect</th><th>So khớp 301</th>';
         if (doAdmin) thead.innerHTML += '<th>WP-Admin</th>';
         if (doLogin) thead.innerHTML += '<th>Đăng nhập</th>';
         tbody.innerHTML = '';
@@ -934,7 +934,7 @@
                 </td>`;
             
             if (doWebsite) cells += `<td id="chkStatus_${idx}"><span class="status-badge status-pending">Đang chờ</span></td><td id="chkCode_${idx}" style="color:var(--text-muted)">...</td>`;
-            if (do301) cells += `<td id="chk301_${idx}" style="color:var(--text-muted)">...</td>`;
+            if (do301) cells += `<td id="chkChain_${idx}" style="color:var(--text-muted)">...</td><td id="chkMatch_${idx}" style="color:var(--text-muted)">...</td>`;
             if (doAdmin) cells += `<td id="chkAdmin_${idx}" style="color:var(--text-muted)">...</td>`;
             if (doLogin) cells += `<td id="chkLogin_${idx}" style="color:var(--text-muted)">${site.user ? '...' : '<span style="color:var(--text-muted)">- Không có TK -</span>'}</td>`;
             tr.innerHTML = cells;
@@ -988,55 +988,62 @@
                 siteOk = true;
             }
 
-            // --- CHECK 1.5: Kiểm tra 301 Redirect (Trace Chain & Compare) ---
+            // --- CHECK 1.5: Kiểm tra 301 Redirect (Chain & Match) ---
             if (do301) {
-                const cell301 = document.getElementById(`chk301_${i}`);
-                cell301.innerHTML = '<span style="color:var(--warning);font-size:12px">Đang dò vết...</span>';
+                const chainCell = document.getElementById(`chkChain_${i}`);
+                const matchCell = document.getElementById(`chkMatch_${i}`);
+                chainCell.innerHTML = '<span style="color:var(--warning);font-size:12px">Đang dò...</span>';
+                matchCell.innerHTML = '...';
                 
                 let chain = [site.origin];
-                let isMismatch = false; // Sai lệch so với con sếp theo dõi
+                let finalUrl = site.origin;
 
                 try {
                     const traceRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(site.origin)}`);
                     if (traceRes.ok) {
                         const traceData = await traceRes.json();
-                        const finalUrl = traceData.status && traceData.status.url ? traceData.status.url : site.origin;
+                        finalUrl = traceData.status && traceData.status.url ? traceData.status.url : site.origin;
                         
-                        // So sánh domain thực tế (finalUrl) với domain sếp đang theo dõi (recorded)
-                        const finalDomain = new URL(finalUrl).hostname.replace('www.', '').toLowerCase();
-                        const recordedDomain = new URL(site.recorded).hostname.replace('www.', '').toLowerCase();
-
-                        if (finalDomain !== recordedDomain) {
-                            isMismatch = true;
-                            // Nếu sai lệch, chèn thêm thông tin vào chain
+                        // Nếu có nhảy, ta thử bóc thêm 1 nấc từ HTML (canonical) cho nó chi tiết
+                        if (finalUrl !== site.origin) {
+                            const html = traceData.contents;
+                            const canonMatch = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
+                            const detectedUrl = canonMatch ? canonMatch[1] : null;
+                            if (detectedUrl && detectedUrl !== site.origin && detectedUrl !== finalUrl) {
+                                chain.push(detectedUrl);
+                            }
                             chain.push(finalUrl);
-                        } else {
-                            if (site.origin !== finalUrl) chain.push(finalUrl);
                         }
                     }
                 } catch(e) { console.warn("Trace lỗi"); }
 
-                // Render chuỗi Chain
-                if (isMismatch) {
-                    let finalShort = chain[chain.length - 1].replace('https://','').replace('http://','').replace(/\/$/,'');
-                    cell301.innerHTML = `
-                        <div style="font-size:11px; line-height:1.4; color:#ef4444; font-weight:bold;">
-                            🚨 SAI LỆCH!<br>
-                            <span style="color:var(--text-muted); font-weight:normal;">Đích thực tế:</span><br>
-                            ${finalShort}
-                        </div>`;
-                    cell301.dataset.url = chain[chain.length - 1];
-                    cell301.dataset.redirected = 'true';
-                } else if (chain.length > 1 || site.origin !== site.recorded) {
-                    // Đúng con sếp theo dõi
-                    let finalShort = site.recorded.replace('https://','').replace('http://','').replace(/\/$/,'');
-                    cell301.innerHTML = `<span style="color:var(--success); font-size:11px;">✅ Khớp: ${finalShort}</span>`;
-                    cell301.dataset.url = site.recorded;
-                    cell301.dataset.redirected = 'false';
+                // 1. Render cột Chuỗi Redirect (Dò vết)
+                if (chain.length > 1) {
+                    let chainHtml = chain.map((link, idx) => {
+                        let short = link.replace('https://','').replace('http://','').replace(/\/$/,'');
+                        return `<span style="color:${idx === 0 ? 'var(--text-muted)' : 'var(--primary)'}" title="${link}">${short}</span>`;
+                    }).join(' ➔ ');
+                    chainCell.innerHTML = `<div style="font-size:10px; line-height:1.4; word-break:break-all; max-width:200px;">${chainHtml}</div>`;
                 } else {
-                    cell301.innerHTML = `<span style="color:var(--text-muted); font-size:11px;">- Không nhảy -</span>`;
-                    cell301.dataset.url = site.origin;
-                    cell301.dataset.redirected = 'false';
+                    chainCell.innerHTML = `<span style="color:var(--text-muted); font-size:11px;">Không nhảy</span>`;
+                }
+
+                // 2. Render cột So khớp (So với con sếp theo dõi)
+                const finalDomain = new URL(finalUrl).hostname.replace('www.', '').toLowerCase();
+                const recordedDomain = new URL(site.recorded).hostname.replace('www.', '').toLowerCase();
+
+                if (finalDomain !== recordedDomain) {
+                    matchCell.innerHTML = `
+                        <div style="color:#ef4444; font-weight:bold; font-size:11px;">
+                            🚨 SAI LỆCH!
+                            <div style="font-size:9px; font-weight:normal; margin-top:2px; color:var(--text-muted)">Đích thực tế khác con sếp lưu.</div>
+                        </div>`;
+                    matchCell.dataset.url = finalUrl;
+                    matchCell.dataset.redirected = 'true';
+                } else {
+                    matchCell.innerHTML = `<span class="status-badge status-success" style="font-size:10px; padding:2px 6px;">✅ Khớp</span>`;
+                    matchCell.dataset.url = finalUrl;
+                    matchCell.dataset.redirected = 'false';
                 }
             }
 
@@ -1193,7 +1200,7 @@
 
     // Copy toàn bộ cột URL cuối (301)
     function copyRedirectColumn() {
-        const cells = document.querySelectorAll('[id^="chk301_"]');
+        const cells = document.querySelectorAll('[id^="chkMatch_"]');
         let urls = [];
         let redirectCount = 0;
 
@@ -1205,7 +1212,7 @@
 
         const text = urls.join('\n');
         navigator.clipboard.writeText(text).then(() => {
-            document.getElementById('redirectCopyInfo').textContent = `✅ Đã copy ${urls.length} URL (${redirectCount} bị 301)`;
+            document.getElementById('redirectCopyInfo').textContent = `✅ Đã copy ${urls.length} URL (${redirectCount} bị sai lệch)`;
             document.getElementById('redirectCopyInfo').style.color = 'var(--success)';
         });
     }
