@@ -235,6 +235,38 @@
             width: 0%;
             transition: width 0.3s;
         }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab-btn:hover {
+            color: var(--text);
+            background: rgba(255,255,255,0.03);
+        }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
     </style>
 </head>
 <body>
@@ -242,8 +274,15 @@
 <div class="container">
     <div class="header">
         <h1>GSC Bulk Add & Meta Verify Pro</h1>
-        <p>Thêm hàng loạt Website vào Google Search Console & Tự động lấy mã HTML xác minh (Flatsome/RankMath)</p>
+        <p>Bộ công cụ quản lý Website hàng loạt: Add GSC, Lấy mã xác minh & Kiểm tra trạng thái</p>
     </div>
+
+    <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('tab1')">🔌 Add GSC & Lấy Mã</button>
+        <button class="tab-btn" onclick="switchTab('tab2')">🔍 Check Website Status</button>
+    </div>
+
+    <div id="tab1" class="tab-content active">
 
     <!-- Bước 1: Đăng nhập -->
     <div class="card">
@@ -304,6 +343,44 @@
             <button class="btn" style="margin-top:10px; width:100%;" onclick="copyToClipboard(this, document.getElementById('csvContent').value)">📋 Copy toàn bộ nội dung CSV</button>
         </div>
     </div>
+    </div><!-- end tab1 -->
+
+    <div id="tab2" class="tab-content">
+        <div class="card">
+            <h3 style="margin-top:0">Nhập danh sách Website cần kiểm tra</h3>
+            <div class="form-group">
+                <label>Mỗi dòng 1 domain. Có thể thêm đuôi quản trị tùy chỉnh (mặc định: <b>wp-admin</b>)</label>
+                <textarea id="checkDomainList" placeholder="https://domain1.com/&#10;https://domain2.com/  wp-admin-custom&#10;https://sub.domain3.net/  admin-panel"></textarea>
+            </div>
+            <button id="btnCheck" class="btn btn-success" onclick="startCheck()">🔍 Bắt đầu Kiểm Tra</button>
+            <div id="checkProgressBar" class="progress-bar">
+                <div id="checkProgressFill" class="progress-fill"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top:0">Kết Quả Kiểm Tra</h3>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th width="35%">Website URL</th>
+                            <th width="15%">Trạng thái</th>
+                            <th width="15%">HTTP Code</th>
+                            <th width="35%">WP-Admin</th>
+                        </tr>
+                    </thead>
+                    <tbody id="checkResultBody">
+                        <tr>
+                            <td colspan="4" style="text-align:center; color:var(--text-muted); padding:30px;">
+                                Chưa có dữ liệu. Hãy nhập domain và bấm Kiểm Tra.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div><!-- end tab2 -->
 </div>
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -569,6 +646,140 @@
                 btnElement.style.background = "rgba(255,255,255,0.1)";
             }, 2000);
         });
+    }
+
+    // ==========================================
+    // TAB NAVIGATION
+    // ==========================================
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        // Highlight nút Tab tương ứng
+        const idx = tabId === 'tab1' ? 0 : 1;
+        document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+    }
+
+    // ==========================================
+    // CHỨC NĂNG 2: CHECK WEBSITE STATUS
+    // ==========================================
+    let isChecking = false;
+
+    async function startCheck() {
+        if (isChecking) return;
+
+        const lines = document.getElementById('checkDomainList').value.split('\n').map(l => l.trim()).filter(l => l);
+        if (lines.length === 0) {
+            alert('Vui lòng nhập ít nhất 1 domain!');
+            return;
+        }
+
+        isChecking = true;
+        const btn = document.getElementById('btnCheck');
+        btn.disabled = true;
+        btn.innerHTML = '<span style="display:inline-block; animation: spin 1s linear infinite;">⏳</span> Đang kiểm tra...';
+
+        const progressBar = document.getElementById('checkProgressBar');
+        const progressFill = document.getElementById('checkProgressFill');
+        progressBar.style.display = 'block';
+        progressFill.style.width = '0%';
+
+        const tbody = document.getElementById('checkResultBody');
+        tbody.innerHTML = '';
+
+        // Parse input
+        const sites = lines.map(line => {
+            const parts = line.split(/\s+/);
+            let url = parts[0];
+            if (!url.startsWith('http')) url = 'https://' + url;
+            if (!url.endsWith('/')) url += '/';
+            const adminPath = parts[1] || 'wp-admin';
+            return { url, adminPath };
+        });
+
+        // Render dòng chờ
+        sites.forEach((site, idx) => {
+            const tr = document.createElement('tr');
+            tr.id = `chk_${idx}`;
+            tr.innerHTML = `
+                <td class="domain-cell"><a href="${site.url}" target="_blank" style="color:var(--primary);text-decoration:none">${site.url}</a></td>
+                <td id="chkStatus_${idx}"><span class="status-badge status-pending">Đang chờ</span></td>
+                <td id="chkCode_${idx}" style="color:var(--text-muted)">...</td>
+                <td id="chkAdmin_${idx}" style="color:var(--text-muted)">...</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        const proxies = [
+            url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            url => `https://corsproxy.io/?${encodeURIComponent(url)}`
+        ];
+
+        for (let i = 0; i < sites.length; i++) {
+            const site = sites[i];
+            document.getElementById(`chkStatus_${i}`).innerHTML = '<span class="status-badge status-running">Đang check...</span>';
+
+            // --- CHECK 1: Website chính ---
+            let siteOk = false;
+            let httpCode = '???';
+            for (const proxyFn of proxies) {
+                try {
+                    const res = await fetch(proxyFn(site.url));
+                    httpCode = res.status;
+                    if (res.ok) {
+                        const html = await res.text();
+                        if (html && html.length > 100) {
+                            siteOk = true;
+                            break;
+                        }
+                    }
+                } catch(e) { /* thử proxy tiếp */ }
+            }
+
+            if (siteOk) {
+                document.getElementById(`chkStatus_${i}`).innerHTML = '<span class="status-badge status-success">✅ Live</span>';
+                document.getElementById(`chkCode_${i}`).innerHTML = `<span style="color:var(--success);font-weight:bold">${httpCode}</span>`;
+            } else {
+                document.getElementById(`chkStatus_${i}`).innerHTML = '<span class="status-badge status-error">❌ Die / Lỗi</span>';
+                document.getElementById(`chkCode_${i}`).innerHTML = `<span style="color:var(--danger);font-weight:bold">${httpCode}</span>`;
+            }
+
+            // --- CHECK 2: WP-Admin ---
+            if (siteOk) {
+                document.getElementById(`chkAdmin_${i}`).innerHTML = '<span style="color:var(--warning);font-size:12px">Đang check admin...</span>';
+                const adminUrl = site.url + site.adminPath;
+                let adminOk = false;
+
+                for (const proxyFn of proxies) {
+                    try {
+                        const res = await fetch(proxyFn(adminUrl));
+                        if (res.ok) {
+                            const html = await res.text();
+                            // Nhận diện trang login WordPress
+                            if (html.includes('wp-login') || html.includes('wp-submit') || html.includes('loginform') || html.includes('user_login')) {
+                                adminOk = true;
+                                break;
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                if (adminOk) {
+                    document.getElementById(`chkAdmin_${i}`).innerHTML = `<span class="status-badge status-success">✅ ${site.adminPath} đúng</span>`;
+                } else {
+                    document.getElementById(`chkAdmin_${i}`).innerHTML = `<span class="status-badge status-error">❌ ${site.adminPath} sai hoặc bị chặn</span>`;
+                }
+            } else {
+                document.getElementById(`chkAdmin_${i}`).innerHTML = '<span style="color:var(--text-muted)">- Bỏ qua (web die) -</span>';
+            }
+
+            progressFill.style.width = `${((i + 1) / sites.length) * 100}%`;
+            await new Promise(r => setTimeout(r, 1500));
+        }
+
+        isChecking = false;
+        btn.disabled = false;
+        btn.innerHTML = '🔍 Chạy Lại Kiểm Tra';
     }
 
     // CSS Keyframe for loading spinner
