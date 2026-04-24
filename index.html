@@ -838,14 +838,17 @@
                 }
             }
 
-            // --- CHECK 3: Đăng nhập WordPress qua XML-RPC ---
+            // --- CHECK 3: Đăng nhập WordPress ---
             if (doLogin && site.user && site.pass) {
                 if (siteOk || isBlocked) {
                     document.getElementById(`chkLogin_${i}`).innerHTML = '<span style="color:var(--warning);font-size:12px">Đang thử...</span>';
+                    
+                    let loginResult = 'unknown';
+
+                    // PHƯƠNG PHÁP 1: XML-RPC (Ưu tiên vì nhanh và chính xác)
                     const xmlrpcUrl = site.url + 'xmlrpc.php';
                     const xmlBody = `<?xml version="1.0"?><methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>${site.user}</string></value></param><param><value><string>${site.pass}</string></value></param></params></methodCall>`;
                     
-                    let loginResult = 'unknown';
                     for (const proxyFn of proxies) {
                         try {
                             const res = await fetch(proxyFn(xmlrpcUrl), {
@@ -860,10 +863,39 @@
                                 } else if (xml.includes('faultCode') || xml.includes('Incorrect username') || xml.includes('incorrect_password')) {
                                     loginResult = 'wrong'; break;
                                 }
-                            } else if (res.status === 403) {
-                                loginResult = 'blocked';
                             }
                         } catch(e) {}
+                    }
+
+                    // PHƯƠNG PHÁP 2: Form Login (Nếu phương pháp 1 không ra kết quả)
+                    if (loginResult === 'unknown' || loginResult === 'blocked') {
+                        const loginUrl = site.url + 'wp-login.php';
+                        const formData = new URLSearchParams();
+                        formData.append('log', site.user);
+                        formData.append('pwd', site.pass);
+                        formData.append('wp-submit', 'Log In');
+                        formData.append('testcookie', '1');
+
+                        for (const proxyFn of proxies) {
+                            try {
+                                // Một số proxy không hỗ trợ POST Form, ta thử qua Proxy hỗ trợ tốt nhất
+                                const res = await fetch(proxyFn(loginUrl), {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                                    body: formData.toString()
+                                });
+                                
+                                const html = await res.text();
+                                // Nếu thành công, WP thường redirect hoặc trả về trang Dashboard
+                                if (html.includes('wp-admin') && (html.includes('Dashboard') || html.includes('Chào') || html.includes('Howdy'))) {
+                                    loginResult = 'success'; break;
+                                } 
+                                // Nếu sai pass, WP trả về trang login kèm thông báo lỗi
+                                else if (html.includes('error') && (html.includes('password') || html.includes('Mật khẩu') || html.includes('tên người dùng'))) {
+                                    loginResult = 'wrong'; break;
+                                }
+                            } catch(e) {}
+                        }
                     }
 
                     if (loginResult === 'success') {
@@ -871,7 +903,7 @@
                     } else if (loginResult === 'wrong') {
                         document.getElementById(`chkLogin_${i}`).innerHTML = '<span class="status-badge status-error">❌ Sai user/pass</span>';
                     } else {
-                        document.getElementById(`chkLogin_${i}`).innerHTML = '<span class="status-badge" style="background:var(--warning);color:#fff">⚠️ XML-RPC chặn</span>';
+                        document.getElementById(`chkLogin_${i}`).innerHTML = '<span class="status-badge" style="background:var(--warning);color:#fff">⚠️ Bị chặn truy cập</span>';
                     }
                 } else {
                     document.getElementById(`chkLogin_${i}`).innerHTML = '<span style="color:var(--text-muted)">- Web die -</span>';
