@@ -895,7 +895,7 @@
         const thead = tbody.closest('table').querySelector('thead tr');
         thead.innerHTML = '<th>Website URL</th>';
         if (doWebsite) thead.innerHTML += '<th>Trạng thái</th><th>HTTP Code</th>';
-        if (do301) thead.innerHTML += '<th>Chuỗi Redirect</th><th>So khớp 301</th>';
+        if (do301) thead.innerHTML += '<th>So khớp 301</th>';
         if (doAdmin) thead.innerHTML += '<th>WP-Admin</th>';
         if (doLogin) thead.innerHTML += '<th>Đăng nhập</th>';
         tbody.innerHTML = '';
@@ -935,7 +935,7 @@
                 </td>`;
             
             if (doWebsite) cells += `<td id="chkStatus_${idx}"><span class="status-badge status-pending">Đang chờ</span></td><td id="chkCode_${idx}" style="color:var(--text-muted)">...</td>`;
-            if (do301) cells += `<td id="chkChain_${idx}" style="color:var(--text-muted)">...</td><td id="chkMatch_${idx}" style="color:var(--text-muted)">...</td>`;
+            if (do301) cells += `<td id="chkMatch_${idx}" style="color:var(--text-muted)">...</td>`;
             if (doAdmin) cells += `<td id="chkAdmin_${idx}" style="color:var(--text-muted)">...</td>`;
             if (doLogin) cells += `<td id="chkLogin_${idx}" style="color:var(--text-muted)">${site.user ? '...' : '<span style="color:var(--text-muted)">- Không có TK -</span>'}</td>`;
             tr.innerHTML = cells;
@@ -989,14 +989,11 @@
                 siteOk = true;
             }
 
-            // --- CHECK 1.5: Kiểm tra 301 Redirect (Chain & Match) ---
+            // --- CHECK 1.5: Kiểm tra 301 Redirect (So khớp đích cuối) ---
             if (do301) {
-                const chainCell = document.getElementById(`chkChain_${i}`);
                 const matchCell = document.getElementById(`chkMatch_${i}`);
-                chainCell.innerHTML = '<span style="color:var(--warning);font-size:12px">Đang dò đa tầng...</span>';
-                matchCell.innerHTML = '...';
+                matchCell.innerHTML = '<span style="color:var(--warning);font-size:12px">Đang dò đích...</span>';
                 
-                let chain = [site.origin];
                 let actualFinalUrl = site.origin;
 
                 const fetchWithTimeout = async (resource, options = {}) => {
@@ -1008,52 +1005,22 @@
                     return response;
                 };
 
-                // Hàm Mắt Thần Đa Tầng (Multi-hop Trace) - Vét sạch lịch sử nhảy
-                async function deepTraceMultiHop(startUrl) {
-                    let currentUrl = startUrl;
-                    let localChain = [startUrl];
-                    let maxHops = 4; // Quét sâu tối đa 4 tầng để chống treo vô hạn
-                    
-                    for (let step = 0; step < maxHops; step++) {
-                        try {
-                            const res = await fetchWithTimeout(`https://api.hackertarget.com/httpheaders/?q=${encodeURIComponent(currentUrl)}`, {timeout: 6000});
-                            if (res.ok) {
-                                const text = await res.text();
-                                const locMatch = text.match(/Location:\s*(https?:\/\/[^\s]+)/i);
-                                if (locMatch && locMatch[1]) {
-                                    let nextUrl = locMatch[1].trim();
-                                    if (!localChain.includes(nextUrl)) {
-                                        localChain.push(nextUrl);
-                                        currentUrl = nextUrl;
-                                        continue; // Tiếp tục đuổi theo nấc tiếp theo
-                                    }
-                                }
-                            }
-                        } catch(e) {}
-                        break; // Nếu không tìm thấy Location nữa thì dừng
+                // Thử quét nhanh bằng HackerTarget để lấy Location Header
+                try {
+                    const htRes = await fetchWithTimeout(`https://api.hackertarget.com/httpheaders/?q=${encodeURIComponent(site.origin)}`, {timeout: 6000});
+                    if (htRes.ok) {
+                        const text = await htRes.text();
+                        const locMatch = text.match(/Location:\s*(https?:\/\/[^\s]+)/i);
+                        if (locMatch && locMatch[1]) actualFinalUrl = locMatch[1].trim();
                     }
-                    return localChain;
-                }
+                } catch(e) {}
 
-                // 1. Quét Lịch sử Đa Tầng bằng Header
-                let multiHopChain = await deepTraceMultiHop(site.origin);
-                if (multiHopChain && multiHopChain.length > 1) {
-                    multiHopChain.slice(1).forEach(url => {
-                        if (!chain.includes(url) && !url.includes(new URL(site.origin).hostname)) {
-                            chain.push(url);
-                            actualFinalUrl = url;
-                        }
-                    });
-                }
-
-                // 2. Quét vét máng HTML/JS tại đích cuối cùng (nếu web dùng thủ thuật nhảy bằng code)
+                // Dùng AllOrigins để quét sâu (JS/Meta/Canonical)
                 try {
                     const traceRes = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(actualFinalUrl)}`, {timeout: 10000});
                     if (traceRes.ok) {
                         const data = await traceRes.json();
-                        if (data.status && data.status.url && data.status.url !== actualFinalUrl) {
-                            actualFinalUrl = data.status.url;
-                        }
+                        if (data.status && data.status.url) actualFinalUrl = data.status.url;
                         
                         const html = data.contents || "";
                         const refreshMatch = html.match(/content=["'][^"']+url=([^"']+)["']/i);
@@ -1061,18 +1028,11 @@
                         const canonMatch = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
 
                         [refreshMatch, jsMatch, canonMatch].forEach(m => {
-                            if (m && m[1]) {
-                                let link = m[1].trim();
-                                if (link.startsWith('http') && !link.includes(new URL(site.origin).hostname)) {
-                                    actualFinalUrl = link;
-                                }
-                            }
+                            if (m && m[1] && m[1].startsWith('http')) actualFinalUrl = m[1].trim();
                         });
-                    } else {
-                        throw new Error("AllOrigins Fail");
                     }
                 } catch(e) {
-                    // 3. Dự phòng Codetabs nếu AllOrigins bị treo Timeout
+                    // Dự phòng Codetabs
                     try {
                         const ctRes = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(actualFinalUrl)}`, {timeout: 10000});
                         if (ctRes.ok) {
@@ -1080,51 +1040,28 @@
                             const refreshMatch = html.match(/content=["'][^"']+url=([^"']+)["']/i);
                             const jsMatch = html.match(/location\.href\s*=\s*["']([^"']+)["']/i);
                             const canonMatch = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
-
                             [refreshMatch, jsMatch, canonMatch].forEach(m => {
-                                if (m && m[1]) {
-                                    let link = m[1].trim();
-                                    if (link.startsWith('http') && !link.includes(new URL(site.origin).hostname)) {
-                                        actualFinalUrl = link;
-                                    }
-                                }
+                                if (m && m[1] && m[1].startsWith('http')) actualFinalUrl = m[1].trim();
                             });
                         }
                     } catch(e2) {}
                 }
 
-                if (actualFinalUrl !== site.origin && !chain.includes(actualFinalUrl)) chain.push(actualFinalUrl);
+                // So khớp
+                let finalShort = actualFinalUrl.replace('https://','').replace('http://','').replace(/\/$/,'').toLowerCase();
+                let recordedShort = site.recorded.replace('https://','').replace('http://','').replace(/\/$/,'').toLowerCase();
+                const isMatch = finalShort === recordedShort;
 
-                // 4. Render Kết Quả
-                if (chain.length > 1) {
-                    let chainHtml = chain.map((link, idx) => {
-                        let short = link.replace('https://','').replace('http://','').replace(/\/$/,'');
-                        return `<span style="color:${idx === 0 ? 'var(--text-muted)' : 'var(--primary)'}">${short}</span>`;
-                    }).join(' ➔ ');
-                    chainCell.innerHTML = `<div style="font-size:10px; line-height:1.4;">${chainHtml}</div>`;
-                } else {
-                    chainCell.innerHTML = `<span style="color:var(--text-muted); font-size:11px;">Không nhảy</span>`;
-                }
-
-                // 2. Render cột So khớp 301 (Luôn hiện đích thực tế + Bôi màu)
-                const actualDomain = new URL(actualFinalUrl).hostname.replace('www.', '').toLowerCase();
-                const recordedDomain = new URL(site.recorded).hostname.replace('www.', '').toLowerCase();
-                const isMatch = actualDomain === recordedDomain;
-
-                let finalDisplay = actualFinalUrl.replace('https://','').replace('http://','').replace(/\/$/,'');
-                
                 matchCell.innerHTML = `
-                    <div style="padding:4px; border-radius:4px; border:1px solid ${isMatch ? 'var(--success)' : '#ef4444'}; background:${isMatch ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.1)'}">
+                    <div style="padding:4px; border-radius:4px; border:1px solid ${isMatch ? 'var(--success)' : '#ef4444'}; background:${isMatch ? 'rgba(16,185,129,0.05)' : 'rgba(239, 68, 68, 0.1)'}">
                         <div style="color:${isMatch ? 'var(--success)' : '#ef4444'}; font-weight:bold; font-size:10px; margin-bottom:2px;">
                             ${isMatch ? '✅ KHỚP' : '🚨 SAI LỆCH'}
                         </div>
                         <div style="color:${isMatch ? '#fff' : '#ef4444'}; font-family:monospace; font-size:11px; word-break:break-all;">
-                            ${finalDisplay}
+                            ${actualFinalUrl.replace('https://','').replace('http://','').replace(/\/$/,'')}
                         </div>
                     </div>`;
-                
                 matchCell.dataset.url = actualFinalUrl;
-                matchCell.dataset.redirected = !isMatch ? 'true' : 'false';
             }
 
             // --- CHECK 2: WP-Admin (Dùng URL Đang theo dõi) ---
