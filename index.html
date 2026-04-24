@@ -605,8 +605,8 @@
             tbody.appendChild(tr);
         });
 
-        // ==== PRE-CHECK: Lấy danh sách website đã có trong GSC ====
-        let existingSites = new Set();
+        // ==== PRE-CHECK: Lấy danh sách website và quyền hạn hiện tại ====
+        let existingSites = new Map(); // Dùng Map để lưu URL -> Quyền hạn
         try {
             const listRes = await fetch('https://www.googleapis.com/webmasters/v3/sites', {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -615,10 +615,9 @@
                 const listData = await listRes.json();
                 if (listData.siteEntry) {
                     listData.siteEntry.forEach(entry => {
-                        // Chuẩn hóa URL để so sánh chính xác
                         let siteUrl = entry.siteUrl;
                         if (!siteUrl.endsWith('/')) siteUrl += '/';
-                        existingSites.add(siteUrl.toLowerCase());
+                        existingSites.set(siteUrl.toLowerCase(), entry.permissionLevel);
                     });
                 }
             }
@@ -630,14 +629,26 @@
         for (let i = 0; i < domainsData.length; i++) {
             const siteUrl = domainsData[i].url;
             let addSuccess = false;
+            let alreadyVerified = false;
 
-            // ✅ Bước 1: Kiểm tra đã tồn tại trong GSC chưa để quyết định có cần gọi lệnh Add (PUT) không
-            if (existingSites.has(siteUrl.toLowerCase())) {
-                document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge" style="background:#6366f1;color:#fff">✅ Đã có trong GSC</span>`;
-                addSuccess = true; // Coi như add thành công vì đã có sẵn
+            // ✅ Bước 1: Kiểm tra đã tồn tại và quyền hạn
+            const perm = existingSites.get(siteUrl.toLowerCase());
+            if (perm) {
+                if (perm === 'siteOwner') {
+                    document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge" style="background:#6366f1;color:#fff">✅ Đã có trong GSC</span>`;
+                    document.getElementById(`meta_${i}`).innerHTML = `<span style="color:var(--text-muted)">- Đã xác minh xong -</span>`;
+                    document.getElementById(`verify_${i}`).innerHTML = `<span class="status-badge status-success">✅ Đã xác minh</span>`;
+                    alreadyVerified = true;
+                    addSuccess = true;
+                } else {
+                    // Có trong list nhưng chưa phải Owner (Chờ xác minh)
+                    document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge" style="background:#6366f1;color:#fff">✅ Đã có trong GSC</span>`;
+                    addSuccess = true;
+                }
             } else {
                 // Nếu chưa có, tiến hành Add mới
                 document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-running">Đang Add...</span>`;
+                // ... (phần code add site giữ nguyên)
                 
                 let retryCount = 0;
                 while (retryCount < 3) {
@@ -668,8 +679,8 @@
                 }
             }
 
-            // 2. NẾU ADD THÀNH CÔNG, GỌI API LẤY MÃ HTML (SiteVerification.getToken)
-            if (addSuccess) {
+            // 2. NẾU ADD THÀNH CÔNG VÀ CHƯA XÁC MINH, GỌI API LẤY MÃ HTML
+            if (addSuccess && !alreadyVerified) {
                 document.getElementById(`meta_${i}`).innerHTML = `<span style="color:var(--warning);font-size:12px;">Đang hút mã HTML...</span>`;
                 
                 try {
