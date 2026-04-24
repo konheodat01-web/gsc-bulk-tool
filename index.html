@@ -998,51 +998,59 @@
                 
                 let chain = [site.origin];
                 let finalUrl = site.origin;
+                let traceSuccess = false;
 
-                try {
-                    const traceRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(site.origin)}`);
-                    if (traceRes.ok) {
-                        const traceData = await traceRes.json();
-                        finalUrl = traceData.status && traceData.status.url ? traceData.status.url : site.origin;
-                        
-                        // Nếu có nhảy, ta thử bóc thêm 1 nấc từ HTML (canonical) cho nó chi tiết
-                        if (finalUrl !== site.origin) {
-                            const html = traceData.contents;
-                            const canonMatch = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
-                            const detectedUrl = canonMatch ? canonMatch[1] : null;
-                            if (detectedUrl && detectedUrl !== site.origin && detectedUrl !== finalUrl) {
-                                chain.push(detectedUrl);
+                // Thử đa Proxy để lấy URL cuối cùng chính xác nhất
+                const traceProxies = [
+                    `https://api.allorigins.win/get?url=${encodeURIComponent(site.origin)}`,
+                    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(site.origin)}`
+                ];
+
+                for (let pIdx = 0; pIdx < traceProxies.length; pIdx++) {
+                    try {
+                        const res = await fetch(traceProxies[pIdx]);
+                        if (res.ok) {
+                            if (pIdx === 0) { // AllOrigins
+                                const data = await res.json();
+                                finalUrl = data.status && data.status.url ? data.status.url : finalUrl;
+                                // Thử bóc thêm canonical nếu có
+                                const canonMatch = data.contents.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
+                                if (canonMatch && canonMatch[1] && !chain.includes(canonMatch[1])) {
+                                    if (!canonMatch[1].includes(new URL(site.origin).hostname)) chain.push(canonMatch[1]);
+                                }
+                            } else { // Codetabs (lấy res.url trực tiếp)
+                                if (res.url && !res.url.includes('codetabs')) finalUrl = res.url;
                             }
-                            chain.push(finalUrl);
+                            traceSuccess = true;
+                            break;
                         }
-                    }
-                } catch(e) { console.warn("Trace lỗi"); }
-
-                // 1. Render cột Chuỗi Redirect (Dò vết)
-                if (chain.length > 1) {
-                    let chainHtml = chain.map((link, idx) => {
-                        let short = link.replace('https://','').replace('http://','').replace(/\/$/,'');
-                        return `<span style="color:${idx === 0 ? 'var(--text-muted)' : 'var(--primary)'}" title="${link}">${short}</span>`;
-                    }).join(' ➔ ');
-                    chainCell.innerHTML = `<div style="font-size:10px; line-height:1.4; word-break:break-all; max-width:200px;">${chainHtml}</div>`;
-                } else {
-                    chainCell.innerHTML = `<span style="color:var(--text-muted); font-size:11px;">Không nhảy</span>`;
+                    } catch(e) {}
                 }
 
-                // 2. Render cột So khớp (So với con sếp theo dõi)
+                if (finalUrl !== site.origin && !chain.includes(finalUrl)) chain.push(finalUrl);
+
+                // 1. Render cột Chuỗi Redirect
+                let chainHtml = chain.map((link, idx) => {
+                    let short = link.replace('https://','').replace('http://','').replace(/\/$/,'');
+                    return `<span style="color:${idx === 0 ? 'var(--text-muted)' : 'var(--primary)'}">${short}</span>`;
+                }).join(' ➔ ');
+                chainCell.innerHTML = `<div style="font-size:10px; line-height:1.4;">${chain.length > 1 ? chainHtml : '<span style="color:var(--text-muted)">Không nhảy</span>'}</div>`;
+
+                // 2. Render cột So khớp (Hiện URL thực tế to rõ)
                 const finalDomain = new URL(finalUrl).hostname.replace('www.', '').toLowerCase();
                 const recordedDomain = new URL(site.recorded).hostname.replace('www.', '').toLowerCase();
 
                 if (finalDomain !== recordedDomain) {
+                    let displayUrl = finalUrl.replace('https://','').replace('http://','').replace(/\/$/,'');
                     matchCell.innerHTML = `
-                        <div style="color:#ef4444; font-weight:bold; font-size:11px;">
-                            🚨 SAI LỆCH!
-                            <div style="font-size:9px; font-weight:normal; margin-top:2px; color:var(--text-muted)">Đích thực tế khác con sếp lưu.</div>
+                        <div style="background:rgba(239, 68, 68, 0.1); padding:5px; border-radius:4px; border:1px solid rgba(239, 68, 68, 0.2)">
+                            <div style="color:#ef4444; font-weight:bold; font-size:11px; margin-bottom:2px;">🚨 SAI LỆCH!</div>
+                            <div style="color:#fff; font-family:monospace; font-size:11px; word-break:break-all; background:#000; padding:2px 4px;">${displayUrl}</div>
                         </div>`;
                     matchCell.dataset.url = finalUrl;
                     matchCell.dataset.redirected = 'true';
                 } else {
-                    matchCell.innerHTML = `<span class="status-badge status-success" style="font-size:10px; padding:2px 6px;">✅ Khớp</span>`;
+                    matchCell.innerHTML = `<span class="status-badge status-success">✅ Khớp</span>`;
                     matchCell.dataset.url = finalUrl;
                     matchCell.dataset.redirected = 'false';
                 }
