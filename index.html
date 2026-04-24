@@ -438,8 +438,8 @@
         <div class="card">
             <h3 style="margin-top:0">Nhập danh sách Website cần kiểm tra</h3>
             <div class="form-group">
-                <label>Nhập theo mẫu: <b>Tên miền [cách] đuôi_admin [cách] user [cách] pass</b> (Ví dụ: anythingsurf.co.uk web_auth seo 0Sg0h...)</label>
-                <textarea id="checkDomainList" placeholder="anythingsurf.co.uk	web_auth	seo	0Sg0hd19CrJWNA6H&#10;domain2.com  wp-admin  admin  123456"></textarea>
+                <label>Nhập mẫu: <b>Gốc [cách] Đang_theo_dõi [cách] đuôi_admin [cách] user [cách] pass</b></label>
+                <textarea id="checkDomainList" placeholder="88vin.cx	ydn.uk.com	web_auth	seo	kOqIFJrMBiCDzG&#10;domain1.com  domain-301.com  wp-admin  admin  123456"></textarea>
             </div>
             <div class="check-options">
                 <label><input type="checkbox" id="optWebsite" checked> 🌐 Trạng thái Website</label>
@@ -899,23 +899,40 @@
         if (doLogin) thead.innerHTML += '<th>Đăng nhập</th>';
         tbody.innerHTML = '';
 
-        // Parse input
+        // Parse input (Hỗ trợ 5 trường: Gốc, Theo dõi, Admin, User, Pass)
         const sites = lines.map(line => {
             const parts = line.split(/[\t ]+/);
-            let url = parts[0];
-            if (!url.startsWith('http')) url = 'https://' + url;
-            if (!url.endsWith('/')) url += '/';
-            const adminPath = parts[1] || 'wp-admin';
-            const user = parts[2] || '';
-            const pass = parts[3] || '';
-            return { url, adminPath, user, pass };
+            
+            let origin = parts[0];
+            if (!origin.startsWith('http')) origin = 'https://' + origin;
+            if (!origin.endsWith('/')) origin += '/';
+
+            let recorded = parts[1] || parts[0]; // Nếu không có con theo dõi, mặc định là con gốc
+            if (!recorded.startsWith('http')) recorded = 'https://' + recorded;
+            if (!recorded.endsWith('/')) recorded += '/';
+
+            const adminPath = parts[2] || 'wp-admin';
+            const user = parts[3] || '';
+            const pass = parts[4] || '';
+
+            return { origin, recorded, adminPath, user, pass };
         });
 
         // Render dòng chờ
         sites.forEach((site, idx) => {
             const tr = document.createElement('tr');
             tr.id = `chk_${idx}`;
-            let cells = `<td class="domain-cell"><a href="${site.url}" target="_blank" style="color:var(--primary);text-decoration:none">${site.url}</a></td>`;
+            
+            // Cột 1: Hiển thị Gốc -> Theo dõi
+            let originShort = site.origin.replace('https://','').replace('http://','').replace(/\/$/,'');
+            let recordedShort = site.recorded.replace('https://','').replace('http://','').replace(/\/$/,'');
+            
+            let cells = `
+                <td class="domain-cell" style="font-size:12px;">
+                    <div style="color:var(--text-muted)">Gốc: <a href="${site.origin}" target="_blank" style="color:var(--primary)">${originShort}</a></div>
+                    <div style="margin-top:4px;">🎯 <span title="Đang theo dõi">${recordedShort}</span></div>
+                </td>`;
+            
             if (doWebsite) cells += `<td id="chkStatus_${idx}"><span class="status-badge status-pending">Đang chờ</span></td><td id="chkCode_${idx}" style="color:var(--text-muted)">...</td>`;
             if (do301) cells += `<td id="chk301_${idx}" style="color:var(--text-muted)">...</td>`;
             if (doAdmin) cells += `<td id="chkAdmin_${idx}" style="color:var(--text-muted)">...</td>`;
@@ -936,14 +953,14 @@
             let siteOk = false;
             let isBlocked = false;
 
-            // --- CHECK 1: Website chính ---
+            // --- CHECK 1: Website chính (Dùng URL Gốc) ---
             if (doWebsite) {
                 document.getElementById(`chkStatus_${i}`).innerHTML = '<span class="status-badge status-running">Đang check...</span>';
                 let httpCode = '???';
 
                 for (const proxyFn of proxies) {
                     try {
-                        const res = await fetch(proxyFn(site.url));
+                        const res = await fetch(proxyFn(site.origin));
                         httpCode = res.status;
                         if (res.status === 403) isBlocked = true;
                         if (res.ok) {
@@ -968,77 +985,66 @@
                     document.getElementById(`chkCode_${i}`).innerHTML = `<span style="color:var(--danger);font-weight:bold">${httpCode}</span>`;
                 }
             } else {
-                // Nếu không check website, mặc định coi là sống để các check sau vẫn chạy
                 siteOk = true;
             }
 
-            // --- CHECK 1.5: Kiểm tra 301 Redirect (Trace Chain) ---
+            // --- CHECK 1.5: Kiểm tra 301 Redirect (Trace Chain & Compare) ---
             if (do301) {
                 const cell301 = document.getElementById(`chk301_${i}`);
                 cell301.innerHTML = '<span style="color:var(--warning);font-size:12px">Đang dò vết...</span>';
                 
-                let chain = [site.url];
-                let isRedirected = false;
+                let chain = [site.origin];
+                let isMismatch = false; // Sai lệch so với con sếp theo dõi
 
-                // Sử dụng API AllOrigins để lấy thông tin chi tiết (thử bóc tách chain)
                 try {
-                    // Thử lấy thông tin qua AllOrigins vì nó cho phép đọc nội dung và đôi khi là dấu vết
-                    const traceRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(site.url)}`);
+                    const traceRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(site.origin)}`);
                     if (traceRes.ok) {
                         const traceData = await traceRes.json();
-                        const finalUrl = traceData.status && traceData.status.url ? traceData.status.url : site.url;
+                        const finalUrl = traceData.status && traceData.status.url ? traceData.status.url : site.origin;
                         
-                        // Nếu URL cuối khác URL đầu -> Có 301
-                        const startDomain = new URL(site.url).hostname.replace('www.', '');
-                        const endDomain = new URL(finalUrl).hostname.replace('www.', '');
+                        // So sánh domain thực tế (finalUrl) với domain sếp đang theo dõi (recorded)
+                        const finalDomain = new URL(finalUrl).hostname.replace('www.', '').toLowerCase();
+                        const recordedDomain = new URL(site.recorded).hostname.replace('www.', '').toLowerCase();
 
-                        if (startDomain !== endDomain) {
-                            isRedirected = true;
-                            // Vì Proxy thường nhảy thẳng, ta sẽ "giả lập" hiển thị chain hoặc bóc tách từ HTML nếu có canonical khác
-                            const html = traceData.contents;
-                            const canonMatch = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
-                            const detectedUrl = canonMatch ? canonMatch[1] : null;
-
-                            if (detectedUrl && !detectedUrl.includes(endDomain)) {
-                                // Nếu có thêm 1 con khác trong canonical, ta chèn vào giữa cho sếp thấy
-                                chain.push(detectedUrl);
-                            }
+                        if (finalDomain !== recordedDomain) {
+                            isMismatch = true;
+                            // Nếu sai lệch, chèn thêm thông tin vào chain
                             chain.push(finalUrl);
                         } else {
-                            // Không đổi domain nhưng có thể đổi URL (vd: http -> https)
-                            if (site.url !== finalUrl) chain.push(finalUrl);
+                            if (site.origin !== finalUrl) chain.push(finalUrl);
                         }
                     }
-                } catch(e) {
-                    console.warn("Trace lỗi, dùng fallback check...");
-                }
+                } catch(e) { console.warn("Trace lỗi"); }
 
                 // Render chuỗi Chain
-                if (chain.length > 1) {
-                    let chainHtml = '';
-                    chain.forEach((link, idx) => {
-                        const isLast = idx === chain.length - 1;
-                        const linkColor = isRedirected ? '#ef4444' : 'var(--success)';
-                        const shortLink = link.replace('https://', '').replace('http://', '').replace(/\/$/, '');
-                        
-                        chainHtml += `<span style="color:${idx === 0 ? 'var(--text-muted)' : linkColor}; ${isLast && isRedirected ? 'font-weight:bold; text-decoration:underline' : ''}" title="${link}">${shortLink}</span>`;
-                        if (!isLast) chainHtml += ' <span style="color:var(--text-muted); margin:0 3px">➔</span> ';
-                    });
-                    cell301.innerHTML = `<div style="font-size:11px; line-height:1.4; word-break:break-all;">${chainHtml}</div>`;
-                    cell301.dataset.url = chain[chain.length - 1]; // URL cuối để copy
-                    cell301.dataset.redirected = isRedirected ? 'true' : 'false';
+                if (isMismatch) {
+                    let finalShort = chain[chain.length - 1].replace('https://','').replace('http://','').replace(/\/$/,'');
+                    cell301.innerHTML = `
+                        <div style="font-size:11px; line-height:1.4; color:#ef4444; font-weight:bold;">
+                            🚨 SAI LỆCH!<br>
+                            <span style="color:var(--text-muted); font-weight:normal;">Đích thực tế:</span><br>
+                            ${finalShort}
+                        </div>`;
+                    cell301.dataset.url = chain[chain.length - 1];
+                    cell301.dataset.redirected = 'true';
+                } else if (chain.length > 1 || site.origin !== site.recorded) {
+                    // Đúng con sếp theo dõi
+                    let finalShort = site.recorded.replace('https://','').replace('http://','').replace(/\/$/,'');
+                    cell301.innerHTML = `<span style="color:var(--success); font-size:11px;">✅ Khớp: ${finalShort}</span>`;
+                    cell301.dataset.url = site.recorded;
+                    cell301.dataset.redirected = 'false';
                 } else {
-                    cell301.innerHTML = `<span style="color:var(--success); font-size:12px;">✅ Nguyên bản</span>`;
-                    cell301.dataset.url = site.url;
+                    cell301.innerHTML = `<span style="color:var(--text-muted); font-size:11px;">- Không nhảy -</span>`;
+                    cell301.dataset.url = site.origin;
                     cell301.dataset.redirected = 'false';
                 }
             }
 
-            // --- CHECK 2: WP-Admin ---
+            // --- CHECK 2: WP-Admin (Dùng URL Đang theo dõi) ---
             if (doAdmin) {
                 if (siteOk || isBlocked) {
                     document.getElementById(`chkAdmin_${i}`).innerHTML = '<span style="color:var(--warning);font-size:12px">Đang check...</span>';
-                    const adminUrl = site.url + site.adminPath;
+                    const adminUrl = site.recorded + site.adminPath;
                     let adminOk = false;
 
                     for (const proxyFn of proxies) {
@@ -1055,22 +1061,22 @@
                     }
 
                     if (adminOk) {
-                        document.getElementById(`chkAdmin_${i}`).innerHTML = `<span class="status-badge status-success">✅ ${site.adminPath} đúng</span>`;
+                        document.getElementById(`chkAdmin_${i}`).innerHTML = `<span class="status-badge status-success">✅ Admin OK</span>`;
                     } else {
-                        document.getElementById(`chkAdmin_${i}`).innerHTML = '<span class="status-badge status-error">❌ Sai hoặc bị chặn</span>';
+                        document.getElementById(`chkAdmin_${i}`).innerHTML = '<span class="status-badge status-error">❌ Lỗi/Chặn</span>';
                     }
                 } else {
                     document.getElementById(`chkAdmin_${i}`).innerHTML = '<span style="color:var(--text-muted)">- Web die -</span>';
                 }
             }
 
-            // --- CHECK 3: Đăng nhập nhanh (Bộ 3 quyền lực) ---
+            // --- CHECK 3: Đăng nhập nhanh (Dùng URL Đang theo dõi) ---
             if (doLogin && site.user && site.pass) {
                 const loginCell = document.getElementById(`chkLogin_${i}`);
                 if (loginCell) {
                     loginCell.innerHTML = `
                         <div class="login-cell">
-                            <button class="btn-mini btn-main" onclick="openLogin('${site.url}', '${site.adminPath}', '${site.user}', '${site.pass}')" title="Tự động đăng nhập (Thử vận may)">🔑</button>
+                            <button class="btn-mini btn-main" onclick="openLogin('${site.recorded}', '${site.adminPath}', '${site.user}', '${site.pass}')" title="Đăng nhập vào con đang theo dõi">🔑</button>
                             <button class="btn-mini" onclick="copyText(this, '${site.user}')" title="Copy Username">👤 U</button>
                             <button class="btn-mini" onclick="copyText(this, '${site.pass}')" title="Copy Password">🔒 P</button>
                             <input type="checkbox" class="login-ok" id="loginOk_${i}" checked title="Bỏ tích nếu không đăng nhập được">
