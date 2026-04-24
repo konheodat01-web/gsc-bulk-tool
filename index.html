@@ -993,25 +993,32 @@
             if (do301) {
                 const chainCell = document.getElementById(`chkChain_${i}`);
                 const matchCell = document.getElementById(`chkMatch_${i}`);
-                chainCell.innerHTML = '<span style="color:var(--warning);font-size:12px">Đang dò vết...</span>';
+                chainCell.innerHTML = '<span style="color:var(--warning);font-size:12px">Đang dò cực sâu...</span>';
                 matchCell.innerHTML = '...';
                 
                 let chain = [site.origin];
                 let actualFinalUrl = site.origin;
 
-                // Hàm bóc tách từ HackerTarget (Phá được Cloudflare)
+                // Hàm fetch có Timeout để chống treo Proxy (408)
+                const fetchWithTimeout = async (resource, options = {}) => {
+                    const { timeout = 8000 } = options;
+                    const controller = new AbortController();
+                    const id = setTimeout(() => controller.abort(), timeout);
+                    const response = await fetch(resource, { ...options, signal: controller.signal });
+                    clearTimeout(id);
+                    return response;
+                };
+
+                // Hàm Mắt Thần (HackerTarget) - Nhanh & Đọc thẳng Header
                 async function deepTrace(targetUrl) {
                     try {
-                        const res = await fetch(`https://api.hackertarget.com/httpheaders/?q=${encodeURIComponent(targetUrl)}`);
+                        const res = await fetchWithTimeout(`https://api.hackertarget.com/httpheaders/?q=${encodeURIComponent(targetUrl)}`, {timeout: 8000});
                         if (res.ok) {
                             const text = await res.text();
                             const matches = text.matchAll(/Location:\s*(https?:\/\/[^\s]+)/gi);
                             let lastLoc = null;
                             for (const m of matches) {
-                                if (m[1] && !chain.includes(m[1])) {
-                                    chain.push(m[1]);
-                                    lastLoc = m[1];
-                                }
+                                if (m[1]) lastLoc = m[1].trim();
                             }
                             return lastLoc;
                         }
@@ -1019,46 +1026,67 @@
                     return null;
                 }
 
-                try {
-                    // Dùng AllOrigins
-                    const traceRes = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(site.origin)}`);
-                    if (traceRes.ok) {
-                        const data = await traceRes.json();
-                        actualFinalUrl = (data.status && data.status.url) ? data.status.url : actualFinalUrl;
-                        
-                        // Nếu vẫn báo không nhảy, kích hoạt Deep Scan
-                        if (actualFinalUrl === site.origin) {
-                            const deepUrl = await deepTrace(site.origin);
-                            if (deepUrl) actualFinalUrl = deepUrl;
-                        }
+                // 1. Ưu tiên quét Header siêu tốc
+                let deepUrl = await deepTrace(site.origin);
+                if (deepUrl) {
+                    if (!chain.includes(deepUrl) && !deepUrl.includes(new URL(site.origin).hostname)) {
+                        chain.push(deepUrl);
+                        actualFinalUrl = deepUrl;
+                    }
+                }
 
-                        // Tìm thêm Meta/JS/Canonical
-                        const html = data.contents || "";
-                        const refreshMatch = html.match(/content=["'][^"']+url=([^"']+)["']/i);
-                        const jsMatch = html.match(/location\.href\s*=\s*["']([^"']+)["']/i);
-                        const canonMatch = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
+                // 2. Nếu Header không có (do nhảy bằng JS/Meta), dùng AllOrigins
+                if (actualFinalUrl === site.origin) {
+                    try {
+                        const traceRes = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(site.origin)}`, {timeout: 10000});
+                        if (traceRes.ok) {
+                            const data = await traceRes.json();
+                            if (data.status && data.status.url && data.status.url !== site.origin) {
+                                actualFinalUrl = data.status.url;
+                            }
+                            
+                            const html = data.contents || "";
+                            const refreshMatch = html.match(/content=["'][^"']+url=([^"']+)["']/i);
+                            const jsMatch = html.match(/location\.href\s*=\s*["']([^"']+)["']/i);
+                            const canonMatch = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
 
-                        [refreshMatch, jsMatch, canonMatch].forEach(m => {
-                            if (m && m[1]) {
-                                let link = m[1].trim();
-                                if (link.startsWith('http')) {
-                                    if (!chain.includes(link) && !link.includes(new URL(site.origin).hostname)) {
-                                        chain.push(link);
+                            [refreshMatch, jsMatch, canonMatch].forEach(m => {
+                                if (m && m[1]) {
+                                    let link = m[1].trim();
+                                    if (link.startsWith('http') && !link.includes(new URL(site.origin).hostname)) {
                                         actualFinalUrl = link;
                                     }
                                 }
-                            }
-                        });
-                    }
-                } catch(e) {
-                    // Nếu lỗi AllOrigins, dùng Deep Scan dự phòng
-                    const deepUrl = await deepTrace(site.origin);
-                    if (deepUrl) actualFinalUrl = deepUrl;
+                            });
+                        }
+                    } catch(e) {}
+                }
+
+                // 3. Nếu AllOrigins bị treo (Timeout), dùng Codetabs vét máng
+                if (actualFinalUrl === site.origin) {
+                    try {
+                        const ctRes = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(site.origin)}`, {timeout: 10000});
+                        if (ctRes.ok) {
+                            const html = await ctRes.text();
+                            const refreshMatch = html.match(/content=["'][^"']+url=([^"']+)["']/i);
+                            const jsMatch = html.match(/location\.href\s*=\s*["']([^"']+)["']/i);
+                            const canonMatch = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
+
+                            [refreshMatch, jsMatch, canonMatch].forEach(m => {
+                                if (m && m[1]) {
+                                    let link = m[1].trim();
+                                    if (link.startsWith('http') && !link.includes(new URL(site.origin).hostname)) {
+                                        actualFinalUrl = link;
+                                    }
+                                }
+                            });
+                        }
+                    } catch(e) {}
                 }
 
                 if (actualFinalUrl !== site.origin && !chain.includes(actualFinalUrl)) chain.push(actualFinalUrl);
 
-                // 1. Render cột Chuỗi Redirect (Lộ trình THỰC TẾ)
+                // 4. Render Kết Quả
                 if (chain.length > 1) {
                     let chainHtml = chain.map((link, idx) => {
                         let short = link.replace('https://','').replace('http://','').replace(/\/$/,'');
