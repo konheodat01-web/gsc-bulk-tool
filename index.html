@@ -629,47 +629,42 @@
         // Xử lý từng domain
         for (let i = 0; i < domainsData.length; i++) {
             const siteUrl = domainsData[i].url;
-            
-            // ✅ Kiểm tra đã tồn tại trong GSC chưa
+            let addSuccess = false;
+
+            // ✅ Bước 1: Kiểm tra đã tồn tại trong GSC chưa để quyết định có cần gọi lệnh Add (PUT) không
             if (existingSites.has(siteUrl.toLowerCase())) {
                 document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge" style="background:#6366f1;color:#fff">✅ Đã có trong GSC</span>`;
-                document.getElementById(`meta_${i}`).innerHTML = `<span style="color:var(--text-muted)">- Bỏ qua (đã tồn tại) -</span>`;
-                document.getElementById(`verify_${i}`).innerHTML = `<span style="color:var(--text-muted)">- Đã xác minh -</span>`;
-                progressFill.style.width = `${((i + 1) / domainsData.length) * 100}%`;
-                continue; // Bỏ qua, không cần thêm lại
-            }
-
-            // Cập nhật trạng thái đang chạy
-            document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-running">Đang Add...</span>`;
-            
-            // 1. GỌI API THÊM VÀO GSC (Sites.add)
-            let addSuccess = false;
-            let retryCount = 0;
-            
-            while (retryCount < 3) {
-                try {
-                    const addRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}`, {
-                        method: 'PUT',
-                        headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    if (addRes.ok || addRes.status === 204) {
-                        addSuccess = true;
-                        document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-success">Đã Add Thành Công</span>`;
-                        break;
-                    } else if (addRes.status === 429) {
-                        retryCount++;
-                        document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-running">Lỗi 429 (Thử lại ${retryCount}/3)...</span>`;
-                        await new Promise(r => setTimeout(r, 2000 * retryCount));
-                        continue;
-                    } else {
-                        const errObj = await addRes.json();
-                        const errMsg = errObj.error ? errObj.error.message : addRes.statusText;
-                        document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-error" title="${errMsg}">Lỗi: ${addRes.status}</span>`;
+                addSuccess = true; // Coi như add thành công vì đã có sẵn
+            } else {
+                // Nếu chưa có, tiến hành Add mới
+                document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-running">Đang Add...</span>`;
+                
+                let retryCount = 0;
+                while (retryCount < 3) {
+                    try {
+                        const addRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}`, {
+                            method: 'PUT',
+                            headers: { 'Authorization': `Bearer ${accessToken}` }
+                        });
+                        if (addRes.ok || addRes.status === 204) {
+                            addSuccess = true;
+                            document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-success">Đã Add Thành Công</span>`;
+                            break;
+                        } else if (addRes.status === 429) {
+                            retryCount++;
+                            document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-running">Lỗi 429 (Thử lại ${retryCount}/3)...</span>`;
+                            await new Promise(r => setTimeout(r, 2000 * retryCount));
+                            continue;
+                        } else {
+                            const errObj = await addRes.json();
+                            const errMsg = errObj.error ? errObj.error.message : addRes.statusText;
+                            document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-error" title="${errMsg}">Lỗi: ${addRes.status}</span>`;
+                            break;
+                        }
+                    } catch (err) {
+                        document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-error" title="${err.message}">Lỗi Mạng</span>`;
                         break;
                     }
-                } catch (err) {
-                    document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-error" title="${err.message}">Lỗi Mạng</span>`;
-                    break;
                 }
             }
 
