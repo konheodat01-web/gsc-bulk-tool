@@ -603,10 +603,39 @@
             tbody.appendChild(tr);
         });
 
+        // ==== PRE-CHECK: Lấy danh sách website đã có trong GSC ====
+        let existingSites = new Set();
+        try {
+            const listRes = await fetch('https://www.googleapis.com/webmasters/v3/sites', {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            if (listRes.ok) {
+                const listData = await listRes.json();
+                if (listData.siteEntry) {
+                    listData.siteEntry.forEach(entry => {
+                        // Chuẩn hóa URL để so sánh chính xác
+                        let siteUrl = entry.siteUrl;
+                        if (!siteUrl.endsWith('/')) siteUrl += '/';
+                        existingSites.add(siteUrl.toLowerCase());
+                    });
+                }
+            }
+        } catch(e) {
+            console.warn('Không thể lấy danh sách GSC hiện tại:', e);
+        }
+
         // Xử lý từng domain
         for (let i = 0; i < domainsData.length; i++) {
             const siteUrl = domainsData[i].url;
             
+            // ✅ Kiểm tra đã tồn tại trong GSC chưa
+            if (existingSites.has(siteUrl.toLowerCase())) {
+                document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge" style="background:#6366f1;color:#fff">✅ Đã có trong GSC</span>`;
+                document.getElementById(`meta_${i}`).innerHTML = `<span style="color:var(--text-muted)">- Bỏ qua (đã tồn tại) -</span>`;
+                progressFill.style.width = `${((i + 1) / domainsData.length) * 100}%`;
+                continue; // Bỏ qua, không cần thêm lại
+            }
+
             // Cập nhật trạng thái đang chạy
             document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-running">Đang Add...</span>`;
             
