@@ -482,7 +482,6 @@
             </div>
             <div id="redirectCopyBar" style="display:none; margin-top:10px; display:flex; gap:10px; align-items:center;">
                 <button class="btn btn-success" style="padding:10px 20px; font-size:13px; margin:0;" onclick="copyRedirectColumn()">📋 Copy cột Đích Cuối</button>
-                <button class="btn" style="background:#6366f1; padding:10px 20px; font-size:13px; margin:0;" onclick="copyChainColumn()">📋 Copy cột Chuỗi (Dò vết)</button>
                 <span id="redirectCopyInfo" style="color:var(--text-muted); font-size:13px;"></span>
             </div>
         </div>
@@ -1231,24 +1230,6 @@
         navigator.clipboard.writeText(text).then(() => {
             document.getElementById('redirectCopyInfo').textContent = `✅ Đã copy ${urls.length} URL (${redirectCount} bị sai lệch)`;
             document.getElementById('redirectCopyInfo').style.color = 'var(--success)';
-        });
-    }
-
-    // Copy toàn bộ cột Chuỗi (Dò vết)
-    function copyChainColumn() {
-        const cells = document.querySelectorAll('[id^="chkChain_"]');
-        let chains = [];
-
-        cells.forEach(cell => {
-            // Lấy text content (bao gồm cả mũi tên ➔)
-            const text = cell.innerText.trim();
-            chains.push(text);
-        });
-
-        const fullText = chains.join('\n');
-        navigator.clipboard.writeText(fullText).then(() => {
-            document.getElementById('redirectCopyInfo').textContent = `✅ Đã copy ${chains.length} Chuỗi (Lộ trình)`;
-            document.getElementById('redirectCopyInfo').style.color = 'var(--primary)';
         });
     }
 
