@@ -320,9 +320,10 @@
         for (let row of rows) {
             const url = row.dataset.siteUrl; if (!url) continue;
             const cell = row.querySelector('.sitemap-cell');
-            cell.innerHTML = '...';
+            cell.innerHTML = '<span style="color:var(--warning)">Đang quét...</span>';
             try {
-                const res = await fetch(`https://www.googleapis.com/searchconsole/v1/sites/${encodeURIComponent(url)}/sitemaps`, {
+                // Chuyển sang API v3 để tránh lỗi CORS
+                const res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
                 const data = await res.json();
@@ -331,16 +332,26 @@
                 for (let name of smNames) {
                     const full = url + name;
                     const isEx = existed.some(p => p.includes(name));
-                    if (isEx) html.push(`<div style="color:var(--success)">✅ ${name}</div>`);
-                    else {
-                        const sRes = await fetch(`https://www.googleapis.com/searchconsole/v1/sites/${encodeURIComponent(url)}/sitemaps/${encodeURIComponent(full)}`, {
-                            method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` }
+                    if (isEx) {
+                        html.push(`<div style="color:var(--success)">✅ ${name}</div>`);
+                    } else {
+                        // Gửi lệnh Submit bằng API v3
+                        const sRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps/${encodeURIComponent(full)}`, {
+                            method: 'PUT',
+                            headers: { 'Authorization': `Bearer ${accessToken}` }
                         });
-                        html.push(sRes.ok ? `<div style="color:var(--primary)">🆕 ${name}</div>` : `<div style="color:var(--danger)">❌ ${name}</div>`);
+                        if (sRes.ok || sRes.status === 204) {
+                            html.push(`<div style="color:var(--primary)">🆕 ${name}</div>`);
+                        } else {
+                            html.push(`<div style="color:var(--danger)">❌ ${name}</div>`);
+                        }
                     }
                 }
                 cell.innerHTML = html.join('');
-            } catch(e) { cell.innerText = 'Lỗi'; }
+            } catch(e) { 
+                console.error("Sitemap Error:", e);
+                cell.innerText = 'Lỗi kết nối'; 
+            }
         }
     }
 
