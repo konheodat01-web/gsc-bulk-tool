@@ -997,10 +997,9 @@
                 matchCell.innerHTML = '...';
                 
                 let chain = [site.origin];
-                let finalUrl = site.origin;
-                let traceSuccess = false;
+                let actualFinalUrl = site.origin;
 
-                // Thử đa Proxy để lấy URL cuối cùng chính xác nhất
+                // Thử lấy URL đích thực tế qua các Proxy
                 const traceProxies = [
                     `https://api.allorigins.win/get?url=${encodeURIComponent(site.origin)}`,
                     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(site.origin)}`
@@ -1012,48 +1011,55 @@
                         if (res.ok) {
                             if (pIdx === 0) { // AllOrigins
                                 const data = await res.json();
-                                finalUrl = data.status && data.status.url ? data.status.url : finalUrl;
-                                // Thử bóc thêm canonical nếu có
+                                actualFinalUrl = data.status && data.status.url ? data.status.url : actualFinalUrl;
+                                // Tìm thêm dấu vết trong HTML (canonical)
                                 const canonMatch = data.contents.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
-                                if (canonMatch && canonMatch[1] && !chain.includes(canonMatch[1])) {
-                                    if (!canonMatch[1].includes(new URL(site.origin).hostname)) chain.push(canonMatch[1]);
+                                if (canonMatch && canonMatch[1]) {
+                                    const canonUrl = canonMatch[1];
+                                    if (!canonUrl.includes(new URL(site.origin).hostname) && canonUrl !== actualFinalUrl) {
+                                        chain.push(canonUrl);
+                                    }
                                 }
-                            } else { // Codetabs (lấy res.url trực tiếp)
-                                if (res.url && !res.url.includes('codetabs')) finalUrl = res.url;
+                            } else { // Codetabs
+                                if (res.url && !res.url.includes('codetabs')) actualFinalUrl = res.url;
                             }
-                            traceSuccess = true;
                             break;
                         }
                     } catch(e) {}
                 }
 
-                if (finalUrl !== site.origin && !chain.includes(finalUrl)) chain.push(finalUrl);
+                if (actualFinalUrl !== site.origin && !chain.includes(actualFinalUrl)) chain.push(actualFinalUrl);
 
-                // 1. Render cột Chuỗi Redirect
-                let chainHtml = chain.map((link, idx) => {
-                    let short = link.replace('https://','').replace('http://','').replace(/\/$/,'');
-                    return `<span style="color:${idx === 0 ? 'var(--text-muted)' : 'var(--primary)'}">${short}</span>`;
-                }).join(' ➔ ');
-                chainCell.innerHTML = `<div style="font-size:10px; line-height:1.4;">${chain.length > 1 ? chainHtml : '<span style="color:var(--text-muted)">Không nhảy</span>'}</div>`;
-
-                // 2. Render cột So khớp (Hiện URL thực tế to rõ)
-                const finalDomain = new URL(finalUrl).hostname.replace('www.', '').toLowerCase();
-                const recordedDomain = new URL(site.recorded).hostname.replace('www.', '').toLowerCase();
-
-                if (finalDomain !== recordedDomain) {
-                    let displayUrl = finalUrl.replace('https://','').replace('http://','').replace(/\/$/,'');
-                    matchCell.innerHTML = `
-                        <div style="background:rgba(239, 68, 68, 0.1); padding:5px; border-radius:4px; border:1px solid rgba(239, 68, 68, 0.2)">
-                            <div style="color:#ef4444; font-weight:bold; font-size:11px; margin-bottom:2px;">🚨 SAI LỆCH!</div>
-                            <div style="color:#fff; font-family:monospace; font-size:11px; word-break:break-all; background:#000; padding:2px 4px;">${displayUrl}</div>
-                        </div>`;
-                    matchCell.dataset.url = finalUrl;
-                    matchCell.dataset.redirected = 'true';
+                // 1. Render cột Chuỗi Redirect (Lộ trình THỰC TẾ)
+                if (chain.length > 1) {
+                    let chainHtml = chain.map((link, idx) => {
+                        let short = link.replace('https://','').replace('http://','').replace(/\/$/,'');
+                        return `<span style="color:${idx === 0 ? 'var(--text-muted)' : 'var(--primary)'}">${short}</span>`;
+                    }).join(' ➔ ');
+                    chainCell.innerHTML = `<div style="font-size:10px; line-height:1.4;">${chainHtml}</div>`;
                 } else {
-                    matchCell.innerHTML = `<span class="status-badge status-success">✅ Khớp</span>`;
-                    matchCell.dataset.url = finalUrl;
-                    matchCell.dataset.redirected = 'false';
+                    chainCell.innerHTML = `<span style="color:var(--text-muted); font-size:11px;">Không nhảy</span>`;
                 }
+
+                // 2. Render cột So khớp 301 (Luôn hiện đích thực tế + Bôi màu)
+                const actualDomain = new URL(actualFinalUrl).hostname.replace('www.', '').toLowerCase();
+                const recordedDomain = new URL(site.recorded).hostname.replace('www.', '').toLowerCase();
+                const isMatch = actualDomain === recordedDomain;
+
+                let finalDisplay = actualFinalUrl.replace('https://','').replace('http://','').replace(/\/$/,'');
+                
+                matchCell.innerHTML = `
+                    <div style="padding:4px; border-radius:4px; border:1px solid ${isMatch ? 'var(--success)' : '#ef4444'}; background:${isMatch ? 'rgba(16, 185, 129, 0.05)' : 'rgba(239, 68, 68, 0.1)'}">
+                        <div style="color:${isMatch ? 'var(--success)' : '#ef4444'}; font-weight:bold; font-size:10px; margin-bottom:2px;">
+                            ${isMatch ? '✅ KHỚP' : '🚨 SAI LỆCH'}
+                        </div>
+                        <div style="color:${isMatch ? '#fff' : '#ef4444'}; font-family:monospace; font-size:11px; word-break:break-all;">
+                            ${finalDisplay}
+                        </div>
+                    </div>`;
+                
+                matchCell.dataset.url = actualFinalUrl;
+                matchCell.dataset.redirected = !isMatch ? 'true' : 'false';
             }
 
             // --- CHECK 2: WP-Admin (Dùng URL Đang theo dõi) ---
