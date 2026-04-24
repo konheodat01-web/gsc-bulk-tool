@@ -300,26 +300,40 @@
         .login-cell {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 5px;
+            flex-wrap: nowrap;
         }
-        .btn-login {
-            padding: 4px 10px;
-            background: var(--primary);
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
+        .btn-mini {
+            padding: 4px 8px;
+            background: var(--card-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 11px;
             cursor: pointer;
-            white-space: nowrap;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .btn-login:hover { background: var(--primary-hover); transform: scale(1.05); }
+        .btn-mini:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+        .btn-mini.btn-main {
+            background: var(--primary);
+            border-color: var(--primary);
+            font-weight: bold;
+        }
+        .btn-mini.btn-main:hover { background: var(--primary-hover); }
+
         .login-ok {
             width: 16px;
             height: 16px;
             accent-color: var(--success);
             cursor: pointer;
+            margin-left: 5px;
         }
         .btn-filter {
             margin-top: 12px;
@@ -883,16 +897,16 @@
                 }
             }
 
-            // --- CHECK 3: Đăng nhập nhanh (Semi-auto) ---
+            // --- CHECK 3: Đăng nhập nhanh (Bộ 3 quyền lực) ---
             if (doLogin && site.user && site.pass) {
                 const loginCell = document.getElementById(`chkLogin_${i}`);
                 if (loginCell) {
-                    const loginUrl = site.url + site.adminPath;
                     loginCell.innerHTML = `
                         <div class="login-cell">
-                            <button class="btn-login" onclick="openLogin('${site.url}', '${site.adminPath}', '${site.user}', '${site.pass}')" title="Mở trang login & điền sẵn thông tin">🔑 Đăng nhập</button>
+                            <button class="btn-mini btn-main" onclick="openLogin('${site.url}', '${site.adminPath}', '${site.user}', '${site.pass}')" title="Tự động đăng nhập (Thử vận may)">🔑</button>
+                            <button class="btn-mini" onclick="copyText(this, '${site.user}')" title="Copy Username">👤 U</button>
+                            <button class="btn-mini" onclick="copyText(this, '${site.pass}')" title="Copy Password">🔒 P</button>
                             <input type="checkbox" class="login-ok" id="loginOk_${i}" checked title="Bỏ tích nếu không đăng nhập được">
-                            <label for="loginOk_${i}" style="font-size:12px; color:var(--text-muted); cursor:pointer;">Đúng</label>
                         </div>`;
                 }
             }
@@ -954,6 +968,19 @@
             </html>
         `);
         newTab.document.close();
+    }
+
+    // Copy text nhanh
+    function copyText(btn, text) {
+        const originalText = btn.innerHTML;
+        navigator.clipboard.writeText(text).then(() => {
+            btn.innerHTML = '✅';
+            btn.style.borderColor = 'var(--success)';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.style.borderColor = '';
+            }, 1000);
+        });
     }
 
     // Lọc chỉ hiện những web bị bỏ tích (đăng nhập sai)
