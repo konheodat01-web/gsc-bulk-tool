@@ -402,14 +402,15 @@
             <table>
                 <thead>
                     <tr>
-                        <th width="30%">Website URL</th>
-                        <th width="15%">Trạng thái Add GSC</th>
-                        <th width="55%">Mã xác minh HTML (Dán vào Flatsome/RankMath)</th>
+                        <th width="25%">Website URL</th>
+                        <th width="12%">Trạng thái Add GSC</th>
+                        <th width="48%">Mã xác minh HTML (Dán vào Flatsome/RankMath)</th>
+                        <th width="15%">Xác minh</th>
                     </tr>
                 </thead>
                 <tbody id="resultBody">
                     <tr>
-                        <td colspan="3" style="text-align:center; color:var(--text-muted); padding:30px;">
+                        <td colspan="4" style="text-align:center; color:var(--text-muted); padding:30px;">
                             Chưa có dữ liệu. Hãy đăng nhập và bấm chạy.
                         </td>
                     </tr>
@@ -599,6 +600,7 @@
                 <td class="domain-cell"><a href="${item.url}" target="_blank" style="color:var(--primary);text-decoration:none">${item.url}</a></td>
                 <td id="status_${idx}"><span class="status-badge status-pending">Đang chờ</span></td>
                 <td id="meta_${idx}" style="color:var(--text-muted)">...</td>
+                <td id="verify_${idx}" style="color:var(--text-muted)">...</td>
             `;
             tbody.appendChild(tr);
         });
@@ -632,6 +634,7 @@
             if (existingSites.has(siteUrl.toLowerCase())) {
                 document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge" style="background:#6366f1;color:#fff">✅ Đã có trong GSC</span>`;
                 document.getElementById(`meta_${i}`).innerHTML = `<span style="color:var(--text-muted)">- Bỏ qua (đã tồn tại) -</span>`;
+                document.getElementById(`verify_${i}`).innerHTML = `<span style="color:var(--text-muted)">- Đã xác minh -</span>`;
                 progressFill.style.width = `${((i + 1) / domainsData.length) * 100}%`;
                 continue; // Bỏ qua, không cần thêm lại
             }
@@ -698,15 +701,22 @@
                                 <button class="btn-copy" onclick="copyToClipboard(this, '${metaTag.replace(/'/g, "\\'")}')">Copy</button>
                             </div>
                         `;
+                        // Hiện nút Xác minh
+                        document.getElementById(`verify_${i}`).innerHTML = `
+                            <button class="btn btn-success" style="padding:5px 12px; font-size:12px; margin:0;" onclick="verifySite('${siteUrl}', ${i})">⚡ Xác minh</button>
+                        `;
                     } else {
                         const errObj = await verifyRes.json();
                         document.getElementById(`meta_${i}`).innerHTML = `<span style="color:var(--danger)">Không lấy được mã (${verifyRes.status})</span>`;
+                        document.getElementById(`verify_${i}`).innerHTML = `<span style="color:var(--text-muted)">-</span>`;
                     }
                 } catch (err) {
                     document.getElementById(`meta_${i}`).innerHTML = `<span style="color:var(--danger)">Lỗi hút mã</span>`;
+                    document.getElementById(`verify_${i}`).innerHTML = `<span style="color:var(--text-muted)">-</span>`;
                 }
             } else {
                 document.getElementById(`meta_${i}`).innerHTML = `<span style="color:var(--text-muted)">- Bỏ qua do lỗi Add -</span>`;
+                document.getElementById(`verify_${i}`).innerHTML = `<span style="color:var(--text-muted)">-</span>`;
             }
 
             // Cập nhật thanh tiến trình
@@ -767,6 +777,48 @@
                 btnElement.style.background = "rgba(255,255,255,0.1)";
             }, 2000);
         });
+    }
+
+    // Hàm xác minh quyền sở hữu website trên Google Search Console
+    async function verifySite(siteUrl, idx) {
+        if (!accessToken) {
+            alert('Sếp cần đăng nhập Google trước!');
+            return;
+        }
+
+        const verifyCell = document.getElementById(`verify_${idx}`);
+        verifyCell.innerHTML = '<span style="color:var(--warning);font-size:12px">Đang xác minh...</span>';
+
+        try {
+            const res = await fetch('https://www.googleapis.com/siteVerification/v1/webResource?verificationMethod=META', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    site: {
+                        identifier: siteUrl,
+                        type: 'SITE'
+                    }
+                })
+            });
+
+            if (res.ok) {
+                verifyCell.innerHTML = '<span class="status-badge status-success">✅ Đã xác minh</span>';
+            } else {
+                const errData = await res.json();
+                const errMsg = errData.error ? errData.error.message : 'Unknown error';
+                
+                if (errMsg.includes('not found') || errMsg.includes('verify')) {
+                    verifyCell.innerHTML = `<span class="status-badge status-error" title="${errMsg}">❌ Chưa dán mã</span>`;
+                } else {
+                    verifyCell.innerHTML = `<span class="status-badge status-error" title="${errMsg}">❌ Lỗi: ${res.status}</span>`;
+                }
+            }
+        } catch(e) {
+            verifyCell.innerHTML = `<span class="status-badge status-error">❌ Lỗi mạng</span>`;
+        }
     }
 
     // ==========================================
