@@ -140,7 +140,7 @@
         <div class="card" style="margin-top:20px;">
             <table>
                 <thead>
-                    <tr><th width="25%">Website nguồn</th><th width="35%">Link trỏ ra</th><th width="20%">Domain đích</th><th width="10%">Trạng thái</th><th width="10%">Code</th></tr>
+                    <tr><th width="15%">Website nguồn</th><th width="25%">Link trỏ ra</th><th width="25%">RDR (redirect đích)</th><th width="18%">Domain đích</th><th width="9%">Trạng thái</th><th width="8%">Code</th></tr>
                 </thead>
                 <tbody id="auditResultBody"></tbody>
             </table>
@@ -316,12 +316,12 @@
             const host = new URL(url).hostname.replace('www.', '');
 
             const headerTr = document.createElement('tr');
-            headerTr.innerHTML = `<td colspan="5" style="background:rgba(59,130,246,0.15); color:var(--primary); font-weight:700; font-size:12px; padding:8px 15px;">🌐 Đang quét: ${url}</td>`;
+            headerTr.innerHTML = `<td colspan="6" style="background:rgba(59,130,246,0.15); color:var(--primary); font-weight:700; font-size:12px; padding:8px 15px;">🌐 Đang quét: ${url}</td>`;
             tbody.appendChild(headerTr);
 
             const html = await fetchHtml(url);
             if (!html) {
-                headerTr.innerHTML = `<td colspan="5" style="color:var(--danger); padding:8px 15px;">❌ Không lấy được nội dung: ${url}</td>`;
+                headerTr.innerHTML = `<td colspan="6" style="color:var(--danger); padding:8px 15px;">❌ Không lấy được nội dung: ${url}</td>`;
                 continue;
             }
 
@@ -334,7 +334,7 @@
 
             if (links.length === 0) {
                 const emptyTr = document.createElement('tr');
-                emptyTr.innerHTML = `<td colspan="5" style="color:var(--text-muted); font-size:12px; padding-left:25px;">Không tìm thấy outbound link nào.</td>`;
+                emptyTr.innerHTML = `<td colspan="6" style="color:var(--text-muted); font-size:12px; padding-left:25px;">Không tìm thấy outbound link nào.</td>`;
                 tbody.appendChild(emptyTr);
                 continue;
             }
@@ -345,6 +345,7 @@
                 tr.innerHTML = `
                     <td style="font-size:11px; color:var(--text-muted);">${host}</td>
                     <td style="font-size:11px; word-break:break-all;"><a href="${link}" target="_blank" style="color:var(--primary)">${link}</a></td>
+                    <td id="audRdr_${i}" style="font-size:11px; word-break:break-all;"><span style="color:var(--text-muted)">...</span></td>
                     <td style="font-size:11px;">${new URL(link).hostname}</td>
                     <td id="audSt_${i}"><span style="color:var(--text-muted)">Checking...</span></td>
                     <td id="audCo_${i}">-</td>
@@ -355,14 +356,27 @@
                     try {
                         const ctrl = new AbortController();
                         const tid = setTimeout(() => ctrl.abort(), 8000);
-                        const check = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`, { signal: ctrl.signal });
+                        // Dùng allorigins/get để lấy cả status.url (redirect đích) lẫn http_code
+                        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(link)}`, { signal: ctrl.signal });
                         clearTimeout(tid);
-                        document.getElementById(`audSt_${i}`).innerHTML = check.ok
+                        const data = await res.json();
+                        const code = data.status?.http_code || res.status;
+                        const finalUrl = data.status?.url || link;
+                        const isAlive = code >= 200 && code < 400;
+
+                        document.getElementById(`audSt_${i}`).innerHTML = isAlive
                             ? '<span class="status-badge status-success">✅ SỐNG</span>'
                             : '<span class="status-badge status-error">❌ CHẾT</span>';
-                        document.getElementById(`audCo_${i}`).innerText = check.status;
+                        document.getElementById(`audCo_${i}`).innerText = code;
+
+                        // Hiện URL redirect đích
+                        const isSame = finalUrl.replace(/\/$/,'') === link.replace(/\/$/,'');
+                        document.getElementById(`audRdr_${i}`).innerHTML = isSame
+                            ? '<span style="color:var(--text-muted); font-size:10px;">Không redirect</span>'
+                            : `<a href="${finalUrl}" target="_blank" style="color:var(--warning); font-size:10px; word-break:break-all;">➡️ ${finalUrl}</a>`;
                     } catch(e) {
                         document.getElementById(`audSt_${i}`).innerHTML = '<span class="status-badge status-error">Timeout</span>';
+                        document.getElementById(`audRdr_${i}`).innerText = '-';
                     }
                 })();
             }
