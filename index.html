@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GSC Bulk Add & Verify Pro</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" type="image/svg+xml">
+    <title>GSC Bulk & SEO Automation Pro</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
@@ -19,37 +19,11 @@
             --border: #334155;
             --warning: #f59e0b;
         }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 1200px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 20px; }
         .header { text-align: center; margin-bottom: 10px; }
         .header h1 { margin: 0; color: var(--primary); font-size: 28px; }
-        .header p { margin: 0; color: var(--text-muted); }
-
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
+        .card { background-color: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
         .tab-nav { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
         .tab-btn {
             padding: 12px 24px; background: none; border: none; color: var(--text-muted);
@@ -60,13 +34,11 @@
         .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px; color: var(--text-muted); }
-        textarea {
-            width: 100%; height: 150px; padding: 12px; background-color: var(--bg); border: 1px solid var(--border);
-            border-radius: 8px; color: var(--text); font-size: 14px; line-height: 1.5; font-family: monospace; outline: none;
+        textarea, input[type="text"] {
+            width: 100%; padding: 12px; background-color: var(--bg); border: 1px solid var(--border);
+            border-radius: 8px; color: var(--text); font-size: 14px; outline: none; box-sizing: border-box;
         }
-
+        textarea { height: 150px; font-family: monospace; }
         .btn {
             background-color: var(--primary); color: white; border: none; padding: 12px 20px;
             border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
@@ -77,116 +49,101 @@
         .btn-success { background-color: var(--success); }
         .btn-danger { background-color: var(--danger); }
         .btn-secondary { background-color: #475569; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); word-wrap: break-word; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); }
         th { background-color: rgba(255, 255, 255, 0.05); font-weight: 600; color: var(--text-muted); font-size: 13px; }
         td { font-size: 13px; }
-
         .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-        .status-pending { background-color: var(--border); color: var(--text-muted); }
-        .status-running { background-color: var(--warning); color: #fff; }
         .status-success { background-color: var(--success); color: #fff; }
         .status-error { background-color: var(--danger); color: #fff; }
         .status-info { background-color: #6366f1; color: #fff; }
-
         .code-box {
             background: #000; padding: 6px 8px; border-radius: 6px; font-family: monospace; font-size: 11px;
             color: #a78bfa; border: 1px solid #4c1d95; display: flex; justify-content: space-between;
             align-items: center; gap: 8px; width: 100%; box-sizing: border-box;
         }
         .code-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; }
-        .btn-copy { background: rgba(255,255,255,0.1); border: none; color: white; padding: 3px 6px; border-radius: 4px; cursor: pointer; font-size: 10px; }
-
-        .sitemap-cell { font-size: 10px; line-height: 1.2; }
+        .btn-mini { padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: white; }
+        .btn-mini:hover { background: var(--primary); }
     </style>
 </head>
 <body>
-
 <div class="container">
     <div class="header">
-        <h1>GSC Bulk Add & Verify Pro</h1>
-        <p>Quản lý GSC, Meta Tag & Sitemap hàng loạt</p>
+        <h1>GSC Bulk & SEO Automation Pro</h1>
+        <p>Hệ thống quản lý PBN: GSC, Sitemap, 301 & Outbound Link</p>
     </div>
-
     <div class="tab-nav">
-        <button class="tab-btn active" onclick="switchTab('tab1')">🔌 Add GSC & Lấy Mã</button>
-        <button class="tab-btn" onclick="switchTab('tab2')">🔍 Check Website Status</button>
+        <button class="tab-btn active" onclick="switchTab('tab1')">🔌 Quản lý GSC</button>
+        <button class="tab-btn" onclick="switchTab('tab2')">🔍 Check 301 & WP</button>
+        <button class="tab-btn" onclick="switchTab('tab3')">🔗 Outbound Audit</button>
     </div>
 
-    <!-- TAB 1 -->
+    <!-- TAB 1: GSC -->
     <div id="tab1" class="tab-content active">
         <div class="card">
-            <h3 style="margin-top:0">Bước 1: Kết nối Google Account</h3>
-            <button id="btnAuth" class="btn" onclick="handleAuthClick()">🔑 Đăng nhập tài khoản Google</button>
-            <button id="btnRevoke" class="btn btn-danger" onclick="handleSignoutClick()" style="display:none;">Thoát tài khoản</button>
-            <div id="userInfo" style="display:none; margin-top:10px; color:var(--success); font-weight:bold;">✅ Đã cấp quyền thành công!</div>
+            <h3 style="margin-top:0">Bước 1: Kết nối Google</h3>
+            <button id="btnAuth" class="btn" onclick="handleAuthClick()">🔑 Đăng nhập Google</button>
+            <div id="userInfo" style="display:none; margin-top:10px; color:var(--success); font-weight:bold;">✅ Đã kết nối!</div>
         </div>
-
         <div class="card" style="margin-top:20px;">
-            <h3 style="margin-top:0">Bước 2: Nhập Website</h3>
-            <textarea id="domainList" placeholder="Nhập danh sách domain, mỗi dòng 1 domain..."></textarea>
-            
-            <!-- Bulk Sitemap (Tinh gọn) -->
-            <div style="margin-top:20px; padding:15px; background:rgba(255,255,255,0.05); border-radius:8px; border:1px solid var(--border);">
-                <h4 style="margin-top:0; color:var(--primary); font-size:14px;">Bulk Sitemap Manager</h4>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <input type="text" id="sitemapList" style="flex:1; padding:10px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:white; font-size:13px;" value="sitemap_index.xml, category-sitemap.xml, page-sitemap.xml, post-sitemap.xml">
-                    <button class="btn btn-secondary" onclick="checkAndSubmitSitemaps()" style="white-space:nowrap; padding:10px 15px;">Kiểm tra & Thêm Sitemap</button>
+            <h3 style="margin-top:0">Bước 2: Website & Sitemap</h3>
+            <textarea id="domainList" placeholder="Danh sách domain..."></textarea>
+            <div style="margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px;">
+                <label style="font-size:12px; color:var(--text-muted);">Sitemap Names (cách nhau bằng dấu phẩy):</label>
+                <div style="display:flex; gap:10px; margin-top:5px;">
+                    <input type="text" id="sitemapList" value="sitemap_index.xml, category-sitemap.xml, page-sitemap.xml, post-sitemap.xml">
+                    <button class="btn btn-secondary" onclick="checkAndSubmitSitemaps()">Nạp Sitemap</button>
                 </div>
             </div>
-
             <div style="margin-top:15px; display:flex; gap:10px;">
-                <button id="btnStart" class="btn btn-success" onclick="startProcess()" disabled>🚀 Bắt đầu Add & Lấy Mã HTML</button>
-                <button class="btn btn-secondary" onclick="exportCSV()">📋 Xuất CSV</button>
+                <button id="btnStart" class="btn btn-success" onclick="startProcess()" disabled>🚀 Bắt đầu Add & Lấy Mã</button>
             </div>
         </div>
-
         <div class="card" style="margin-top:20px;">
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th width="20%">Website URL</th>
-                            <th width="15%">Trạng thái Add GSC</th>
-                            <th width="35%">Mã xác minh HTML</th>
-                            <th width="15%">Xác minh</th>
-                            <th width="15%">Sitemaps</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resultBody">
-                        <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:30px;">Chưa có dữ liệu.</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <table id="gscTable">
+                <thead>
+                    <tr><th width="25%">Website URL</th><th width="15%">Trạng thái</th><th width="35%">Mã HTML</th><th width="12%">Xác minh</th><th width="13%">Sitemaps</th></tr>
+                </thead>
+                <tbody id="resultBody"></tbody>
+            </table>
         </div>
     </div>
 
-    <!-- TAB 2 -->
+    <!-- TAB 2: 301 & WP -->
     <div id="tab2" class="tab-content">
-        <!-- Vẫn giữ nguyên logic Tab 2 ổn định của sếp -->
         <div class="card">
             <h3 style="margin-top:0">Check Website & 301 Status</h3>
-            <textarea id="checkDomainList" placeholder="Gốc [cách] Đích [cách] Admin..."></textarea>
-            <button class="btn btn-success" onclick="startCheck()" style="margin-top:10px;">🔍 Bắt đầu Kiểm Tra</button>
+            <textarea id="checkDomainList" placeholder="Gốc Đích Admin User Pass..."></textarea>
+            <button class="btn btn-success" onclick="startCheck()" style="margin-top:10px;">🔍 Quét Trạng Thái</button>
         </div>
         <div class="card" style="margin-top:20px;">
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th width="25%">Website URL</th>
-                            <th width="12%">Trạng thái</th>
-                            <th width="10%">Code</th>
-                            <th width="25%">So khớp 301</th>
-                            <th width="28%">WP-Admin</th>
-                        </tr>
-                    </thead>
-                    <tbody id="checkResultBody">
-                        <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:30px;">Chưa có dữ liệu.</td></tr>
-                    </tbody>
-                </table>
+            <table>
+                <thead>
+                    <tr><th>Website</th><th>Status</th><th>Code</th><th>So khớp 301</th><th>Admin</th><th>Login</th></tr>
+                </thead>
+                <tbody id="checkResultBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB 3: OUTBOUND AUDIT -->
+    <div id="tab3" class="tab-content">
+        <div class="card">
+            <h3 style="margin-top:0">Outbound Link Auditor</h3>
+            <p style="font-size:13px; color:var(--text-muted);">Kiểm tra các link trỏ ra ngoài từ trang chủ.</p>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="auditUrl" placeholder="https://example.com/">
+                <button class="btn btn-success" onclick="startOutboundAudit()">🚀 Quét Link</button>
             </div>
+        </div>
+        <div class="card" style="margin-top:20px;">
+            <table>
+                <thead>
+                    <tr><th width="40%">Link trỏ ra</th><th width="30%">Domain đích</th><th width="15%">Trạng thái</th><th width="15%">Code</th></tr>
+                </thead>
+                <tbody id="auditResultBody"></tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -204,162 +161,153 @@
     }
 
     function handleAuthClick() {
-        const tokenClient = google.accounts.oauth2.initTokenClient({
+        const client = google.accounts.oauth2.initTokenClient({
             client_id: GOOGLE_CLIENT_ID,
             scope: 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/siteverification',
-            callback: (res) => {
-                if (res.access_token) {
-                    accessToken = res.access_token;
-                    document.getElementById('userInfo').style.display = 'block';
-                    document.getElementById('btnStart').disabled = false;
-                }
-            },
+            callback: (res) => { if (res.access_token) { accessToken = res.access_token; document.getElementById('userInfo').style.display='block'; document.getElementById('btnStart').disabled=false; } }
         });
-        tokenClient.requestAccessToken({prompt: 'consent'});
+        client.requestAccessToken({prompt: 'consent'});
     }
 
+    // --- TAB 1 LOGIC ---
     async function startProcess() {
         const lines = document.getElementById('domainList').value.split('\n').filter(l => l.trim());
-        const tbody = document.getElementById('resultBody');
-        tbody.innerHTML = '';
-
-        // 1. Lấy danh sách site hiện tại (Logic bản cũ chuẩn)
-        let existingSites = new Map();
+        const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';
+        let existingMap = new Map();
         try {
-            const res = await fetch('https://www.googleapis.com/webmasters/v3/sites', {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                if (data.siteEntry) {
-                    data.siteEntry.forEach(e => {
-                        let url = e.siteUrl; if (!url.endsWith('/')) url += '/';
-                        existingSites.set(url.toLowerCase(), e.permissionLevel);
-                    });
-                }
-            }
+            const res = await fetch('https://www.googleapis.com/webmasters/v3/sites', { headers: { 'Authorization': `Bearer ${accessToken}` } });
+            const data = await res.json();
+            if (data.siteEntry) data.siteEntry.forEach(e => { let u = e.siteUrl; if(!u.endsWith('/')) u+='/'; existingMap.set(u.toLowerCase(), e.permissionLevel); });
         } catch(e) {}
 
         for (let i = 0; i < lines.length; i++) {
-            let url = lines[i].trim();
-            if (!url.startsWith('http')) url = 'https://' + url;
-            if (!url.endsWith('/')) url += '/';
-
-            const tr = document.createElement('tr');
-            tr.dataset.siteUrl = url;
-            tr.innerHTML = `
-                <td><a href="${url}" target="_blank" style="color:var(--primary)">${url}</a></td>
-                <td id="status_${i}"><span class="status-badge status-pending">Đang xử lý...</span></td>
-                <td id="meta_${i}">-</td>
-                <td id="verify_${i}">-</td>
-                <td class="sitemap-cell">-</td>
-            `;
+            let url = lines[i].trim(); if(!url.startsWith('http')) url='https://'+url; if(!url.endsWith('/')) url+='/';
+            const tr = document.createElement('tr'); tr.dataset.siteUrl = url;
+            tr.innerHTML = `<td>${url}</td><td id="st_${i}">...</td><td id="mt_${i}">-</td><td id="vr_${i}">-</td><td class="sitemap-cell">-</td>`;
             tbody.appendChild(tr);
-
-            const perm = existingSites.get(url.toLowerCase());
-            
+            const perm = existingMap.get(url.toLowerCase());
             try {
                 if (perm) {
-                    // ĐÃ CÓ TRONG GSC
-                    document.getElementById(`status_${i}`).innerHTML = `<span class="status-badge status-info">✅ Đã có (${perm === 'siteOwner' ? 'Owner' : 'User'})</span>`;
-                    if (perm === 'siteOwner') {
-                        document.getElementById(`meta_${i}`).innerHTML = '<span style="color:var(--text-muted)">Đã xác minh xong - Không hiện mã</span>';
-                        document.getElementById(`verify_${i}`).innerHTML = '<span class="status-badge status-success">Xong</span>';
-                    } else {
-                        // Có trong list nhưng chưa phải Owner -> Vẫn hiện mã để xác minh
-                        await showMetaAndVerify(url, i);
-                    }
+                    document.getElementById(`st_${i}`).innerHTML = `<span class="status-badge status-info">✅ Đã có (${perm==='siteOwner'?'Owner':'User'})</span>`;
+                    if (perm==='siteOwner') { document.getElementById(`mt_${i}`).innerText='-'; document.getElementById(`vr_${i}`).innerHTML='<span class="status-badge status-success">Xong</span>'; }
+                    else await fetchMeta(url, i);
                 } else {
-                    // CHƯA CÓ -> ADD MỚI
-                    const addRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, {
-                        method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` }
-                    });
-                    if (addRes.ok) {
-                        document.getElementById(`status_${i}`).innerHTML = '<span class="status-badge status-success">Đã Add mới</span>';
-                        await showMetaAndVerify(url, i);
-                    }
+                    await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
+                    document.getElementById(`st_${i}`).innerHTML = '<span class="status-badge status-success">Đã Add</span>';
+                    await fetchMeta(url, i);
                 }
-            } catch(e) { document.getElementById(`status_${i}`).innerHTML = 'Lỗi'; }
-            await new Promise(r => setTimeout(r, 600));
+            } catch(e) { document.getElementById(`st_${i}`).innerText='Lỗi'; }
+            await new Promise(r => setTimeout(r, 500));
         }
     }
 
-    async function showMetaAndVerify(url, i) {
-        const tRes = await fetch(`https://www.googleapis.com/siteVerification/v1/token`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    async function fetchMeta(url, i) {
+        const res = await fetch(`https://www.googleapis.com/siteVerification/v1/token`, {
+            method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ verificationMethod: 'META', site: { identifier: url, type: 'SITE' } })
         });
-        if (tRes.ok) {
-            const data = await tRes.json();
-            const meta = data.token;
-            document.getElementById(`meta_${i}`).innerHTML = `
-                <div class="code-box">
-                    <span class="code-text" title="${meta}">${meta.replace(/</g, '&lt;')}</span>
-                    <button class="btn-copy" onclick="copyText('${meta.replace(/'/g, "\\'")}')">Copy</button>
-                </div>`;
-            document.getElementById(`verify_${i}`).innerHTML = `<button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="verifySite('${url}', ${i})">Xác minh</button>`;
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById(`mt_${i}`).innerHTML = `<div class="code-box"><span class="code-text">${data.token.replace(/</g,'&lt;')}</span><button class="btn-mini" onclick="navigator.clipboard.writeText('${data.token.replace(/'/g,"\\'")}')">Copy</button></div>`;
+            document.getElementById(`vr_${i}`).innerHTML = `<button class="btn-mini" onclick="verifySite('${url}',${i})">Xác minh</button>`;
         }
     }
 
     async function verifySite(url, i) {
         const res = await fetch(`https://www.googleapis.com/siteVerification/v1/webResource?verificationMethod=META`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ site: { identifier: url, type: 'SITE' } })
         });
-        if (res.ok) {
-            document.getElementById(`verify_${i}`).innerHTML = '<span class="status-badge status-success">✅ OK</span>';
-            document.getElementById(`meta_${i}`).innerHTML = '<span style="color:var(--text-muted)">Xác minh thành công</span>';
-        } else { alert("Chưa dán mã sếp ơi!"); }
+        if (res.ok) { document.getElementById(`vr_${i}`).innerHTML='✅ OK'; document.getElementById(`mt_${i}`).innerText='Xác minh xong'; } else alert("Lỗi!");
     }
 
     async function checkAndSubmitSitemaps() {
-        const smNames = document.getElementById('sitemapList').value.split(',').map(s => s.trim()).filter(s => s);
+        const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim());
         const rows = document.querySelectorAll('#resultBody tr');
         for (let row of rows) {
-            const url = row.dataset.siteUrl; if (!url) continue;
-            const cell = row.querySelector('.sitemap-cell');
-            cell.innerHTML = '<span style="color:var(--warning)">Đang quét...</span>';
+            const url = row.dataset.siteUrl; if(!url) continue;
+            const cell = row.querySelector('.sitemap-cell'); cell.innerHTML = '...';
             try {
-                // Chuyển sang API v3 để tránh lỗi CORS
-                const res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
+                const res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
                 const data = await res.json();
-                const existed = (data.sitemap || []).map(s => s.path);
+                const existed = (data.sitemap || []).map(s=>s.path);
                 let html = [];
                 for (let name of smNames) {
                     const full = url + name;
-                    const isEx = existed.some(p => p.includes(name));
-                    if (isEx) {
-                        html.push(`<div style="color:var(--success)">✅ ${name}</div>`);
-                    } else {
-                        // Gửi lệnh Submit bằng API v3
-                        const sRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps/${encodeURIComponent(full)}`, {
-                            method: 'PUT',
-                            headers: { 'Authorization': `Bearer ${accessToken}` }
-                        });
-                        if (sRes.ok || sRes.status === 204) {
-                            html.push(`<div style="color:var(--primary)">🆕 ${name}</div>`);
-                        } else {
-                            html.push(`<div style="color:var(--danger)">❌ ${name}</div>`);
-                        }
+                    if (existed.some(p=>p.includes(name))) html.push(`<div style="color:var(--success)">✅ ${name}</div>`);
+                    else {
+                        const sRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps/${encodeURIComponent(full)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
+                        html.push(sRes.ok? `<div style="color:var(--primary)">🆕 ${name}</div>` : `❌ ${name}`);
                     }
                 }
                 cell.innerHTML = html.join('');
-            } catch(e) { 
-                console.error("Sitemap Error:", e);
-                cell.innerText = 'Lỗi kết nối'; 
-            }
+            } catch(e) { cell.innerText='Lỗi'; }
         }
     }
 
-    function copyText(t) { navigator.clipboard.writeText(t).then(() => alert("Đã Copy!")); }
-    function exportCSV() { alert("Đã xuất CSV"); }
+    // --- TAB 2 LOGIC ---
+    async function startCheck() {
+        const lines = document.getElementById('checkDomainList').value.split('\n').filter(l => l.trim());
+        const tbody = document.getElementById('checkResultBody'); tbody.innerHTML = '';
+        for (let i = 0; i < lines.length; i++) {
+            const p = lines[i].split(/\s+/);
+            let o = p[0]; if(!o.startsWith('http')) o='https://'+o; if(!o.endsWith('/')) o+='/';
+            let t = p[1]||p[0]; if(!t.startsWith('http')) t='https://'+t; if(!t.endsWith('/')) t+='/';
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td><b>${t}</b></td><td id="cSt_${i}">...</td><td id="cCo_${i}">...</td><td id="cMa_${i}">...</td><td id="cAd_${i}">...</td><td id="cLo_${i}">...</td>`;
+            tbody.appendChild(tr);
+            
+            try {
+                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(o)}`);
+                const data = await res.json();
+                document.getElementById(`cSt_${i}`).innerHTML = res.ok?'<span class="status-badge status-success">Live</span>':'Error';
+                document.getElementById(`cCo_${i}`).innerText = data.status?data.status.http_code:'??';
+                let final = data.status?data.status.url:o;
+                const isM = final.toLowerCase().includes(t.toLowerCase().replace('https://','').replace('http://','').replace(/\/$/,''));
+                document.getElementById(`cMa_${i}`).innerHTML = isM?'✅ KHỚP':'🚨 LỆCH';
+                
+                const adRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(t+(p[2]||'wp-admin'))}`);
+                const adHtml = await adRes.text();
+                document.getElementById(`cAd_${i}`).innerText = adHtml.includes('wp-login')?'Admin OK':'Fail';
+                
+                if (p[3]) document.getElementById(`cLo_${i}`).innerHTML = `<button class="btn-mini" onclick="autoLogin('${t}','${p[2]||'wp-admin'}','${p[3]}','${p[4]}')">🔑</button>`;
+            } catch(e) { document.getElementById(`cSt_${i}`).innerText='Timeout'; }
+            await new Promise(r => setTimeout(r, 500));
+        }
+    }
 
-    // Logic Tab 2 giữ nguyên bản chuẩn
-    async function startCheck() { /* Logic check domain & 301 */ }
+    function autoLogin(url, path, user, pass) {
+        const win = window.open('', '_blank');
+        const lUrl = url + (path === 'wp-admin' ? 'wp-login.php' : path);
+        win.document.write(`<form id="f" method="POST" action="${lUrl}"><input type="hidden" name="log" value="${user}"><input type="hidden" name="pwd" value="${pass}"><input type="hidden" name="wp-submit" value="Log In"><input type="hidden" name="redirect_to" value="${url}wp-admin/"></form><script>document.getElementById('f').submit();<\/script>`);
+    }
+
+    // --- TAB 3 LOGIC ---
+    async function startOutboundAudit() {
+        let url = document.getElementById('auditUrl').value.trim();
+        if (!url) return alert("Nhập URL!"); if(!url.startsWith('http')) url='https://'+url;
+        const host = new URL(url).hostname.replace('www.','');
+        const tbody = document.getElementById('auditResultBody'); tbody.innerHTML = '<tr><td colspan="4">Đang quét...</td></tr>';
+        try {
+            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+            const data = await res.json();
+            const doc = new DOMParser().parseFromString(data.contents, 'text/html');
+            const links = Array.from(doc.querySelectorAll('a[href]')).map(a => new URL(a.getAttribute('href'), url).href)
+                         .filter(h => h.startsWith('http') && !h.includes(host));
+            const unique = [...new Set(links)];
+            tbody.innerHTML = '';
+            unique.forEach(async (link, i) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${link}</td><td>${new URL(link).hostname}</td><td id="audSt_${i}">Checking...</td><td id="audCo_${i}">-</td>`;
+                tbody.appendChild(tr);
+                try {
+                    const check = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`);
+                    document.getElementById(`audSt_${i}`).innerHTML = check.ok?'✅ SỐNG':'❌ CHẾT';
+                    document.getElementById(`audCo_${i}`).innerText = check.status;
+                } catch(e) { document.getElementById(`audSt_${i}`).innerText='Error'; }
+            });
+        } catch(e) { alert("Lỗi quét!"); }
+    }
 </script>
 </body>
 </html>
