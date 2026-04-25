@@ -283,6 +283,25 @@
     }
 
     // --- TAB 3 LOGIC ---
+    async function fetchHtml(url) {
+        // Thử lần lượt từng proxy cho đến khi thành công
+        const proxies = [
+            u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+            u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+            u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+        ];
+        for (let makeUrl of proxies) {
+            try {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 8000);
+                const res = await fetch(makeUrl(url), { signal: ctrl.signal });
+                clearTimeout(tid);
+                if (res.ok) return await res.text();
+            } catch(e) { /* thử proxy tiếp theo */ }
+        }
+        return null;
+    }
+
     async function startOutboundAudit() {
         const rawLines = document.getElementById('auditUrlList').value.split('\n').map(l => l.trim()).filter(l => l);
         if (rawLines.length === 0) return alert("Nhập ít nhất 1 URL sếp ơi!");
@@ -291,60 +310,63 @@
         let linkCounter = 0;
 
         for (let rawUrl of rawLines) {
-            let url = rawUrl; if(!url.startsWith('http')) url='https://'+url;
-            const host = new URL(url).hostname.replace('www.','');
+            let url = rawUrl; 
+            if (!url.startsWith('http')) url = 'https://' + url;
+            if (!url.endsWith('/')) url += '/';
+            const host = new URL(url).hostname.replace('www.', '');
 
-            // Header row phân nhóm theo từng web nguồn
             const headerTr = document.createElement('tr');
             headerTr.innerHTML = `<td colspan="5" style="background:rgba(59,130,246,0.15); color:var(--primary); font-weight:700; font-size:12px; padding:8px 15px;">🌐 Đang quét: ${url}</td>`;
             tbody.appendChild(headerTr);
 
-            try {
-                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-                const data = await res.json();
-                if (!data.contents) { headerTr.innerHTML = `<td colspan="5" style="color:var(--danger);">❌ Không lấy được nội dung: ${url}</td>`; continue; }
-
-                const doc = new DOMParser().parseFromString(data.contents, 'text/html');
-                const links = [...new Set(
-                    Array.from(doc.querySelectorAll('a[href]'))
-                        .map(a => { try { return new URL(a.getAttribute('href'), url).href; } catch(e) { return ''; } })
-                        .filter(h => h.startsWith('http') && !new URL(h).hostname.replace('www.','').includes(host))
-                )];
-
-                if (links.length === 0) {
-                    const emptyTr = document.createElement('tr');
-                    emptyTr.innerHTML = `<td colspan="5" style="color:var(--text-muted); font-size:12px; padding-left:25px;">Không tìm thấy outbound link nào.</td>`;
-                    tbody.appendChild(emptyTr);
-                    continue;
-                }
-
-                for (let link of links) {
-                    const i = linkCounter++;
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td style="font-size:11px; color:var(--text-muted);">${host}</td>
-                        <td style="font-size:11px; word-break:break-all;"><a href="${link}" target="_blank" style="color:var(--primary)">${link}</a></td>
-                        <td style="font-size:11px;">${new URL(link).hostname}</td>
-                        <td id="audSt_${i}"><span style="color:var(--text-muted)">Checking...</span></td>
-                        <td id="audCo_${i}">-</td>
-                    `;
-                    tbody.appendChild(tr);
-
-                    // Check trạng thái từng link (không await để chạy song song)
-                    ;(async () => {
-                        try {
-                            const check = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`);
-                            document.getElementById(`audSt_${i}`).innerHTML = check.ok ? '<span class="status-badge status-success">✅ SỐNG</span>' : '<span class="status-badge status-error">❌ CHẾT</span>';
-                            document.getElementById(`audCo_${i}`).innerText = check.status;
-                        } catch(e) {
-                            document.getElementById(`audSt_${i}`).innerHTML = '<span class="status-badge status-error">Timeout</span>';
-                        }
-                    })();
-                }
-            } catch(e) {
-                headerTr.innerHTML = `<td colspan="5" style="color:var(--danger);">❌ Lỗi khi quét: ${url}</td>`;
+            const html = await fetchHtml(url);
+            if (!html) {
+                headerTr.innerHTML = `<td colspan="5" style="color:var(--danger); padding:8px 15px;">❌ Không lấy được nội dung: ${url}</td>`;
+                continue;
             }
-            await new Promise(r => setTimeout(r, 300));
+
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const links = [...new Set(
+                Array.from(doc.querySelectorAll('a[href]'))
+                    .map(a => { try { return new URL(a.getAttribute('href'), url).href; } catch(e) { return ''; } })
+                    .filter(h => h.startsWith('http') && !new URL(h).hostname.replace('www.', '').includes(host))
+            )];
+
+            if (links.length === 0) {
+                const emptyTr = document.createElement('tr');
+                emptyTr.innerHTML = `<td colspan="5" style="color:var(--text-muted); font-size:12px; padding-left:25px;">Không tìm thấy outbound link nào.</td>`;
+                tbody.appendChild(emptyTr);
+                continue;
+            }
+
+            for (let link of links) {
+                const i = linkCounter++;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-size:11px; color:var(--text-muted);">${host}</td>
+                    <td style="font-size:11px; word-break:break-all;"><a href="${link}" target="_blank" style="color:var(--primary)">${link}</a></td>
+                    <td style="font-size:11px;">${new URL(link).hostname}</td>
+                    <td id="audSt_${i}"><span style="color:var(--text-muted)">Checking...</span></td>
+                    <td id="audCo_${i}">-</td>
+                `;
+                tbody.appendChild(tr);
+
+                ;(async () => {
+                    try {
+                        const ctrl = new AbortController();
+                        const tid = setTimeout(() => ctrl.abort(), 8000);
+                        const check = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`, { signal: ctrl.signal });
+                        clearTimeout(tid);
+                        document.getElementById(`audSt_${i}`).innerHTML = check.ok
+                            ? '<span class="status-badge status-success">✅ SỐNG</span>'
+                            : '<span class="status-badge status-error">❌ CHẾT</span>';
+                        document.getElementById(`audCo_${i}`).innerText = check.status;
+                    } catch(e) {
+                        document.getElementById(`audSt_${i}`).innerHTML = '<span class="status-badge status-error">Timeout</span>';
+                    }
+                })();
+            }
+            await new Promise(r => setTimeout(r, 400));
         }
     }
 </script>
