@@ -114,8 +114,16 @@
     <div id="tab2" class="tab-content">
         <div class="card">
             <h3 style="margin-top:0">Check Website & 301 Status</h3>
-            <textarea id="checkDomainList" placeholder="Gốc Đích Admin User Pass..."></textarea>
-            <button class="btn btn-success" onclick="startCheck()" style="margin-top:10px;">🔍 Quét Trạng Thái</button>
+            <textarea id="checkDomainList" placeholder="Gốc Đích Admin User Pass... (Hoặc chỉ dán list Web gốc nếu dùng chế độ 'Chỉ Check 301')"></textarea>
+            <div style="margin-top:10px; display: flex; gap: 10px;">
+                <button class="btn btn-success" onclick="startCheck()">🔍 Quét Trạng Thái (Full)</button>
+                <button id="btnCheck301Only" class="btn btn-primary" onclick="startCheck301Only()" style="background-color: var(--primary);">🔄 Chỉ Check 301 (Xuất List)</button>
+            </div>
+            <div id="check301OutputContainer" style="margin-top: 15px; display: none;">
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--primary);">Kết quả danh sách 301:</label>
+                <textarea id="check301Output" readonly style="height:150px; border-color:var(--primary); background:rgba(59, 130, 246, 0.05);"></textarea>
+                <button class="btn" style="margin-top:10px; width:100%;" onclick="copyToClipboard(this, document.getElementById('check301Output').value)">📋 Copy Kết Quả</button>
+            </div>
         </div>
         <div class="card" style="margin-top:20px;">
             <table>
@@ -274,6 +282,49 @@
             } catch(e) { document.getElementById(`cSt_${i}`).innerText='Timeout'; }
             await new Promise(r => setTimeout(r, 500));
         }
+    }
+
+    async function startCheck301Only() {
+        const btn = document.getElementById('btnCheck301Only');
+        const lines = document.getElementById('checkDomainList').value.split('\n').filter(l => l.trim());
+        if(lines.length === 0) return alert("Nhập ít nhất 1 URL gốc sếp ơi!");
+        
+        btn.innerText = "⏳ Đang quét...";
+        btn.disabled = true;
+        
+        const outputContainer = document.getElementById('check301OutputContainer');
+        const outputArea = document.getElementById('check301Output');
+        outputContainer.style.display = 'block';
+        outputArea.value = '';
+        
+        let results = [];
+        
+        for (let i = 0; i < lines.length; i++) {
+            const p = lines[i].split(/\s+/);
+            let o = p[0]; 
+            if(!o.startsWith('http')) o='https://'+o; 
+            // Không tự động thêm slash ở chế độ này để giữ nguyên dạng nếu sếp copy
+            
+            try {
+                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(o)}`);
+                const data = await res.json();
+                
+                if (res.ok && data.status) {
+                    let finalUrl = data.status.url;
+                    results.push(finalUrl);
+                } else {
+                    results.push(`[Lỗi HTTP ${data.status?data.status.http_code:''}] ${o}`);
+                }
+            } catch(e) {
+                results.push(`[Lỗi Mạng/Timeout] ${o}`);
+            }
+            
+            outputArea.value = results.join('\n'); // Cập nhật realtime
+            await new Promise(r => setTimeout(r, 400));
+        }
+        
+        btn.innerText = "🔄 Chỉ Check 301 (Xuất List)";
+        btn.disabled = false;
     }
 
     function autoLogin(url, path, user, pass) {
