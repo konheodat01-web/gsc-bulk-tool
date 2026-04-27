@@ -79,6 +79,24 @@
         <button class="tab-btn" onclick="switchTab('tab3')">🔗 Outbound Audit</button>
     </div>
 
+    <!-- SETTINGS: TELEGRAM -->
+    <div class="card" style="margin-top: 20px; background: rgba(59, 130, 246, 0.05); border-color: var(--primary);">
+        <h3 style="margin-top:0; font-size: 14px; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+            <i class="fa-brands fa-telegram"></i> Cấu hình Telegram Bot (Tự động báo cáo)
+        </h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="form-group" style="margin-bottom:0">
+                <label style="font-size:11px; color:var(--text-muted)">Bot Token</label>
+                <input type="password" id="teleToken" placeholder="Dán Token vào đây..." onchange="saveTeleSettings()" style="width:100%; padding:8px; font-size:12px;">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+                <label style="font-size:11px; color:var(--text-muted)">Chat ID</label>
+                <input type="text" id="teleChatId" placeholder="Dán Chat ID vào đây..." onchange="saveTeleSettings()" style="width:100%; padding:8px; font-size:12px;">
+            </div>
+        </div>
+        <div id="teleStatus" style="font-size:11px; margin-top:8px; color:var(--success); display:none;">✅ Đã lưu cấu hình Telegram!</div>
+    </div>
+
     <!-- TAB 1: GSC -->
     <div id="tab1" class="tab-content active">
         <div class="card">
@@ -161,6 +179,30 @@
     const GOOGLE_CLIENT_ID = "938057045964-r7r5osdav10sgf6rhev3c8vri2qbal4r.apps.googleusercontent.com";
     let accessToken = null;
 
+    // --- TELEGRAM LOGIC ---
+    function saveTeleSettings() {
+        localStorage.setItem('tele_token', document.getElementById('teleToken').value);
+        localStorage.setItem('tele_chat_id', document.getElementById('teleChatId').value);
+        const st = document.getElementById('teleStatus');
+        st.style.display = 'block';
+        setTimeout(() => st.style.display = 'none', 3000);
+    }
+    function loadTeleSettings() {
+        document.getElementById('teleToken').value = localStorage.getItem('tele_token') || '';
+        document.getElementById('teleChatId').value = localStorage.getItem('tele_chat_id') || '';
+    }
+    async function sendToTelegram(msg) {
+        const t = localStorage.getItem('tele_token'), c = localStorage.getItem('tele_chat_id');
+        if(!t || !c) return;
+        try {
+            await fetch(`https://api.telegram.org/bot${t}/sendMessage`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: c, text: msg, parse_mode: 'HTML', disable_web_page_preview: true })
+            });
+        } catch(e) {}
+    }
+    window.addEventListener('load', loadTeleSettings);
+
     function switchTab(id) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -207,6 +249,7 @@
             } catch(e) { document.getElementById(`st_${i}`).innerText='Lỗi'; }
             await new Promise(r => setTimeout(r, 500));
         }
+        await sendToTelegram(`<b>✅ HOÀN TẤT ADD GSC</b>\nĐã xử lý xong <b>${lines.length}</b> website.`);
     }
 
     async function fetchMeta(url, i) {
@@ -348,6 +391,13 @@
             await new Promise(r => setTimeout(r, 600)); // Nghỉ lâu hơn tí để tránh bị proxy block
         }
         
+        // Gửi báo cáo Telegram
+        if (results.length > 0) {
+            let teleMsg = `<b>📊 BÁO CÁO CHECK 301</b>\n\n`;
+            results.forEach((r, idx) => { teleMsg += `${idx + 1}. ${r}\n`; });
+            await sendToTelegram(teleMsg);
+        }
+
         btn.innerText = "🔄 Chỉ Check 301 (Xuất List)";
         btn.disabled = false;
     }
