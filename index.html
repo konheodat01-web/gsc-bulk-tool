@@ -90,8 +90,11 @@
                 <input type="password" id="teleToken" placeholder="Dán Token vào đây..." onchange="saveTeleSettings()" style="width:100%; padding:8px; font-size:12px;">
             </div>
             <div class="form-group" style="margin-bottom:0">
-                <label style="font-size:11px; color:var(--text-muted)">Chat ID</label>
-                <input type="text" id="teleChatId" placeholder="Dán Chat ID vào đây..." onchange="saveTeleSettings()" style="width:100%; padding:8px; font-size:12px;">
+                <label style="font-size:11px; color:var(--text-muted)">Chat ID (Dãy số)</label>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="teleChatId" placeholder="VD: 543216789" onchange="saveTeleSettings()" style="flex-grow:1; padding:8px; font-size:12px;">
+                    <button class="btn-mini" onclick="testTele()" style="background:var(--success); border:none; height:33px; white-space:nowrap;">🔔 Test</button>
+                </div>
             </div>
         </div>
         <div id="teleStatus" style="font-size:11px; margin-top:8px; color:var(--success); display:none;">✅ Đã lưu cấu hình Telegram!</div>
@@ -195,11 +198,17 @@
         const t = localStorage.getItem('tele_token'), c = localStorage.getItem('tele_chat_id');
         if(!t || !c) return;
         try {
-            await fetch(`https://api.telegram.org/bot${t}/sendMessage`, {
+            const res = await fetch(`https://api.telegram.org/bot${t}/sendMessage`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: c, text: msg, parse_mode: 'HTML', disable_web_page_preview: true })
             });
-        } catch(e) {}
+            return res.ok;
+        } catch(e) { return false; }
+    }
+    async function testTele() {
+        const ok = await sendToTelegram('<b>🔔 Test thành công!</b>\nTool GSC đã kết nối được với Telegram của sếp.');
+        if(ok) alert("✅ Bot đã gửi tin nhắn test thành công! Sếp kiểm tra Telegram nhé.");
+        else alert("❌ Lỗi! Sếp kiểm tra lại Token hoặc Chat ID (phải là dãy số) xem đúng chưa nhé.");
     }
     window.addEventListener('load', loadTeleSettings);
 
