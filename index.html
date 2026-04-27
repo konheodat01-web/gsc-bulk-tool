@@ -77,6 +77,7 @@
         <button class="tab-btn active" onclick="switchTab('tab1')">🔌 Quản lý GSC</button>
         <button class="tab-btn" onclick="switchTab('tab2')">🔍 Check 301 & WP</button>
         <button class="tab-btn" onclick="switchTab('tab3')">🔗 Outbound Audit</button>
+        <button class="tab-btn" onclick="switchTab('tab4')">🤖 Check Mở Bot</button>
     </div>
 
     <!-- SETTINGS: TELEGRAM -->
@@ -173,6 +174,23 @@
                 </thead>
                 <tbody id="auditResultBody"></tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- TAB 4: CHECK BOT -->
+    <div id="tab4" class="tab-content">
+        <div class="card">
+            <h3 style="margin-top:0">Check Trạng Thái Mở Bot (Index)</h3>
+            <p style="font-size:13px; color:var(--text-muted);">Kiểm tra xem Website đã được cấu hình cho phép Googlebot vào thu thập dữ liệu (Index) chưa.</p>
+            <textarea id="checkBotList" placeholder="Nhập danh sách website (mỗi dòng 1 URL)..."></textarea>
+            <div style="margin-top:10px;">
+                <button id="btnCheckBot" class="btn btn-success" onclick="startCheckBot()">🤖 Bắt đầu Check Mở Bot</button>
+            </div>
+            <div id="checkBotOutputContainer" style="margin-top: 15px; display: none;">
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--primary);">Báo cáo kết quả:</label>
+                <textarea id="checkBotOutput" readonly style="height:200px; border-color:var(--primary); background:rgba(59, 130, 246, 0.05); font-size:12px;"></textarea>
+                <button class="btn" style="margin-top:10px; width:100%;" onclick="copyToClipboard(this, document.getElementById('checkBotOutput').value)">📋 Copy Báo Cáo</button>
+            </div>
         </div>
     </div>
 </div>
@@ -552,6 +570,86 @@
             }
             await new Promise(r => setTimeout(r, 400));
         }
+    }
+    // --- TAB 4 LOGIC ---
+    async function startCheckBot() {
+        const btn = document.getElementById('btnCheckBot');
+        const lines = document.getElementById('checkBotList').value.split('\n').filter(l => l.trim());
+        if(lines.length === 0) return alert("Nhập danh sách website sếp ơi!");
+        
+        btn.innerText = "⏳ Đang quét...";
+        btn.disabled = true;
+        
+        const outContainer = document.getElementById('checkBotOutputContainer');
+        const outArea = document.getElementById('checkBotOutput');
+        outContainer.style.display = 'block';
+        outArea.value = '';
+        
+        let results = [];
+        let errorCount = 0;
+        let blockedCount = 0;
+        let openCount = 0;
+
+        for (let rawUrl of lines) {
+            let url = rawUrl.trim();
+            if (!url.startsWith('http')) url = 'https://' + url;
+            try {
+                let parsed = new URL(url);
+                url = parsed.origin; // Chỉ check trang chủ
+            } catch(e) {}
+            
+            let statusText = "🟢 MỞ BOT (Tốt)"; 
+            let isBlocked = false;
+            
+            try {
+                // 1. Check robots.txt
+                const robotRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url + '/robots.txt')}`);
+                if (robotRes.ok) {
+                    const txt = await robotRes.text();
+                    if (/(disallow:\s*\/\s*$)|(disallow:\s*\/$)/im.test(txt)) {
+                        statusText = "🔴 ĐÓNG BOT (chặn trong robots.txt)";
+                        isBlocked = true;
+                    }
+                }
+                
+                // 2. Check Meta Tag
+                if (!isBlocked) {
+                    const htmlRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+                    if (htmlRes.ok) {
+                        const html = await htmlRes.text();
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const metaRobots = doc.querySelector('meta[name="robots"], meta[name="googlebot"]');
+                        if (metaRobots && (metaRobots.getAttribute('content') || '').toLowerCase().includes('noindex')) {
+                            statusText = "🔴 ĐÓNG BOT (chặn bởi meta noindex)";
+                            isBlocked = true;
+                        }
+                    } else {
+                        statusText = `🟡 Không vào được web (HTTP ${htmlRes.status})`;
+                        errorCount++;
+                        isBlocked = null;
+                    }
+                }
+            } catch(e) {
+                statusText = "❌ Lỗi mạng/Timeout";
+                errorCount++;
+                isBlocked = null;
+            }
+            
+            if (isBlocked === true) blockedCount++;
+            else if (isBlocked === false) openCount++;
+
+            results.push(`[${statusText}] ${url}`);
+            outArea.value = results.join('\n');
+            await new Promise(r => setTimeout(r, 600));
+        }
+        
+        btn.innerText = "🤖 Bắt đầu Check Mở Bot";
+        btn.disabled = false;
+        
+        let teleMsg = `<b>🤖 BÁO CÁO CHECK MỞ BOT</b>\n`;
+        teleMsg += `Tổng: ${lines.length} | 🟢 Mở: ${openCount} | 🔴 Đóng: ${blockedCount} | ❌ Lỗi: ${errorCount}\n\n`;
+        results.forEach(r => { teleMsg += `${r}\n`; });
+        await sendToTelegram(teleMsg);
     }
 </script>
 </body>
