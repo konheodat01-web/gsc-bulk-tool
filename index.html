@@ -453,20 +453,21 @@
     async function fetchHtml(url) {
         const proxies = [
             u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-            u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
-            u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+            u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+            u => `https://cors-anywhere.herokuapp.com/${u}`
         ];
         for (let makeUrl of proxies) {
             try {
                 const ctrl = new AbortController();
-                const tid = setTimeout(() => ctrl.abort(), 7000);
+                const tid = setTimeout(() => ctrl.abort(), 8000);
                 const res = await fetch(makeUrl(url), { signal: ctrl.signal });
                 clearTimeout(tid);
+                // Bỏ qua 403/429 từ proxy (bị chặn) — thử proxy tiếp theo
                 if (res.ok) {
                     const text = await res.text();
                     if (text && text.length > 100) return text;
                 }
-            } catch(e) { }
+            } catch(e) { /* thử proxy tiếp theo */ }
         }
         return null;
     }
@@ -573,6 +574,7 @@
                 continue;
             }
 
+            const rowPromises = [];
             for (let link of links) {
                 const i = linkCounter++;
                 const tr = document.createElement('tr');
@@ -581,16 +583,20 @@
                     <td style="font-size:11px; word-break:break-all;"><a href="${link}" target="_blank" style="color:var(--primary)">${link}</a></td>
                     <td id="audRdr_${i}" style="font-size:11px; word-break:break-all;"><span style="color:var(--text-muted)">...</span></td>
                     <td style="font-size:11px;">${new URL(link).hostname}</td>
-                    <td id="audSt_${i}"><span style="color:var(--warning)">⏳ Checking...</span></td>
+                    <td id="audSt_${i}"><span style="color:var(--warning)">⏳ Chờ...</span></td>
                     <td id="audCo_${i}">-</td>
                     <td><button class="btn-mini" onclick="checkOneOutbound('${link}', ${i})">🔄</button></td>
                 `;
                 tbody.appendChild(tr);
-                checkOneOutbound(link, i);
+                // Thu thập promises — chạy song song
+                rowPromises.push(checkOneOutbound(link, i));
             }
-            await new Promise(r => setTimeout(r, 400));
+            // Chờ tất cả link của site này check xong trước khi chuyển site tiếp theo
+            await Promise.all(rowPromises);
+            await new Promise(r => setTimeout(r, 300));
         }
 
+        // Tất cả đã xong — bây giờ mới gửi Telegram
         const teleMsg = `<b>🔗 BÁO CÁO OUTBOUND AUDIT</b>\n\n` +
                         `✅ Đã quét xong: <b>${rawLines.length}</b> website.\n` +
                         `🔗 Tổng link trỏ ra tìm thấy: <b>${linkCounter}</b> link.\n` +
