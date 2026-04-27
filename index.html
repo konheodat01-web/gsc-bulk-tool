@@ -478,11 +478,69 @@
             }
 
             const doc = new DOMParser().parseFromString(html, 'text/html');
-            const links = [...new Set(
-                Array.from(doc.querySelectorAll('a[href]'))
-                    .map(a => { try { return new URL(a.getAttribute('href'), url).href; } catch(e) { return ''; } })
-                    .filter(h => h.startsWith('http') && !new URL(h).hostname.replace('www.', '').includes(host))
-            )];
+
+            // Hàm lọc link ngoài (không cùng host)
+            function isExternal(href) {
+                try {
+                    const h = new URL(href, url).href;
+                    const linkHost = new URL(h).hostname.replace('www.', '');
+                    return h.startsWith('http') && !linkHost.includes(host) && linkHost.length > 3;
+                } catch(e) { return false; }
+            }
+            function resolveUrl(href) {
+                try { return new URL(href, url).href; } catch(e) { return ''; }
+            }
+
+            const foundLinks = new Set();
+
+            // 1. Thẻ <a href> thông thường
+            doc.querySelectorAll('a[href]').forEach(a => {
+                const h = resolveUrl(a.getAttribute('href'));
+                if (h && isExternal(h)) foundLinks.add(h);
+            });
+
+            // 2. onclick="location.href='...'" hoặc window.location
+            doc.querySelectorAll('[onclick]').forEach(el => {
+                const onclick = el.getAttribute('onclick') || '';
+                const matches = onclick.match(/(?:location\.href|window\.location)\s*=\s*['"]([^'"]+)['"]/g) || [];
+                matches.forEach(m => {
+                    const u = m.match(/['"]([^'"]+)['"]/)?.[1];
+                    if (u) { const h = resolveUrl(u); if (h && isExternal(h)) foundLinks.add(h); }
+                });
+                // Bắt cả dạng open('url')
+                const opens = onclick.match(/(?:window\.open|open)\(\s*['"]([^'"]+)['"]/g) || [];
+                opens.forEach(m => {
+                    const u = m.match(/['"]([^'"]+)['"]/)?.[1];
+                    if (u) { const h = resolveUrl(u); if (h && isExternal(h)) foundLinks.add(h); }
+                });
+            });
+
+            // 3. data-href, data-url, data-link, data-redirect trên bất kỳ thẻ nào
+            doc.querySelectorAll('[data-href],[data-url],[data-link],[data-redirect],[data-target]').forEach(el => {
+                ['data-href','data-url','data-link','data-redirect','data-target'].forEach(attr => {
+                    const v = el.getAttribute(attr);
+                    if (v) { const h = resolveUrl(v); if (h && isExternal(h)) foundLinks.add(h); }
+                });
+            });
+
+            // 4. Quét nội dung <script> tìm URL ngoại (dạng https://... trong chuỗi)
+            doc.querySelectorAll('script:not([src])').forEach(s => {
+                const txt = s.textContent || '';
+                // Bắt URL trong chuỗi JS
+                const urlMatches = txt.match(/['"`](https?:\/\/[^\s'"`<>]{8,})[`'"]/g) || [];
+                urlMatches.forEach(m => {
+                    const u = m.replace(/^['"`]|['"`]$/g, '');
+                    if (isExternal(u)) foundLinks.add(u);
+                });
+            });
+
+            // 5. <noscript> fallback links
+            doc.querySelectorAll('noscript a[href]').forEach(a => {
+                const h = resolveUrl(a.getAttribute('href'));
+                if (h && isExternal(h)) foundLinks.add(h);
+            });
+
+            const links = [...foundLinks];
 
             if (links.length === 0) {
                 const emptyTr = document.createElement('tr');
