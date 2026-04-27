@@ -306,21 +306,46 @@
             // Không tự động thêm slash ở chế độ này để giữ nguyên dạng nếu sếp copy
             
             try {
-                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(o)}`);
-                const data = await res.json();
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 10000);
                 
-                if (res.ok && data.status) {
-                    let finalUrl = data.status.url;
-                    results.push(finalUrl);
+                // Dùng codetabs proxy vì nó ổn định hơn allorigins
+                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(o)}`, { signal: ctrl.signal });
+                clearTimeout(tid);
+                
+                if (res.ok) {
+                    const html = await res.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    
+                    let finalUrl = '';
+                    // 1. Tìm canonical
+                    finalUrl = doc.querySelector('link[rel="canonical"]')?.getAttribute('href') || '';
+                    // 2. Tìm og:url
+                    if (!finalUrl) {
+                        finalUrl = doc.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
+                    }
+                    // 3. Tìm meta refresh
+                    if (!finalUrl) {
+                        const content = doc.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
+                        const m = content.match(/url=([^;\s]+)/i);
+                        if (m) finalUrl = m[1].trim().replace(/["']/g, '');
+                    }
+                    
+                    if (finalUrl) {
+                        results.push(finalUrl);
+                    } else {
+                        // Nếu không tìm thấy thẻ nào, có thể web không 301 hoặc không có meta
+                        results.push(o); 
+                    }
                 } else {
-                    results.push(`[Lỗi HTTP ${data.status?data.status.http_code:''}] ${o}`);
+                    results.push(`[Lỗi truy cập ${res.status}] ${o}`);
                 }
             } catch(e) {
                 results.push(`[Lỗi Mạng/Timeout] ${o}`);
             }
             
             outputArea.value = results.join('\n'); // Cập nhật realtime
-            await new Promise(r => setTimeout(r, 400));
+            await new Promise(r => setTimeout(r, 600)); // Nghỉ lâu hơn tí để tránh bị proxy block
         }
         
         btn.innerText = "🔄 Chỉ Check 301 (Xuất List)";
