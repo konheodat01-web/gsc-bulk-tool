@@ -163,11 +163,25 @@
             <h3 style="margin-top:0">Outbound Link Auditor</h3>
             <p style="font-size:13px; color:var(--text-muted);">Nhập danh sách web cần quét (mỗi dòng 1 URL). Tool tự tìm & kiểm tra tất cả link trỏ ra ngoài.</p>
             <textarea id="auditUrlList" placeholder="https://site1.com/&#10;https://site2.com/&#10;https://site3.com/"></textarea>
-            <div style="margin-top:10px;">
-                <button class="btn btn-success" onclick="startOutboundAudit()">🚀 Quét Tất Cả</button>
+            <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-success" onclick="startOutboundAudit()">🚀 Quét Tất Cả Outbound</button>
+                <button class="btn" style="background:#7c3aed;" onclick="startMlinkCheck()">🔗 Chỉ Check /mlink/ Cloaking</button>
             </div>
         </div>
+        <!-- KẾT QUẢ MLINK CHECK -->
+        <div id="mlinkResultContainer" class="card" style="margin-top:20px; display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="margin:0; color:#a78bfa;">🔗 Kết Quả Check /mlink/ Cloaking</h3>
+                <div style="font-size:13px; color:var(--text-muted);">✅ Có mlink: <span id="mlinkOkCount" style="color:var(--success); font-weight:700;">0</span> &nbsp;|&nbsp; ❌ Thiếu mlink: <span id="mlinkErrCount" style="color:var(--danger); font-weight:700;">0</span></div>
+            </div>
+            <table>
+                <thead><tr><th width="40%">Website</th><th width="15%">Trạng thái</th><th>Link /mlink/ tìm thấy</th></tr></thead>
+                <tbody id="mlinkResultBody"></tbody>
+            </table>
+        </div>
+        <!-- KẾT QUẢ OUTBOUND ĐẦY ĐỦ -->
         <div class="card" style="margin-top:20px;">
+            <h3 style="margin-top:0; font-size:14px; color:var(--text-muted);">📋 Kết Quả Outbound Đầy Đủ</h3>
             <table>
                 <thead>
                     <tr><th width="15%">Website nguồn</th><th width="25%">Link trỏ ra</th><th width="25%">RDR (redirect đích)</th><th width="18%">Domain đích</th><th width="9%">Trạng thái</th><th width="8%">Code</th></tr>
