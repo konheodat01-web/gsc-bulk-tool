@@ -628,6 +628,14 @@
             }
             await new Promise(r => setTimeout(r, 400));
         }
+
+        // Gửi báo cáo Telegram khi hoàn tất Tab 3
+        const teleMsg = `<b>🔗 BÁO CÁO OUTBOUND AUDIT</b>\n\n` +
+                        `✅ Đã quét xong: <b>${rawLines.length}</b> website.\n` +
+                        `🔗 Tổng link trỏ ra tìm thấy: <b>${linkCounter}</b> link.\n` +
+                        `⏰ Thời gian: ${new Date().toLocaleString()}\n\n` +
+                        `<i>Sếp vào web xem chi tiết từng link sống/chết nhé!</i>`;
+        await sendToTelegram(teleMsg);
     }
     // --- TAB 4 LOGIC ---
     async function startCheckBot() {
