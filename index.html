@@ -453,17 +453,20 @@
     async function fetchHtml(url) {
         const proxies = [
             u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-            u => `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(u)}`,
+            u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
             u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
         ];
         for (let makeUrl of proxies) {
             try {
                 const ctrl = new AbortController();
-                const tid = setTimeout(() => ctrl.abort(), 9000);
+                const tid = setTimeout(() => ctrl.abort(), 7000);
                 const res = await fetch(makeUrl(url), { signal: ctrl.signal });
                 clearTimeout(tid);
-                if (res.ok) return await res.text();
-            } catch(e) { /* thử proxy tiếp theo */ }
+                if (res.ok) {
+                    const text = await res.text();
+                    if (text && text.length > 100) return text;
+                }
+            } catch(e) { }
         }
         return null;
     }
