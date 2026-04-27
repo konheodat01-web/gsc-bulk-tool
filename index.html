@@ -479,12 +479,19 @@
 
             const doc = new DOMParser().parseFromString(html, 'text/html');
 
-            // Hàm lọc link ngoài (không cùng host)
+            // Hàm lọc link ngoài (không cùng host) hoặc link nội bộ đặc biệt (/mlink/)
             function isExternal(href) {
                 try {
                     const h = new URL(href, url).href;
-                    const linkHost = new URL(h).hostname.replace('www.', '');
-                    return h.startsWith('http') && !linkHost.includes(host) && linkHost.length > 3;
+                    const uObj = new URL(h);
+                    const linkHost = uObj.hostname.replace('www.', '');
+                    const isInternal = linkHost.includes(host);
+
+                    // 1. Nếu là link nội bộ nhưng đi qua /mlink/ -> Tính là Outbound (Affiliate Cloaking)
+                    if (isInternal && uObj.pathname.startsWith('/mlink/')) return true;
+
+                    // 2. Nếu là link ngoài thực sự
+                    return h.startsWith('http') && !isInternal && linkHost.length > 3;
                 } catch(e) { return false; }
             }
             function resolveUrl(href) {
