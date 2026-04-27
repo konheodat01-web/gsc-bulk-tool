@@ -175,7 +175,7 @@
                 <div style="font-size:13px; color:var(--text-muted);">✅ Có mlink: <span id="mlinkOkCount" style="color:var(--success); font-weight:700;">0</span> &nbsp;|&nbsp; ❌ Thiếu mlink: <span id="mlinkErrCount" style="color:var(--danger); font-weight:700;">0</span></div>
             </div>
             <table>
-                <thead><tr><th width="40%">Website</th><th width="15%">Trạng thái</th><th>Link /mlink/ tìm thấy</th></tr></thead>
+                <thead><tr><th width="35%">Website</th><th width="15%">Trạng thái</th><th width="35%">Link /mlink/ tìm thấy</th><th width="15%">Thao tác</th></tr></thead>
                 <tbody id="mlinkResultBody"></tbody>
             </table>
         </div>
@@ -184,7 +184,7 @@
             <h3 style="margin-top:0; font-size:14px; color:var(--text-muted);">📋 Kết Quả Outbound Đầy Đủ</h3>
             <table>
                 <thead>
-                    <tr><th width="15%">Website nguồn</th><th width="25%">Link trỏ ra</th><th width="25%">RDR (redirect đích)</th><th width="18%">Domain đích</th><th width="9%">Trạng thái</th><th width="8%">Code</th></tr>
+                    <tr><th width="15%">Website nguồn</th><th width="25%">Link trỏ ra</th><th width="20%">RDR (redirect đích)</th><th width="15%">Domain đích</th><th width="9%">Trạng thái</th><th width="8%">Code</th><th width="8%">Lại</th></tr>
                 </thead>
                 <tbody id="auditResultBody"></tbody>
             </table>
@@ -581,85 +581,69 @@
                     <td style="font-size:11px; word-break:break-all;"><a href="${link}" target="_blank" style="color:var(--primary)">${link}</a></td>
                     <td id="audRdr_${i}" style="font-size:11px; word-break:break-all;"><span style="color:var(--text-muted)">...</span></td>
                     <td style="font-size:11px;">${new URL(link).hostname}</td>
-                    <td id="audSt_${i}"><span style="color:var(--text-muted)">Checking...</span></td>
+                    <td id="audSt_${i}"><span style="color:var(--warning)">⏳ Checking...</span></td>
                     <td id="audCo_${i}">-</td>
+                    <td><button class="btn-mini" onclick="checkOneOutbound('${link}', ${i})">🔄</button></td>
                 `;
                 tbody.appendChild(tr);
-
-                ;(async () => {
-                    // Bước 1: Check sống/chết bằng codetabs (proxy ổn định nhất)
-                    try {
-                        const ctrl = new AbortController();
-                        const tid = setTimeout(() => ctrl.abort(), 9000);
-                        const check = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`, { signal: ctrl.signal });
-                        clearTimeout(tid);
-                        document.getElementById(`audSt_${i}`).innerHTML = check.ok
-                            ? '<span class="status-badge status-success">✅ SỐNG</span>'
-                            : '<span class="status-badge status-error">❌ CHẾT</span>';
-                        document.getElementById(`audCo_${i}`).innerText = check.status;
-                    } catch(e) {
-                        document.getElementById(`audSt_${i}`).innerHTML = '<span class="status-badge status-error">Timeout</span>';
-                    }
-
-                    // Bước 2: Lấy RDR bằng cách fetch nội dung đích và đọc canonical tag
-                    try {
-                        const ctrl2 = new AbortController();
-                        const tid2 = setTimeout(() => ctrl2.abort(), 9000);
-                        const rdrRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`, { signal: ctrl2.signal });
-                        clearTimeout(tid2);
-                        if (rdrRes.ok) {
-                            const html = await rdrRes.text();
-                            const doc2 = new DOMParser().parseFromString(html, 'text/html');
-
-                            // Ưu tiên 1: canonical tag (WordPress/RankMath/Yoast)
-                            let finalUrl = doc2.querySelector('link[rel="canonical"]')?.getAttribute('href') || '';
-
-                            // Ưu tiên 2: og:url (có trên hầu hết mọi web hiện đại, không cần WordPress)
-                            if (!finalUrl) {
-                                finalUrl = doc2.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
-                            }
-
-                            // Ưu tiên 3: meta refresh redirect
-                            if (!finalUrl) {
-                                const content = doc2.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
-                                const m = content.match(/url=([^;\s]+)/i);
-                                if (m) finalUrl = m[1].trim().replace(/["']/g, '');
-                            }
-
-                            if (finalUrl) {
-                                try {
-                                    const finalHost = new URL(finalUrl).hostname.replace('www.', '');
-                                    const origHost = new URL(link).hostname.replace('www.', '');
-                                    if (finalHost !== origHost) {
-                                        document.getElementById(`audRdr_${i}`).innerHTML =
-                                            `<a href="${finalUrl}" target="_blank" style="color:var(--warning); font-size:10px; word-break:break-all;">➡️ ${finalUrl}</a>`;
-                                    } else {
-                                        document.getElementById(`audRdr_${i}`).innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không redirect</span>';
-                                    }
-                                } catch(e) {
-                                    document.getElementById(`audRdr_${i}`).innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không redirect</span>';
-                                }
-                            } else {
-                                document.getElementById(`audRdr_${i}`).innerHTML = '<span style="color:var(--text-muted); font-size:10px;">-</span>';
-                            }
-                        } else {
-                            document.getElementById(`audRdr_${i}`).innerText = '-';
-                        }
-                    } catch(e) {
-                        document.getElementById(`audRdr_${i}`).innerText = '-';
-                    }
-                })();
+                checkOneOutbound(link, i);
             }
             await new Promise(r => setTimeout(r, 400));
         }
 
-        // Gửi báo cáo Telegram khi hoàn tất Tab 3
         const teleMsg = `<b>🔗 BÁO CÁO OUTBOUND AUDIT</b>\n\n` +
                         `✅ Đã quét xong: <b>${rawLines.length}</b> website.\n` +
                         `🔗 Tổng link trỏ ra tìm thấy: <b>${linkCounter}</b> link.\n` +
                         `⏰ Thời gian: ${new Date().toLocaleString()}\n\n` +
                         `<i>Sếp vào web xem chi tiết từng link sống/chết nhé!</i>`;
         await sendToTelegram(teleMsg);
+    }
+
+    async function checkOneOutbound(link, i) {
+        const stEl = document.getElementById(`audSt_${i}`);
+        const coEl = document.getElementById(`audCo_${i}`);
+        const rdrEl = document.getElementById(`audRdr_${i}`);
+        stEl.innerHTML = '<span style="color:var(--warning)">⏳ Quét...</span>';
+
+        // Bước 1: Check sống/chết
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 8000);
+            const check = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`, { signal: ctrl.signal });
+            clearTimeout(tid);
+            stEl.innerHTML = check.ok ? '<span class="status-badge status-success">✅ SỐNG</span>' : '<span class="status-badge status-error">❌ LỖI</span>';
+            coEl.innerText = check.status;
+            
+            if (check.ok) {
+                const html = await check.text();
+                const doc2 = new DOMParser().parseFromString(html, 'text/html');
+                let finalUrl = doc2.querySelector('link[rel="canonical"]')?.getAttribute('href') || 
+                               doc2.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
+                
+                if (!finalUrl) {
+                    const content = doc2.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
+                    const m = content.match(/url=([^;\s]+)/i);
+                    if (m) finalUrl = m[1].trim().replace(/["']/g, '');
+                }
+
+                if (finalUrl) {
+                    try {
+                        const fHost = new URL(finalUrl).hostname.replace('www.', '');
+                        const oHost = new URL(link).hostname.replace('www.', '');
+                        if (fHost !== oHost) {
+                            rdrEl.innerHTML = `<a href="${finalUrl}" target="_blank" style="color:var(--warning); font-size:10px; word-break:break-all;">➡️ ${finalUrl}</a>`;
+                        } else {
+                            rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không redirect</span>';
+                        }
+                    } catch(e) { rdrEl.innerText = '-'; }
+                } else {
+                    rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">-</span>';
+                }
+            }
+        } catch(e) {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Timeout</span>';
+            coEl.innerText = 'ERR';
+        }
     }
 
     // --- MLINK CHECK ---
@@ -674,79 +658,101 @@
         document.getElementById('mlinkOkCount').innerText = '0';
         document.getElementById('mlinkErrCount').innerText = '0';
 
-        let okCount = 0, errCount = 0;
-        let teleLines = [];
-
         for (let rawUrl of rawLines) {
             let url = rawUrl;
             if (!url.startsWith('http')) url = 'https://' + url;
             if (!url.endsWith('/')) url += '/';
-            const host = new URL(url).hostname.replace('www.', '');
-
             const rowId = 'ml_' + btoa(rawUrl).replace(/[^a-z0-9]/gi,'').slice(0,12);
+            
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td style="word-break:break-all;"><a href="${url}" target="_blank" style="color:var(--primary);">${url}</a></td><td id="st_${rowId}"><span style="color:var(--text-muted)">Đang quét...</span></td><td id="links_${rowId}" style="font-size:11px;">...</td>`;
+            tr.id = `row_${rowId}`;
+            tr.innerHTML = `
+                <td style="word-break:break-all;"><a href="${url}" target="_blank" style="color:var(--primary);">${url}</a></td>
+                <td id="st_${rowId}"><span style="color:var(--text-muted)">Đang quét...</span></td>
+                <td id="links_${rowId}" style="font-size:11px;">...</td>
+                <td><button class="btn-mini" onclick="recheckOneMlink('${url}', '${rowId}')">🔄 Check lại</button></td>
+            `;
             tbody.appendChild(tr);
 
-            const html = await fetchHtml(url);
-            if (!html) {
-                document.getElementById(`st_${rowId}`).innerHTML = '<span class="status-badge status-error">❌ Lỗi mạng</span>';
-                document.getElementById(`links_${rowId}`).innerText = 'Không lấy được nội dung';
-                errCount++;
-                document.getElementById('mlinkErrCount').innerText = errCount;
-                teleLines.push(`❌ ${url} — Lỗi mạng`);
-                continue;
-            }
-
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            const mlinkUrls = new Set();
-
-            // Tìm <a href> nội bộ chứa /mlink/
-            doc.querySelectorAll('a[href]').forEach(a => {
-                try {
-                    const h = new URL(a.getAttribute('href'), url).href;
-                    const uObj = new URL(h);
-                    if (uObj.hostname.replace('www.','').includes(host) && uObj.pathname.startsWith('/mlink/')) {
-                        mlinkUrls.add(h);
-                    }
-                } catch(e) {}
-            });
-
-            // Tìm trong data-* và onclick
-            doc.querySelectorAll('[data-href],[data-url],[data-link],[onclick]').forEach(el => {
-                ['data-href','data-url','data-link'].forEach(attr => {
-                    const v = el.getAttribute(attr);
-                    if (v) { try { const h = new URL(v, url).href; const u2 = new URL(h); if (u2.hostname.replace('www.','').includes(host) && u2.pathname.startsWith('/mlink/')) mlinkUrls.add(h); } catch(e){} }
-                });
-                const oc = el.getAttribute('onclick') || '';
-                const ms = oc.match(/['"](\/?mlink\/[^'"]+)['"]/g) || [];
-                ms.forEach(m => { const v = m.replace(/^['"]|['"]$/g, ''); try { mlinkUrls.add(new URL(v, url).href); } catch(e){} });
-            });
-
-            const uniqueMlinks = [...mlinkUrls];
-
-            if (uniqueMlinks.length > 0) {
-                okCount++;
-                document.getElementById(`st_${rowId}`).innerHTML = `<span class="status-badge status-success">✅ Có (${uniqueMlinks.length})</span>`;
-                document.getElementById(`links_${rowId}`).innerHTML = uniqueMlinks.map(l => `<a href="${l}" target="_blank" style="color:#a78bfa; display:block; margin-bottom:2px; word-break:break-all;">${l}</a>`).join('');
-                document.getElementById('mlinkOkCount').innerText = okCount;
-                teleLines.push(`✅ ${url} — ${uniqueMlinks.length} /mlink/`);
-            } else {
-                errCount++;
-                document.getElementById(`st_${rowId}`).innerHTML = '<span class="status-badge status-error">❌ Thiếu /mlink/</span>';
-                document.getElementById(`links_${rowId}`).innerHTML = '<span style="color:var(--danger);">Không tìm thấy link /mlink/ nào</span>';
-                document.getElementById('mlinkErrCount').innerText = errCount;
-                teleLines.push(`❌ ${url} — Không có /mlink/`);
-            }
-
+            await checkOneMlink(url, rowId);
             await new Promise(r => setTimeout(r, 500));
         }
 
-        // Gửi Telegram
-        let teleMsg = `<b>🔗 BÁO CÁO CHECK /mlink/ CLOAKING</b>\n\n`;
-        teleMsg += `✅ Có mlink: <b>${okCount}</b> | ❌ Thiếu: <b>${errCount}</b>\n\n`;
-        teleLines.forEach(l => teleMsg += l + '\n');
-        await sendToTelegram(teleMsg);
+        // Sau khi xong hết thì gửi Tele báo cáo tổng
+        updateMlinkSummaryAndTele();
+    }
+
+    async function checkOneMlink(url, rowId) {
+        const stEl = document.getElementById(`st_${rowId}`);
+        const linksEl = document.getElementById(`links_${rowId}`);
+        stEl.innerHTML = '<span style="color:var(--warning)">⏳ Đang quét...</span>';
+        
+        const host = new URL(url).hostname.replace('www.', '');
+        const html = await fetchHtml(url);
+        
+        if (!html) {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Lỗi truy cập</span>';
+            linksEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">Proxy không thể kết nối tới Website.</span>';
+            return false;
+        }
+
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const mlinkUrls = new Set();
+
+        doc.querySelectorAll('a[href]').forEach(a => {
+            try {
+                const h = new URL(a.getAttribute('href'), url).href;
+                const uObj = new URL(h);
+                if (uObj.hostname.replace('www.','').includes(host) && uObj.pathname.startsWith('/mlink/')) mlinkUrls.add(h);
+            } catch(e) {}
+        });
+
+        doc.querySelectorAll('[data-href],[data-url],[data-link],[onclick]').forEach(el => {
+            ['data-href','data-url','data-link'].forEach(attr => {
+                const v = el.getAttribute(attr);
+                if (v) { try { const h = new URL(v, url).href; const u2 = new URL(h); if (u2.hostname.replace('www.','').includes(host) && u2.pathname.startsWith('/mlink/')) mlinkUrls.add(h); } catch(e){} }
+            });
+            const oc = el.getAttribute('onclick') || '';
+            const ms = oc.match(/['"](\/?mlink\/[^'"]+)['"]/g) || [];
+            ms.forEach(m => { const v = m.replace(/^['"]|['"]$/g, ''); try { mlinkUrls.add(new URL(v, url).href); } catch(e){} });
+        });
+
+        const uniqueMlinks = [...mlinkUrls];
+        if (uniqueMlinks.length > 0) {
+            stEl.innerHTML = `<span class="status-badge status-success">✅ OK (${uniqueMlinks.length})</span>`;
+            linksEl.innerHTML = uniqueMlinks.map(l => `<a href="${l}" target="_blank" style="color:#a78bfa; display:block; margin-bottom:2px; word-break:break-all;">${l}</a>`).join('');
+            return true;
+        } else {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Thiếu mlink</span>';
+            linksEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không tìm thấy link cloaking /mlink/ nào trong mã nguồn.</span>';
+            return false;
+        }
+    }
+
+    async function recheckOneMlink(url, rowId) {
+        await checkOneMlink(url, rowId);
+        updateMlinkSummaryAndTele(true);
+    }
+
+    function updateMlinkSummaryAndTele(isUpdateOnly = false) {
+        const rows = document.querySelectorAll('#mlinkResultBody tr');
+        let ok = 0, err = 0;
+        let teleLines = [];
+
+        rows.forEach(tr => {
+            const stText = tr.querySelector('td:nth-child(2)').innerText;
+            const url = tr.querySelector('td:nth-child(1) a').innerText;
+            if (stText.includes('OK')) { ok++; teleLines.push(`✅ ${url}`); }
+            else if (stText.includes('Thiếu') || stText.includes('Lỗi')) { err++; teleLines.push(`❌ ${url}`); }
+        });
+
+        document.getElementById('mlinkOkCount').innerText = ok;
+        document.getElementById('mlinkErrCount').innerText = err;
+
+        if (!isUpdateOnly) {
+            let teleMsg = `<b>🔗 BÁO CÁO CHECK /mlink/ CLOAKING</b>\n\n✅ Có: <b>${ok}</b> | ❌ Thiếu: <b>${err}</b>\n\n` + teleLines.join('\n');
+            sendToTelegram(teleMsg);
+        }
     }
 
     // --- TAB 4 LOGIC ---
