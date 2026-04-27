@@ -658,6 +658,94 @@
                         `<i>Sếp vào web xem chi tiết từng link sống/chết nhé!</i>`;
         await sendToTelegram(teleMsg);
     }
+
+    // --- MLINK CHECK ---
+    async function startMlinkCheck() {
+        const rawLines = document.getElementById('auditUrlList').value.split('\n').map(l => l.trim()).filter(l => l);
+        if (rawLines.length === 0) return alert('Nhập ít nhất 1 URL sếp ơi!');
+
+        const container = document.getElementById('mlinkResultContainer');
+        const tbody = document.getElementById('mlinkResultBody');
+        container.style.display = 'block';
+        tbody.innerHTML = '';
+        document.getElementById('mlinkOkCount').innerText = '0';
+        document.getElementById('mlinkErrCount').innerText = '0';
+
+        let okCount = 0, errCount = 0;
+        let teleLines = [];
+
+        for (let rawUrl of rawLines) {
+            let url = rawUrl;
+            if (!url.startsWith('http')) url = 'https://' + url;
+            if (!url.endsWith('/')) url += '/';
+            const host = new URL(url).hostname.replace('www.', '');
+
+            const rowId = 'ml_' + btoa(rawUrl).replace(/[^a-z0-9]/gi,'').slice(0,12);
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td style="word-break:break-all;"><a href="${url}" target="_blank" style="color:var(--primary);">${url}</a></td><td id="st_${rowId}"><span style="color:var(--text-muted)">Đang quét...</span></td><td id="links_${rowId}" style="font-size:11px;">...</td>`;
+            tbody.appendChild(tr);
+
+            const html = await fetchHtml(url);
+            if (!html) {
+                document.getElementById(`st_${rowId}`).innerHTML = '<span class="status-badge status-error">❌ Lỗi mạng</span>';
+                document.getElementById(`links_${rowId}`).innerText = 'Không lấy được nội dung';
+                errCount++;
+                document.getElementById('mlinkErrCount').innerText = errCount;
+                teleLines.push(`❌ ${url} — Lỗi mạng`);
+                continue;
+            }
+
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const mlinkUrls = new Set();
+
+            // Tìm <a href> nội bộ chứa /mlink/
+            doc.querySelectorAll('a[href]').forEach(a => {
+                try {
+                    const h = new URL(a.getAttribute('href'), url).href;
+                    const uObj = new URL(h);
+                    if (uObj.hostname.replace('www.','').includes(host) && uObj.pathname.startsWith('/mlink/')) {
+                        mlinkUrls.add(h);
+                    }
+                } catch(e) {}
+            });
+
+            // Tìm trong data-* và onclick
+            doc.querySelectorAll('[data-href],[data-url],[data-link],[onclick]').forEach(el => {
+                ['data-href','data-url','data-link'].forEach(attr => {
+                    const v = el.getAttribute(attr);
+                    if (v) { try { const h = new URL(v, url).href; const u2 = new URL(h); if (u2.hostname.replace('www.','').includes(host) && u2.pathname.startsWith('/mlink/')) mlinkUrls.add(h); } catch(e){} }
+                });
+                const oc = el.getAttribute('onclick') || '';
+                const ms = oc.match(/['"](\/?mlink\/[^'"]+)['"]/g) || [];
+                ms.forEach(m => { const v = m.replace(/^['"]|['"]$/g, ''); try { mlinkUrls.add(new URL(v, url).href); } catch(e){} });
+            });
+
+            const uniqueMlinks = [...mlinkUrls];
+
+            if (uniqueMlinks.length > 0) {
+                okCount++;
+                document.getElementById(`st_${rowId}`).innerHTML = `<span class="status-badge status-success">✅ Có (${uniqueMlinks.length})</span>`;
+                document.getElementById(`links_${rowId}`).innerHTML = uniqueMlinks.map(l => `<a href="${l}" target="_blank" style="color:#a78bfa; display:block; margin-bottom:2px; word-break:break-all;">${l}</a>`).join('');
+                document.getElementById('mlinkOkCount').innerText = okCount;
+                teleLines.push(`✅ ${url} — ${uniqueMlinks.length} /mlink/`);
+            } else {
+                errCount++;
+                document.getElementById(`st_${rowId}`).innerHTML = '<span class="status-badge status-error">❌ Thiếu /mlink/</span>';
+                document.getElementById(`links_${rowId}`).innerHTML = '<span style="color:var(--danger);">Không tìm thấy link /mlink/ nào</span>';
+                document.getElementById('mlinkErrCount').innerText = errCount;
+                teleLines.push(`❌ ${url} — Không có /mlink/`);
+            }
+
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        // Gửi Telegram
+        let teleMsg = `<b>🔗 BÁO CÁO CHECK /mlink/ CLOAKING</b>\n\n`;
+        teleMsg += `✅ Có mlink: <b>${okCount}</b> | ❌ Thiếu: <b>${errCount}</b>\n\n`;
+        teleLines.forEach(l => teleMsg += l + '\n');
+        await sendToTelegram(teleMsg);
+    }
+
     // --- TAB 4 LOGIC ---
     async function startCheckBot() {
         const btn = document.getElementById('btnCheckBot');
