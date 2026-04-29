@@ -319,7 +319,13 @@
             try {
                 if (perm) {
                     document.getElementById(`st_${i}`).innerHTML = `<span class="status-badge status-info">✅ Đã có (${perm==='siteOwner'?'Owner':'User'})</span>`;
-                    if (perm==='siteOwner') { document.getElementById(`mt_${i}`).innerText='-'; document.getElementById(`vr_${i}`).innerHTML='<span class="status-badge status-success">Xong</span>'; }
+                    if (perm==='siteOwner') { 
+                        document.getElementById(`mt_${i}`).innerText='-'; 
+                        document.getElementById(`vr_${i}`).innerHTML='<span class="status-badge status-success">Xong</span>'; 
+                        // Tự động check và nạp sitemap nếu đã là Owner
+                        const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
+                        submitSitemapsForUrl(url, tr.querySelector('.sitemap-cell'), smNames);
+                    }
                     else await fetchMeta(url, i);
                 } else {
                     await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
@@ -357,6 +363,11 @@
                 await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
                 vrEl.innerHTML = '✅ OK'; 
                 document.getElementById(`mt_${i}`).innerText = 'Xác minh xong'; 
+                
+                // Tự động nạp sitemap sau khi xác minh thành công
+                const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
+                const cell = vrEl.parentNode.querySelector('.sitemap-cell');
+                if(cell) submitSitemapsForUrl(url, cell, smNames);
             } else { 
                 vrEl.innerHTML = '❌ Lỗi'; 
                 alert("Xác minh thất bại cho " + url); 
@@ -366,36 +377,42 @@
         }
     }
 
+    async function submitSitemapsForUrl(url, cell, smNames) {
+        if (!smNames || smNames.length === 0) return;
+        cell.innerHTML = '⏳...';
+        try {
+            let res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+            
+            // Nếu GSC chưa kịp đồng bộ trạng thái (bị 403 Forbidden), ép đồng bộ lại và thử lại
+            if (res.status === 403) {
+                await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
+                await new Promise(r => setTimeout(r, 1500)); 
+                res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+            }
+
+            if (!res.ok) throw new Error("Chưa xác minh hoặc lỗi API");
+            const data = await res.json();
+            const existed = (data.sitemap || []).map(s=>s.path);
+            let html = [];
+            for (let name of smNames) {
+                const full = url + name;
+                if (existed.some(p=>p.includes(name))) html.push(`<div style="color:var(--success)">✅ ${name}</div>`);
+                else {
+                    const sRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps/${encodeURIComponent(full)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
+                    html.push(sRes.ok? `<div style="color:var(--primary)">🆕 ${name}</div>` : `❌ ${name}`);
+                }
+            }
+            cell.innerHTML = html.join('');
+        } catch(e) { cell.innerText='Lỗi'; }
+    }
+
     async function checkAndSubmitSitemaps() {
-        const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim());
+        const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
         const rows = document.querySelectorAll('#resultBody tr');
         for (let row of rows) {
             const url = row.dataset.siteUrl; if(!url) continue;
-            const cell = row.querySelector('.sitemap-cell'); cell.innerHTML = '...';
-            try {
-                let res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
-                
-                // Nếu GSC chưa kịp đồng bộ trạng thái (bị 403 Forbidden), ép đồng bộ lại và thử lại
-                if (res.status === 403) {
-                    await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
-                    await new Promise(r => setTimeout(r, 1500)); // Đợi GSC server xử lý
-                    res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
-                }
-
-                if (!res.ok) throw new Error("Chưa xác minh hoặc lỗi API");
-                const data = await res.json();
-                const existed = (data.sitemap || []).map(s=>s.path);
-                let html = [];
-                for (let name of smNames) {
-                    const full = url + name;
-                    if (existed.some(p=>p.includes(name))) html.push(`<div style="color:var(--success)">✅ ${name}</div>`);
-                    else {
-                        const sRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps/${encodeURIComponent(full)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
-                        html.push(sRes.ok? `<div style="color:var(--primary)">🆕 ${name}</div>` : `❌ ${name}`);
-                    }
-                }
-                cell.innerHTML = html.join('');
-            } catch(e) { cell.innerText='Lỗi'; }
+            const cell = row.querySelector('.sitemap-cell');
+            submitSitemapsForUrl(url, cell, smNames); // Không cần await để nạp song song nhanh hơn
         }
     }
 
