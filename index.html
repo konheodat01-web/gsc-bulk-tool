@@ -221,7 +221,7 @@
     let accessToken = null;
 
     // --- TELEGRAM LOGIC ---
-    const TELE_JSON_URL = "https://jsonblob.com/api/jsonBlob/019dd787-9e2c-75ec-a3b6-7c6a1f772d2c";
+    const TELE_JSON_URL = "https://api.restful-api.dev/objects/ff8081819d82fab6019dd7f81ef5626c";
     
     async function saveTeleSettings() {
         const token = document.getElementById('teleToken').value;
@@ -231,12 +231,12 @@
         localStorage.setItem('tele_chat_id', chatId);
         
         try {
-            // Thử lưu trực tiếp vào jsonblob
+            // Đồng bộ qua Restful API (Cập nhật cả Telegram và danh sách GSC)
             const emails = typeof gscAccounts !== 'undefined' ? gscAccounts.map(a => a.email) : [];
             await fetch(TELE_JSON_URL, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ tele_token: token, tele_chat_id: chatId, gsc_emails: emails })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: { tele_token: token, tele_chat_id: chatId, gsc_emails: emails } })
             });
         } catch(e) { console.error("Lỗi đồng bộ cấu hình (Save)", e); }
 
@@ -251,10 +251,12 @@
         document.getElementById('teleChatId').value = localStorage.getItem('tele_chat_id') || '';
         
         try {
-            // Sử dụng allorigins để GET cấu hình (rất ổn định, không bị CORS)
-            const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(TELE_JSON_URL + "?t=" + Date.now())}`);
+            // GET cấu hình trực tiếp (API hỗ trợ sẵn CORS)
+            const res = await fetch(TELE_JSON_URL + "?t=" + Date.now());
             if(!res.ok) return;
-            const data = await res.json();
+            const resData = await res.json();
+            const data = resData.data; // restful-api wrap data inside "data"
+            
             if(data) {
                 if(data.tele_token) {
                     localStorage.setItem('tele_token', data.tele_token);
@@ -305,8 +307,8 @@
         const chatId = document.getElementById('teleChatId').value;
         fetch(TELE_JSON_URL, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ tele_token: token, tele_chat_id: chatId, gsc_emails: emails })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: { tele_token: token, tele_chat_id: chatId, gsc_emails: emails } })
         }).catch(e => console.error(e));
     }
 
