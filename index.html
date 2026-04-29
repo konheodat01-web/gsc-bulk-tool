@@ -121,6 +121,7 @@
             </div>
             <div style="margin-top:15px; display:flex; gap:10px;">
                 <button id="btnStart" class="btn btn-success" onclick="startProcess()" disabled>🚀 Bắt đầu Add & Lấy Mã</button>
+                <button id="btnRetryVerify" class="btn btn-outline" onclick="retryFailedVerifications()" style="border-color:var(--danger); color:var(--danger); font-size:13px;">🔄 Thử lại xác minh lỗi</button>
             </div>
         </div>
         <div class="card" style="margin-top:20px;">
@@ -522,18 +523,17 @@
             });
             if (res.ok) { 
                 await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
-                vrEl.innerHTML = '✅ OK'; 
+                vrEl.innerHTML = '<span class="status-badge status-success">✅ OK</span>'; 
                 document.getElementById(`mt_${id}`).innerText = 'Xác minh xong'; 
                 
                 const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
                 const cell = vrEl.parentNode.querySelector('.sitemap-cell');
                 if(cell) submitSitemapsForUrl(url, cell, smNames, token);
             } else { 
-                vrEl.innerHTML = '❌ Lỗi'; 
-                alert("Xác minh thất bại cho " + url + " trên " + email); 
+                vrEl.innerHTML = `<button class="btn-mini" style="background:var(--danger); color:white; border:none;" onclick="verifySite('${url}', ${id}, '${email}')">❌ Lỗi - Thử lại</button>`;
             }
         } catch(e) {
-            vrEl.innerHTML = '❌ Lỗi';
+            vrEl.innerHTML = `<button class="btn-mini" style="background:var(--danger); color:white; border:none;" onclick="verifySite('${url}', ${id}, '${email}')">❌ Lỗi - Thử lại</button>`;
         }
     }
 
@@ -578,6 +578,19 @@
             const cell = row.querySelector('.sitemap-cell');
             submitSitemapsForUrl(url, cell, smNames, acc.token);
         }
+    }
+
+    async function retryFailedVerifications() {
+        const buttons = document.querySelectorAll('#resultBody button');
+        let count = 0;
+        for (let btn of buttons) {
+            if (btn.innerText.includes('Lỗi - Thử lại')) {
+                btn.click();
+                count++;
+                await new Promise(r => setTimeout(r, 300)); 
+            }
+        }
+        if(count === 0) alert("Không tìm thấy mục nào bị lỗi xác minh.");
     }
 
     // --- TAB 2 LOGIC ---
