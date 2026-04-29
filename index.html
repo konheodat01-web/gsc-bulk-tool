@@ -232,10 +232,11 @@
         
         try {
             // Thử lưu trực tiếp vào jsonblob
+            const emails = typeof gscAccounts !== 'undefined' ? gscAccounts.map(a => a.email) : [];
             await fetch(TELE_JSON_URL, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                body: JSON.stringify({ tele_token: token, tele_chat_id: chatId })
+                body: JSON.stringify({ tele_token: token, tele_chat_id: chatId, gsc_emails: emails })
             });
         } catch(e) { console.error("Lỗi đồng bộ cấu hình (Save)", e); }
 
@@ -254,7 +255,7 @@
             const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(TELE_JSON_URL + "?t=" + Date.now())}`);
             if(!res.ok) return;
             const data = await res.json();
-            if(data && (data.tele_token || data.tele_chat_id)) {
+            if(data) {
                 if(data.tele_token) {
                     localStorage.setItem('tele_token', data.tele_token);
                     document.getElementById('teleToken').value = data.tele_token;
@@ -262,6 +263,16 @@
                 if(data.tele_chat_id) {
                     localStorage.setItem('tele_chat_id', data.tele_chat_id);
                     document.getElementById('teleChatId').value = data.tele_chat_id;
+                }
+                if(data.gsc_emails && Array.isArray(data.gsc_emails) && typeof gscAccounts !== 'undefined') {
+                    data.gsc_emails.forEach(email => {
+                        if(!gscAccounts.find(a=>a.email === email)) {
+                            gscAccounts.push({ email: email, token: null, expiresAt: 0 });
+                        }
+                    });
+                    if(gscAccounts.length > 0 && !activeAccountEmail) activeAccountEmail = gscAccounts[0].email;
+                    renderAccounts();
+                    localStorage.setItem('gsc_emails', JSON.stringify(data.gsc_emails));
                 }
             }
         } catch(e) { console.error("Lỗi đồng bộ cấu hình (Load)", e); }
@@ -288,6 +299,15 @@
     function saveAccountsToLocal() {
         const emails = gscAccounts.map(a => a.email);
         localStorage.setItem('gsc_emails', JSON.stringify(emails));
+        
+        // Đồng bộ lên Cloud
+        const token = document.getElementById('teleToken').value;
+        const chatId = document.getElementById('teleChatId').value;
+        fetch(TELE_JSON_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ tele_token: token, tele_chat_id: chatId, gsc_emails: emails })
+        }).catch(e => console.error(e));
     }
 
     function loadAccountsFromLocal() {
