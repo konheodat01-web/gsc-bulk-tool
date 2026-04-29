@@ -373,7 +373,16 @@
             const url = row.dataset.siteUrl; if(!url) continue;
             const cell = row.querySelector('.sitemap-cell'); cell.innerHTML = '...';
             try {
-                const res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+                let res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+                
+                // Nếu GSC chưa kịp đồng bộ trạng thái (bị 403 Forbidden), ép đồng bộ lại và thử lại
+                if (res.status === 403) {
+                    await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
+                    await new Promise(r => setTimeout(r, 1500)); // Đợi GSC server xử lý
+                    res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+                }
+
+                if (!res.ok) throw new Error("Chưa xác minh hoặc lỗi API");
                 const data = await res.json();
                 const existed = (data.sitemap || []).map(s=>s.path);
                 let html = [];
