@@ -137,6 +137,11 @@
         <div class="card">
             <h3 style="margin-top:0">Check Website & 301 Status</h3>
             <textarea id="checkDomainList" placeholder="Gốc Đích Admin User Pass... (Hoặc chỉ dán list Web gốc nếu dùng chế độ 'Chỉ Check 301')"></textarea>
+            <div style="margin-top:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
+                    <input type="checkbox" id="chkAdmin" checked style="width:16px; height:16px; cursor:pointer;"> Check Admin & Login
+                </label>
+            </div>
             <div style="margin-top:10px; display: flex; gap: 10px;">
                 <button class="btn btn-success" onclick="startCheck()">🔍 Quét Trạng Thái (Full)</button>
                 <button id="btnCheck301Only" class="btn btn-primary" onclick="startCheck301Only()" style="background-color: var(--primary);">🔄 Chỉ Check 301 (Xuất List)</button>
@@ -150,7 +155,7 @@
         <div class="card" style="margin-top:20px;">
             <table>
                 <thead>
-                    <tr><th>Website</th><th>Status</th><th>Code</th><th>So khớp 301</th><th>Admin</th><th>Login</th></tr>
+                    <tr><th width="25%">Website</th><th width="10%">Status</th><th width="8%">Code</th><th width="15%">So khớp 301</th><th width="12%">Admin</th><th width="10%">Login</th><th width="8%">Lại</th></tr>
                 </thead>
                 <tbody id="checkResultBody"></tbody>
             </table>
@@ -340,32 +345,102 @@
     // --- TAB 2 LOGIC ---
     async function startCheck() {
         const lines = document.getElementById('checkDomainList').value.split('\n').filter(l => l.trim());
-        const tbody = document.getElementById('checkResultBody'); tbody.innerHTML = '';
+        if (!lines.length) return alert('Nhập ít nhất 1 URL sếp ơi!');
+        const checkAdmin = document.getElementById('chkAdmin').checked;
+        const tbody = document.getElementById('checkResultBody');
+        tbody.innerHTML = '';
+
         for (let i = 0; i < lines.length; i++) {
             const p = lines[i].split(/\s+/);
-            let o = p[0]; if(!o.startsWith('http')) o='https://'+o; if(!o.endsWith('/')) o+='/';
-            let t = p[1]||p[0]; if(!t.startsWith('http')) t='https://'+t; if(!t.endsWith('/')) t+='/';
+            let src = p[0]; if(!src.startsWith('http')) src='https://'+src; if(!src.endsWith('/')) src+='/';
+            let dst = p[1]||p[0]; if(!dst.startsWith('http')) dst='https://'+dst; if(!dst.endsWith('/')) dst+='/';
+            const adminPath = p[2] || 'wp-admin';
+            const user = p[3] || '';
+            const pass = p[4] || '';
+
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td><b>${t}</b></td><td id="cSt_${i}">...</td><td id="cCo_${i}">...</td><td id="cMa_${i}">...</td><td id="cAd_${i}">...</td><td id="cLo_${i}">...</td>`;
+            tr.id = `crow_${i}`;
+            tr.innerHTML = `
+                <td style="font-size:12px; word-break:break-all;"><a href="${dst}" target="_blank" style="color:var(--primary)">${dst}</a></td>
+                <td id="cSt_${i}"><span style="color:var(--warning)">⏳...</span></td>
+                <td id="cCo_${i}">-</td>
+                <td id="cMa_${i}">-</td>
+                <td id="cAd_${i}">${checkAdmin ? '...' : '-'}</td>
+                <td id="cLo_${i}">-</td>
+                <td><button class="btn-mini" onclick="recheckRow2(${i})">🔄</button></td>
+            `;
             tbody.appendChild(tr);
-            
-            try {
-                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(o)}`);
-                const data = await res.json();
-                document.getElementById(`cSt_${i}`).innerHTML = res.ok?'<span class="status-badge status-success">Live</span>':'Error';
-                document.getElementById(`cCo_${i}`).innerText = data.status?data.status.http_code:'??';
-                let final = data.status?data.status.url:o;
-                const isM = final.toLowerCase().includes(t.toLowerCase().replace('https://','').replace('http://','').replace(/\/$/,''));
-                document.getElementById(`cMa_${i}`).innerHTML = isM?'✅ KHỚP':'🚨 LỆCH';
-                
-                const adRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(t+(p[2]||'wp-admin'))}`);
-                const adHtml = await adRes.text();
-                document.getElementById(`cAd_${i}`).innerText = adHtml.includes('wp-login')?'Admin OK':'Fail';
-                
-                if (p[3]) document.getElementById(`cLo_${i}`).innerHTML = `<button class="btn-mini" onclick="autoLogin('${t}','${p[2]||'wp-admin'}','${p[3]}','${p[4]}')">🔑</button>`;
-            } catch(e) { document.getElementById(`cSt_${i}`).innerText='Timeout'; }
-            await new Promise(r => setTimeout(r, 500));
+
+            await checkOneRow(i, src, dst, adminPath, user, pass, checkAdmin);
+            await new Promise(r => setTimeout(r, 400));
         }
+    }
+
+    async function checkOneRow(i, src, dst, adminPath, user, pass, checkAdmin) {
+        const stEl = document.getElementById(`cSt_${i}`);
+        const coEl = document.getElementById(`cCo_${i}`);
+        const maEl = document.getElementById(`cMa_${i}`);
+        const adEl = document.getElementById(`cAd_${i}`);
+        const loEl = document.getElementById(`cLo_${i}`);
+
+        stEl.innerHTML = '<span style="color:var(--warning)">⏳ Đang quét...</span>';
+
+        // Bước 1: Lấy HTML qua fetchHtml (nhiều proxy fallback)
+        const html = await fetchHtml(src);
+
+        if (!html) {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Timeout</span>';
+            coEl.innerText = 'ERR';
+            maEl.innerText = '-';
+            adEl.innerText = '-';
+            return;
+        }
+
+        stEl.innerHTML = '<span class="status-badge status-success">✅ Live</span>';
+        coEl.innerText = '200';
+
+        // Bước 2: Đọc URL cuối (redirect đích) từ canonical / og:url / meta-refresh
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        let finalUrl = doc.querySelector('link[rel="canonical"]')?.getAttribute('href') ||
+                       doc.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
+        if (!finalUrl) {
+            const content = doc.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
+            const mR = content.match(/url=([^;\s]+)/i);
+            if (mR) finalUrl = mR[1].trim().replace(/["']/g, '');
+        }
+        if (!finalUrl) finalUrl = src;
+
+        const dstHost = dst.toLowerCase().replace('https://','').replace('http://','').replace(/\/$/,'');
+        const isMatch = finalUrl.toLowerCase().includes(dstHost);
+        maEl.innerHTML = isMatch
+            ? `✅ KHHP`
+            : `<span style="color:var(--danger)">🚨 LHCH</span><br><span style="font-size:10px; color:var(--text-muted); word-break:break-all">${finalUrl}</span>`;
+
+        // Bước 3: Check Admin (nếu được bật)
+        if (checkAdmin) {
+            try {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 8000);
+                const adRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + adminPath)}`, {signal: ctrl.signal});
+                clearTimeout(tid);
+                const adHtml = await adRes.text();
+                adEl.innerText = adHtml.includes('wp-login') ? '✅ OK' : '❌ Fail';
+            } catch(e) { adEl.innerText = 'Timeout'; }
+
+            if (user) loEl.innerHTML = `<button class="btn-mini" onclick="autoLogin('${dst}','${adminPath}','${user}','${pass}')">🔑 Login</button>`;
+            else loEl.innerText = '-';
+        }
+    }
+
+    async function recheckRow2(i) {
+        // Đọc lại từ input
+        const lines = document.getElementById('checkDomainList').value.split('\n').filter(l => l.trim());
+        if (i >= lines.length) return;
+        const checkAdmin = document.getElementById('chkAdmin').checked;
+        const p = lines[i].split(/\s+/);
+        let src = p[0]; if(!src.startsWith('http')) src='https://'+src; if(!src.endsWith('/')) src+='/';
+        let dst = p[1]||p[0]; if(!dst.startsWith('http')) dst='https://'+dst; if(!dst.endsWith('/')) dst+='/';
+        await checkOneRow(i, src, dst, p[2]||'wp-admin', p[3]||'', p[4]||'', checkAdmin);
     }
 
     async function startCheck301Only() {
