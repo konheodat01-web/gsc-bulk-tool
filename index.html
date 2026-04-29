@@ -342,11 +342,25 @@
     }
 
     async function verifySite(url, i) {
-        const res = await fetch(`https://www.googleapis.com/siteVerification/v1/webResource?verificationMethod=META`, {
-            method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ site: { identifier: url, type: 'SITE' } })
-        });
-        if (res.ok) { document.getElementById(`vr_${i}`).innerHTML='✅ OK'; document.getElementById(`mt_${i}`).innerText='Xác minh xong'; } else alert("Lỗi!");
+        const vrEl = document.getElementById(`vr_${i}`);
+        vrEl.innerHTML = '⏳...';
+        try {
+            const res = await fetch(`https://www.googleapis.com/siteVerification/v1/webResource?verificationMethod=META`, {
+                method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ site: { identifier: url, type: 'SITE' } })
+            });
+            if (res.ok) { 
+                // Gọi lại API add GSC để đồng bộ trạng thái verified, tránh lỗi 403 sitemap
+                await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
+                vrEl.innerHTML = '✅ OK'; 
+                document.getElementById(`mt_${i}`).innerText = 'Xác minh xong'; 
+            } else { 
+                vrEl.innerHTML = '❌ Lỗi'; 
+                alert("Xác minh thất bại cho " + url); 
+            }
+        } catch(e) {
+            vrEl.innerHTML = '❌ Lỗi';
+        }
     }
 
     async function checkAndSubmitSitemaps() {
