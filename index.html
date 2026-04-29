@@ -220,10 +220,8 @@
     let accessToken = null;
 
     // --- TELEGRAM LOGIC ---
-    // Sử dụng proxy để tránh lỗi CORS khi đồng bộ qua jsonblob
     const TELE_JSON_URL = "https://jsonblob.com/api/jsonBlob/019dd787-9e2c-75ec-a3b6-7c6a1f772d2c";
-    const PROXY_URL = "https://corsproxy.io/?";
-
+    
     async function saveTeleSettings() {
         const token = document.getElementById('teleToken').value;
         const chatId = document.getElementById('teleChatId').value;
@@ -232,12 +230,13 @@
         localStorage.setItem('tele_chat_id', chatId);
         
         try {
-            await fetch(PROXY_URL + encodeURIComponent(TELE_JSON_URL), {
+            // Thử lưu trực tiếp vào jsonblob
+            await fetch(TELE_JSON_URL, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify({ tele_token: token, tele_chat_id: chatId })
             });
-        } catch(e) { console.error("Lỗi đồng bộ cấu hình", e); }
+        } catch(e) { console.error("Lỗi đồng bộ cấu hình (Save)", e); }
 
         const st = document.getElementById('teleStatus');
         st.style.display = 'block';
@@ -250,10 +249,11 @@
         document.getElementById('teleChatId').value = localStorage.getItem('tele_chat_id') || '';
         
         try {
-            // Thêm timestamp để tránh cache proxy
-            const res = await fetch(PROXY_URL + encodeURIComponent(TELE_JSON_URL + "?t=" + Date.now()));
+            // Sử dụng allorigins để GET cấu hình (rất ổn định, không bị CORS)
+            const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(TELE_JSON_URL + "?t=" + Date.now())}`);
+            if(!res.ok) return;
             const data = await res.json();
-            if(data.tele_token || data.tele_chat_id) {
+            if(data && (data.tele_token || data.tele_chat_id)) {
                 if(data.tele_token) {
                     localStorage.setItem('tele_token', data.tele_token);
                     document.getElementById('teleToken').value = data.tele_token;
@@ -263,7 +263,7 @@
                     document.getElementById('teleChatId').value = data.tele_chat_id;
                 }
             }
-        } catch(e) { console.error("Không tải được cấu hình đồng bộ", e); }
+        } catch(e) { console.error("Lỗi đồng bộ cấu hình (Load)", e); }
     }
     async function sendToTelegram(msg) {
         const t = localStorage.getItem('tele_token'), c = localStorage.getItem('tele_chat_id');
