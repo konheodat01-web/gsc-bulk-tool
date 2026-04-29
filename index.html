@@ -104,9 +104,10 @@
     <!-- TAB 1: GSC -->
     <div id="tab1" class="tab-content active">
         <div class="card">
-            <h3 style="margin-top:0">Bước 1: Kết nối Google</h3>
-            <button id="btnAuth" class="btn" onclick="handleAuthClick()">🔑 Đăng nhập Google</button>
-            <div id="userInfo" style="display:none; margin-top:10px; color:var(--success); font-weight:bold;">✅ Đã kết nối!</div>
+            <h3 style="margin-top:0">Bước 1: Quản lý Tài khoản Google</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Thêm các tài khoản GSC của bạn vào đây. Chọn tài khoản muốn sử dụng để Add Web.</p>
+            <div id="accountList" style="margin-bottom:15px;"></div>
+            <button class="btn btn-outline" onclick="addGoogleAccount()" style="font-size:12px; padding:6px 12px; border-color:var(--primary); color:var(--primary);">➕ Thêm Tài Khoản Google</button>
         </div>
         <div class="card" style="margin-top:20px;">
             <h3 style="margin-top:0">Bước 2: Website & Sitemap</h3>
@@ -281,22 +282,135 @@
         if(ok) alert("✅ Bot đã gửi tin nhắn test thành công! Sếp kiểm tra Telegram nhé.");
         else alert("❌ Lỗi! Sếp kiểm tra lại Token hoặc Chat ID (phải là dãy số) xem đúng chưa nhé.");
     }
-    window.addEventListener('load', loadTeleSettings);
+    let gscAccounts = []; // { email, token, expiresAt }
+    let activeAccountEmail = null;
+
+    function saveAccountsToLocal() {
+        const emails = gscAccounts.map(a => a.email);
+        localStorage.setItem('gsc_emails', JSON.stringify(emails));
+    }
+
+    function loadAccountsFromLocal() {
+        try {
+            const emails = JSON.parse(localStorage.getItem('gsc_emails') || '[]');
+            emails.forEach(email => {
+                if(!gscAccounts.find(a=>a.email === email)) {
+                    gscAccounts.push({ email: email, token: null, expiresAt: 0 });
+                }
+            });
+            if(gscAccounts.length > 0 && !activeAccountEmail) activeAccountEmail = gscAccounts[0].email;
+            renderAccounts();
+        } catch(e) {}
+    }
+
+    function renderAccounts() {
+        const list = document.getElementById('accountList');
+        if (gscAccounts.length === 0) {
+            list.innerHTML = '<div style="font-size:12px; color:var(--text-muted); font-style:italic;">Chưa có tài khoản nào. Vui lòng thêm tài khoản.</div>';
+            document.getElementById('btnStart').disabled = true;
+            return;
+        }
+        
+        let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
+        gscAccounts.forEach(acc => {
+            const isActive = acc.email === activeAccountEmail;
+            const isExpired = !acc.token || Date.now() > acc.expiresAt;
+            html += `
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border:1px solid ${isActive?'var(--primary)':'var(--border)'}; border-radius:6px; background:${isActive?'rgba(59,130,246,0.05)':'transparent'};">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="radio" name="activeGsc" ${isActive?'checked':''} onchange="setActiveAccount('${acc.email}')" style="cursor:pointer; width:16px; height:16px; accent-color:var(--primary);">
+                        <span style="font-weight:600; font-size:13px; color:${isActive?'var(--primary)':'var(--text)'};">${acc.email}</span>
+                        ${isExpired ? '<span style="font-size:10px; color:var(--danger); padding:2px 6px; background:rgba(231,76,60,0.1); border-radius:4px; font-weight:600;">Hết phiên</span>' : '<span style="font-size:10px; color:var(--success); padding:2px 6px; background:rgba(46,204,113,0.1); border-radius:4px; font-weight:600;">Đang kết nối</span>'}
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn-mini" onclick="refreshAccount('${acc.email}')" style="background:var(--bg-card); color:var(--text); border:1px solid var(--border);" title="Lấy lại quyền truy cập (không cần nhập lại pass)">🔄 Refresh</button>
+                        <button class="btn-mini" onclick="removeAccount('${acc.email}')" style="background:var(--danger); color:#fff; border:none;" title="Xóa tài khoản này">❌ Xóa</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        list.innerHTML = html;
+        
+        const activeAcc = gscAccounts.find(a => a.email === activeAccountEmail);
+        if (activeAcc && activeAcc.token && Date.now() < activeAcc.expiresAt) {
+            accessToken = activeAcc.token; // Update the global accessToken used by the rest of the app
+            document.getElementById('btnStart').disabled = false;
+        } else {
+            accessToken = null;
+            document.getElementById('btnStart').disabled = true;
+        }
+    }
+
+    function setActiveAccount(email) {
+        activeAccountEmail = email;
+        renderAccounts();
+    }
+
+    function removeAccount(email) {
+        gscAccounts = gscAccounts.filter(a => a.email !== email);
+        if (activeAccountEmail === email) activeAccountEmail = gscAccounts.length > 0 ? gscAccounts[0].email : null;
+        saveAccountsToLocal();
+        renderAccounts();
+    }
+
+    function addGoogleAccount() {
+        const client = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/siteverification https://www.googleapis.com/auth/userinfo.email',
+            callback: async (res) => { 
+                if (res.access_token) { 
+                    try {
+                        const uRes = await fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', { headers: { 'Authorization': `Bearer ${res.access_token}` } });
+                        const uData = await uRes.json();
+                        if(uData.email) {
+                            const existing = gscAccounts.find(a => a.email === uData.email);
+                            if (existing) {
+                                existing.token = res.access_token;
+                                existing.expiresAt = Date.now() + 3500000; // ~58 mins
+                            } else {
+                                gscAccounts.push({ email: uData.email, token: res.access_token, expiresAt: Date.now() + 3500000 });
+                            }
+                            activeAccountEmail = uData.email;
+                            saveAccountsToLocal();
+                            renderAccounts();
+                        }
+                    } catch(e) { alert("Lỗi khi lấy thông tin Email. Vui lòng thử lại."); }
+                } 
+            }
+        });
+        client.requestAccessToken({prompt: 'select_account'});
+    }
+
+    function refreshAccount(email) {
+        const client = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/siteverification https://www.googleapis.com/auth/userinfo.email',
+            callback: async (res) => { 
+                if (res.access_token) { 
+                    const existing = gscAccounts.find(a => a.email === email);
+                    if (existing) {
+                        existing.token = res.access_token;
+                        existing.expiresAt = Date.now() + 3500000;
+                        renderAccounts();
+                    }
+                } 
+            }
+        });
+        // Use login_hint to silently re-auth if the user is already logged into this email in Chrome
+        client.requestAccessToken({login_hint: email, prompt: ''});
+    }
+
+    window.addEventListener('load', () => {
+        loadTeleSettings();
+        loadAccountsFromLocal();
+    });
 
     function switchTab(id) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         document.querySelector(`[onclick="switchTab('${id}')"]`).classList.add('active');
-    }
-
-    function handleAuthClick() {
-        const client = google.accounts.oauth2.initTokenClient({
-            client_id: GOOGLE_CLIENT_ID,
-            scope: 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/siteverification',
-            callback: (res) => { if (res.access_token) { accessToken = res.access_token; document.getElementById('userInfo').style.display='block'; document.getElementById('btnStart').disabled=false; } }
-        });
-        client.requestAccessToken({prompt: 'consent'});
     }
 
     // --- TAB 1 LOGIC ---
