@@ -220,16 +220,47 @@
     let accessToken = null;
 
     // --- TELEGRAM LOGIC ---
-    function saveTeleSettings() {
-        localStorage.setItem('tele_token', document.getElementById('teleToken').value);
-        localStorage.setItem('tele_chat_id', document.getElementById('teleChatId').value);
+    const TELE_JSON_URL = "https://jsonblob.com/api/jsonBlob/019dd787-9e2c-75ec-a3b6-7c6a1f772d2c";
+    
+    async function saveTeleSettings() {
+        const token = document.getElementById('teleToken').value;
+        const chatId = document.getElementById('teleChatId').value;
+        
+        localStorage.setItem('tele_token', token);
+        localStorage.setItem('tele_chat_id', chatId);
+        
+        try {
+            await fetch(TELE_JSON_URL, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tele_token: token, tele_chat_id: chatId })
+            });
+        } catch(e) { console.error("Lỗi đồng bộ cấu hình", e); }
+
         const st = document.getElementById('teleStatus');
         st.style.display = 'block';
         setTimeout(() => st.style.display = 'none', 3000);
     }
-    function loadTeleSettings() {
+
+    async function loadTeleSettings() {
+        // Khôi phục từ localStorage trước để render nhanh
         document.getElementById('teleToken').value = localStorage.getItem('tele_token') || '';
         document.getElementById('teleChatId').value = localStorage.getItem('tele_chat_id') || '';
+        
+        try {
+            const res = await fetch(TELE_JSON_URL);
+            const data = await res.json();
+            if(data.tele_token || data.tele_chat_id) {
+                if(data.tele_token) {
+                    localStorage.setItem('tele_token', data.tele_token);
+                    document.getElementById('teleToken').value = data.tele_token;
+                }
+                if(data.tele_chat_id) {
+                    localStorage.setItem('tele_chat_id', data.tele_chat_id);
+                    document.getElementById('teleChatId').value = data.tele_chat_id;
+                }
+            }
+        } catch(e) { console.error("Không tải được cấu hình đồng bộ", e); }
     }
     async function sendToTelegram(msg) {
         const t = localStorage.getItem('tele_token'), c = localStorage.getItem('tele_chat_id');
