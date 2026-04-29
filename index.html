@@ -296,7 +296,7 @@
         else alert("❌ Lỗi! Sếp kiểm tra lại Token hoặc Chat ID (phải là dãy số) xem đúng chưa nhé.");
     }
     let gscAccounts = []; // { email, token, expiresAt }
-    let activeAccountEmail = null;
+    let activeAccountEmails = [];
 
     function saveAccountsToLocal() {
         const emails = gscAccounts.map(a => a.email);
@@ -320,7 +320,7 @@
                     gscAccounts.push({ email: email, token: null, expiresAt: 0 });
                 }
             });
-            if(gscAccounts.length > 0 && !activeAccountEmail) activeAccountEmail = gscAccounts[0].email;
+            if(gscAccounts.length > 0 && activeAccountEmails.length === 0) activeAccountEmails = [gscAccounts[0].email];
             renderAccounts();
         } catch(e) {}
     }
@@ -334,13 +334,20 @@
         }
         
         let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
+        let allTokensValid = true;
+        let hasSelected = false;
+
         gscAccounts.forEach(acc => {
-            const isActive = acc.email === activeAccountEmail;
+            const isActive = activeAccountEmails.includes(acc.email);
             const isExpired = !acc.token || Date.now() > acc.expiresAt;
+            if (isActive) {
+                hasSelected = true;
+                if (isExpired) allTokensValid = false;
+            }
             html += `
                 <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border:1px solid ${isActive?'var(--primary)':'var(--border)'}; border-radius:6px; background:${isActive?'rgba(59,130,246,0.05)':'transparent'};">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="radio" name="activeGsc" ${isActive?'checked':''} onchange="setActiveAccount('${acc.email}')" style="cursor:pointer; width:16px; height:16px; accent-color:var(--primary);">
+                        <input type="checkbox" ${isActive?'checked':''} onchange="toggleAccount('${acc.email}')" style="cursor:pointer; width:16px; height:16px; accent-color:var(--primary);">
                         <span style="font-weight:600; font-size:13px; color:${isActive?'var(--primary)':'var(--text)'};">${acc.email}</span>
                         ${isExpired ? '<span style="font-size:10px; color:var(--danger); padding:2px 6px; background:rgba(231,76,60,0.1); border-radius:4px; font-weight:600;">Hết phiên</span>' : '<span style="font-size:10px; color:var(--success); padding:2px 6px; background:rgba(46,204,113,0.1); border-radius:4px; font-weight:600;">Đang kết nối</span>'}
                     </div>
@@ -354,24 +361,26 @@
         html += '</div>';
         list.innerHTML = html;
         
-        const activeAcc = gscAccounts.find(a => a.email === activeAccountEmail);
-        if (activeAcc && activeAcc.token && Date.now() < activeAcc.expiresAt) {
-            accessToken = activeAcc.token; // Update the global accessToken used by the rest of the app
+        if (hasSelected && allTokensValid) {
             document.getElementById('btnStart').disabled = false;
         } else {
-            accessToken = null;
             document.getElementById('btnStart').disabled = true;
         }
     }
 
-    function setActiveAccount(email) {
-        activeAccountEmail = email;
+    function toggleAccount(email) {
+        if(activeAccountEmails.includes(email)) {
+            activeAccountEmails = activeAccountEmails.filter(e => e !== email);
+        } else {
+            activeAccountEmails.push(email);
+        }
         renderAccounts();
     }
 
     function removeAccount(email) {
         gscAccounts = gscAccounts.filter(a => a.email !== email);
-        if (activeAccountEmail === email) activeAccountEmail = gscAccounts.length > 0 ? gscAccounts[0].email : null;
+        activeAccountEmails = activeAccountEmails.filter(e => e !== email);
+        if (gscAccounts.length > 0 && activeAccountEmails.length === 0) activeAccountEmails.push(gscAccounts[0].email);
         saveAccountsToLocal();
         renderAccounts();
     }
@@ -393,7 +402,7 @@
                             } else {
                                 gscAccounts.push({ email: uData.email, token: res.access_token, expiresAt: Date.now() + 3500000 });
                             }
-                            activeAccountEmail = uData.email;
+                            if(!activeAccountEmails.includes(uData.email)) activeAccountEmails.push(uData.email);
                             saveAccountsToLocal();
                             renderAccounts();
                         }
@@ -437,93 +446,107 @@
 
     // --- TAB 1 LOGIC ---
     async function startProcess() {
+        if(activeAccountEmails.length === 0) return alert("Vui lòng chọn ít nhất 1 tài khoản GSC!");
         const lines = document.getElementById('domainList').value.split('\n').filter(l => l.trim());
         const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';
-        let existingMap = new Map();
-        try {
-            const res = await fetch('https://www.googleapis.com/webmasters/v3/sites', { headers: { 'Authorization': `Bearer ${accessToken}` } });
-            const data = await res.json();
-            if (data.siteEntry) data.siteEntry.forEach(e => { let u = e.siteUrl; if(!u.endsWith('/')) u+='/'; existingMap.set(u.toLowerCase(), e.permissionLevel); });
-        } catch(e) {}
+        
+        document.querySelector('#gscTable thead').innerHTML = `<tr><th width="20%">Website URL</th><th width="20%">Tài khoản</th><th width="12%">Trạng thái</th><th width="25%">Mã HTML</th><th width="10%">Xác minh</th><th width="13%">Sitemaps</th></tr>`;
+        let rowId = 0;
 
-        for (let i = 0; i < lines.length; i++) {
-            let url = lines[i].trim(); if(!url.startsWith('http')) url='https://'+url; if(!url.endsWith('/')) url+='/';
-            const tr = document.createElement('tr'); tr.dataset.siteUrl = url;
-            tr.innerHTML = `<td>${url}</td><td id="st_${i}">...</td><td id="mt_${i}">-</td><td id="vr_${i}">-</td><td class="sitemap-cell">-</td>`;
-            tbody.appendChild(tr);
-            const perm = existingMap.get(url.toLowerCase());
+        for (let email of activeAccountEmails) {
+            const acc = gscAccounts.find(a => a.email === email);
+            if(!acc || !acc.token || Date.now() > acc.expiresAt) continue;
+            const token = acc.token;
+            
+            let existingMap = new Map();
             try {
-                if (perm) {
-                    document.getElementById(`st_${i}`).innerHTML = `<span class="status-badge status-info">✅ Đã có (${perm==='siteOwner'?'Owner':'User'})</span>`;
-                    if (perm==='siteOwner') { 
-                        document.getElementById(`mt_${i}`).innerText='-'; 
-                        document.getElementById(`vr_${i}`).innerHTML='<span class="status-badge status-success">Xong</span>'; 
-                        // Tự động check và nạp sitemap nếu đã là Owner
-                        const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
-                        submitSitemapsForUrl(url, tr.querySelector('.sitemap-cell'), smNames);
+                const res = await fetch('https://www.googleapis.com/webmasters/v3/sites', { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data.siteEntry) data.siteEntry.forEach(e => { let u = e.siteUrl; if(!u.endsWith('/')) u+='/'; existingMap.set(u.toLowerCase(), e.permissionLevel); });
+            } catch(e) {}
+
+            for (let i = 0; i < lines.length; i++) {
+                let url = lines[i].trim(); if(!url.startsWith('http')) url='https://'+url; if(!url.endsWith('/')) url+='/';
+                const currentId = rowId++;
+                const tr = document.createElement('tr'); 
+                tr.dataset.siteUrl = url;
+                tr.dataset.email = email;
+                tr.innerHTML = `<td>${url}</td><td><span style="font-size:11px; color:var(--primary); font-weight:bold;">${email}</span></td><td id="st_${currentId}">...</td><td id="mt_${currentId}">-</td><td id="vr_${currentId}">-</td><td class="sitemap-cell">-</td>`;
+                tbody.appendChild(tr);
+                
+                const perm = existingMap.get(url.toLowerCase());
+                try {
+                    if (perm) {
+                        document.getElementById(`st_${currentId}`).innerHTML = `<span class="status-badge status-info">✅ Đã có (${perm==='siteOwner'?'Owner':'User'})</span>`;
+                        if (perm==='siteOwner') { 
+                            document.getElementById(`mt_${currentId}`).innerText='-'; 
+                            document.getElementById(`vr_${currentId}`).innerHTML='<span class="status-badge status-success">Xong</span>'; 
+                            const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
+                            submitSitemapsForUrl(url, tr.querySelector('.sitemap-cell'), smNames, token);
+                        }
+                        else await fetchMeta(url, currentId, token, email);
+                    } else {
+                        await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+                        document.getElementById(`st_${currentId}`).innerHTML = '<span class="status-badge status-success">Đã Add</span>';
+                        await fetchMeta(url, currentId, token, email);
                     }
-                    else await fetchMeta(url, i);
-                } else {
-                    await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
-                    document.getElementById(`st_${i}`).innerHTML = '<span class="status-badge status-success">Đã Add</span>';
-                    await fetchMeta(url, i);
-                }
-            } catch(e) { document.getElementById(`st_${i}`).innerText='Lỗi'; }
-            await new Promise(r => setTimeout(r, 500));
+                } catch(e) { document.getElementById(`st_${currentId}`).innerText='Lỗi'; }
+                await new Promise(r => setTimeout(r, 200));
+            }
         }
-        await sendToTelegram(`<b>✅ HOÀN TẤT ADD GSC</b>\nĐã xử lý xong <b>${lines.length}</b> website.`);
+        await sendToTelegram(`<b>✅ HOÀN TẤT ADD GSC</b>\nĐã xử lý <b>${lines.length}</b> website cho <b>${activeAccountEmails.length}</b> tài khoản.`);
     }
 
-    async function fetchMeta(url, i) {
+    async function fetchMeta(url, id, token, email) {
         const res = await fetch(`https://www.googleapis.com/siteVerification/v1/token`, {
-            method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ verificationMethod: 'META', site: { identifier: url, type: 'SITE' } })
         });
         if (res.ok) {
             const data = await res.json();
-            document.getElementById(`mt_${i}`).innerHTML = `<div class="code-box"><span class="code-text">${data.token.replace(/</g,'&lt;')}</span><button class="btn-mini" onclick="navigator.clipboard.writeText('${data.token.replace(/'/g,"\\'")}')">Copy</button></div>`;
-            document.getElementById(`vr_${i}`).innerHTML = `<button class="btn-mini" onclick="verifySite('${url}',${i})">Xác minh</button>`;
+            document.getElementById(`mt_${id}`).innerHTML = `<div class="code-box"><span class="code-text">${data.token.replace(/</g,'&lt;')}</span><button class="btn-mini" onclick="navigator.clipboard.writeText('${data.token.replace(/'/g,"\\'")}')">Copy</button></div>`;
+            document.getElementById(`vr_${id}`).innerHTML = `<button class="btn-mini" onclick="verifySite('${url}', ${id}, '${email}')">Xác minh</button>`;
         }
     }
 
-    async function verifySite(url, i) {
-        const vrEl = document.getElementById(`vr_${i}`);
+    async function verifySite(url, id, email) {
+        const acc = gscAccounts.find(a => a.email === email);
+        if(!acc || !acc.token) return;
+        const token = acc.token;
+        const vrEl = document.getElementById(`vr_${id}`);
         vrEl.innerHTML = '⏳...';
         try {
             const res = await fetch(`https://www.googleapis.com/siteVerification/v1/webResource?verificationMethod=META`, {
-                method: 'POST', headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ site: { identifier: url, type: 'SITE' } })
             });
             if (res.ok) { 
-                // Gọi lại API add GSC để đồng bộ trạng thái verified, tránh lỗi 403 sitemap
-                await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
+                await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
                 vrEl.innerHTML = '✅ OK'; 
-                document.getElementById(`mt_${i}`).innerText = 'Xác minh xong'; 
+                document.getElementById(`mt_${id}`).innerText = 'Xác minh xong'; 
                 
-                // Tự động nạp sitemap sau khi xác minh thành công
                 const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
                 const cell = vrEl.parentNode.querySelector('.sitemap-cell');
-                if(cell) submitSitemapsForUrl(url, cell, smNames);
+                if(cell) submitSitemapsForUrl(url, cell, smNames, token);
             } else { 
                 vrEl.innerHTML = '❌ Lỗi'; 
-                alert("Xác minh thất bại cho " + url); 
+                alert("Xác minh thất bại cho " + url + " trên " + email); 
             }
         } catch(e) {
             vrEl.innerHTML = '❌ Lỗi';
         }
     }
 
-    async function submitSitemapsForUrl(url, cell, smNames) {
+    async function submitSitemapsForUrl(url, cell, smNames, token) {
         if (!smNames || smNames.length === 0) return;
         cell.innerHTML = '⏳...';
         try {
-            let res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+            let res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${token}` } });
             
-            // Nếu GSC chưa kịp đồng bộ trạng thái (bị 403 Forbidden), ép đồng bộ lại và thử lại
             if (res.status === 403) {
-                await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
+                await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
                 await new Promise(r => setTimeout(r, 1500)); 
-                res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${accessToken}` } });
+                res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${token}` } });
             }
 
             if (!res.ok) throw new Error("Chưa xác minh hoặc lỗi API");
@@ -534,7 +557,7 @@
                 const full = url + name;
                 if (existed.some(p=>p.includes(name))) html.push(`<div style="color:var(--success)">✅ ${name}</div>`);
                 else {
-                    const sRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps/${encodeURIComponent(full)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${accessToken}` } });
+                    const sRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps/${encodeURIComponent(full)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
                     html.push(sRes.ok? `<div style="color:var(--primary)">🆕 ${name}</div>` : `❌ ${name}`);
                 }
             }
@@ -546,9 +569,14 @@
         const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
         const rows = document.querySelectorAll('#resultBody tr');
         for (let row of rows) {
-            const url = row.dataset.siteUrl; if(!url) continue;
+            const url = row.dataset.siteUrl; 
+            const email = row.dataset.email;
+            if(!url || !email) continue;
+            const acc = gscAccounts.find(a => a.email === email);
+            if(!acc || !acc.token) continue;
+            
             const cell = row.querySelector('.sitemap-cell');
-            submitSitemapsForUrl(url, cell, smNames); // Không cần await để nạp song song nhanh hơn
+            submitSitemapsForUrl(url, cell, smNames, acc.token);
         }
     }
 
