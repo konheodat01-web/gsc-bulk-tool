@@ -923,7 +923,9 @@
             : `<span style="color:var(--danger)">🚨 LHCH</span><br><span style="font-size:10px; color:var(--text-muted); word-break:break-all">${displayUrl(finalUrl)}</span>`;
 
         // Bước 3: Check Admin + Auto-detect path WP
-        if (checkAdmin) {
+        // Đọc checkbox TRỰC TIẾP lúc này — nếu sếp bỏ tích giữa chừng sẽ dừng ngay
+        const shouldCheckAdmin = document.getElementById('chkAdmin').checked;
+        if (shouldCheckAdmin) {
             adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">⏳ Dò admin...</span>';
             let foundPath = null;
             let loginHtml = '';
