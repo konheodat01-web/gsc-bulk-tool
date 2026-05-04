@@ -65,6 +65,20 @@
         .code-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; }
         .btn-mini { padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: white; }
         .btn-mini:hover { background: var(--primary); }
+        .help-btn { background: none; border: 1.5px solid rgba(99,102,241,0.6); color: #818cf8; width: 20px; height: 20px; border-radius: 50%; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; margin-left: 8px; vertical-align: middle; transition: all 0.2s; flex-shrink: 0; }
+        .help-btn:hover { background: #6366f1; color: #fff; border-color: #6366f1; transform: scale(1.15); }
+        .help-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 999; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .help-overlay.active { display: flex; }
+        .help-modal { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 28px 32px; max-width: 560px; width: 90%; box-shadow: 0 25px 50px rgba(0,0,0,0.6); position: relative; animation: helpIn 0.22s ease; }
+        @keyframes helpIn { from { opacity:0; transform:scale(0.93) translateY(12px); } to { opacity:1; transform:scale(1) translateY(0); } }
+        .help-modal-title { margin: 0 0 8px; color: #a78bfa; font-size: 17px; display: flex; align-items: center; gap: 8px; padding-right: 28px; }
+        .help-modal-desc { color: #94a3b8; font-size: 13px; margin: 0 0 18px; line-height: 1.65; }
+        .help-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+        .help-steps li { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.6; color: #e2e8f0; }
+        .step-num { background: #6366f1; color: #fff; min-width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+        .help-tip { margin-top: 18px; padding: 10px 14px; background: rgba(59,130,246,0.1); border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 12px; color: #93c5fd; line-height: 1.65; }
+        .help-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #64748b; font-size: 24px; cursor: pointer; line-height: 1; padding: 0; }
+        .help-close:hover { color: #fff; }
     </style>
 </head>
 <body>
@@ -84,6 +98,7 @@
     <div class="card" style="margin-top: 20px; background: rgba(59, 130, 246, 0.05); border-color: var(--primary);">
         <h3 style="margin-top:0; font-size: 14px; color: var(--primary); display: flex; align-items: center; gap: 8px;">
             <i class="fa-brands fa-telegram"></i> Cấu hình Telegram Bot (Tự động báo cáo)
+            <button class="help-btn" onclick="showHelp('telegram')" title="Hướng dẫn sử dụng">?</button>
         </h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
             <div class="form-group" style="margin-bottom:0">
@@ -104,13 +119,13 @@
     <!-- TAB 1: GSC -->
     <div id="tab1" class="tab-content active">
         <div class="card">
-            <h3 style="margin-top:0">Bước 1: Quản lý Tài khoản Google</h3>
+            <h3 style="margin-top:0">Bước 1: Quản lý Tài khoản Google <button class="help-btn" onclick="showHelp('gsc-account')" title="Hướng dẫn sử dụng">?</button></h3>
             <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Thêm các tài khoản GSC của bạn vào đây. Chọn tài khoản muốn sử dụng để Add Web.</p>
             <div id="accountList" style="margin-bottom:15px;"></div>
             <button class="btn btn-outline" onclick="addGoogleAccount()" style="font-size:12px; padding:6px 12px; border-color:var(--primary); color:var(--primary);">➕ Thêm Tài Khoản Google</button>
         </div>
         <div class="card" style="margin-top:20px;">
-            <h3 style="margin-top:0">Bước 2: Website & Sitemap</h3>
+            <h3 style="margin-top:0">Bước 2: Website &amp; Sitemap <button class="help-btn" onclick="showHelp('gsc-sitemap')" title="Hướng dẫn sử dụng">?</button></h3>
             <textarea id="domainList" placeholder="Danh sách domain..."></textarea>
             <div style="margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px;">
                 <label style="font-size:12px; color:var(--text-muted);">Sitemap Names (cách nhau bằng dấu phẩy):</label>
@@ -137,7 +152,7 @@
     <!-- TAB 2: 301 & WP -->
     <div id="tab2" class="tab-content">
         <div class="card">
-            <h3 style="margin-top:0">Check Website & 301 Status</h3>
+            <h3 style="margin-top:0">Check Website &amp; 301 Status <button class="help-btn" onclick="showHelp('check301')" title="Hướng dẫn sử dụng">?</button></h3>
             <textarea id="checkDomainList" placeholder="Gốc Đích Admin User Pass... (Hoặc chỉ dán list Web gốc nếu dùng chế độ 'Chỉ Check 301')"></textarea>
             <div style="margin-top:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
                 <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
@@ -167,7 +182,7 @@
     <!-- TAB 3: OUTBOUND AUDIT -->
     <div id="tab3" class="tab-content">
         <div class="card">
-            <h3 style="margin-top:0">Outbound Link Auditor</h3>
+            <h3 style="margin-top:0">Outbound Link Auditor <button class="help-btn" onclick="showHelp('outbound')" title="Hướng dẫn sử dụng">?</button></h3>
             <p style="font-size:13px; color:var(--text-muted);">Nhập danh sách web cần quét (mỗi dòng 1 URL). Tool tự tìm & kiểm tra tất cả link trỏ ra ngoài.</p>
             <textarea id="auditUrlList" placeholder="https://site1.com/&#10;https://site2.com/&#10;https://site3.com/"></textarea>
             <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
@@ -201,7 +216,7 @@
     <!-- TAB 4: CHECK BOT -->
     <div id="tab4" class="tab-content">
         <div class="card">
-            <h3 style="margin-top:0">Check Trạng Thái Mở Bot (Index)</h3>
+            <h3 style="margin-top:0">Check Trạng Thái Mở Bot (Index) <button class="help-btn" onclick="showHelp('checkbot')" title="Hướng dẫn sử dụng">?</button></h3>
             <p style="font-size:13px; color:var(--text-muted);">Kiểm tra xem Website đã được cấu hình cho phép Googlebot vào thu thập dữ liệu (Index) chưa.</p>
             <textarea id="checkBotList" placeholder="Nhập danh sách website (mỗi dòng 1 URL)..."></textarea>
             <div style="margin-top:10px;">
@@ -216,8 +231,108 @@
     </div>
 </div>
 
+<!-- HELP MODAL -->
+<div class="help-overlay" id="helpOverlay" onclick="if(event.target===this)closeHelp()">
+  <div class="help-modal">
+    <button class="help-close" onclick="closeHelp()">&#x2715;</button>
+    <h2 class="help-modal-title" id="helpTitle"></h2>
+    <p class="help-modal-desc" id="helpDesc"></p>
+    <ol class="help-steps" id="helpSteps"></ol>
+    <div class="help-tip" id="helpTip" style="display:none"></div>
+  </div>
+</div>
+
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
+    const HELP_DATA = {
+        'telegram': {
+            icon: '📬', title: 'Cấu hình Telegram Bot',
+            desc: 'Kết nối bot Telegram để tool tự động gửi báo cáo sau mỗi lần chạy (Check 301, Outbound Audit, Check Bot...).',
+            steps: [
+                'Tạo bot: nhắn <b>@BotFather</b> → gõ <code>/newbot</code> → đặt tên → sao chép <b>Token</b>.',
+                'Lấy Chat ID: nhắn <b>@userinfobot</b>, nó trả về dãy số ID của sếp.',
+                'Dán <b>Bot Token</b> và <b>Chat ID</b> vào 2 ô rồi bấm <b>🔔 Test</b> để kiểm tra.',
+                'Nếu Telegram nhận được tin nhắn test là xong — tool sẽ tự báo cáo sau mỗi lần quét.'
+            ],
+            tip: '💡 Cấu hình được đồng bộ lên cloud, nên nhiều máy/người dùng chung tool đều nhận báo cáo cùng lúc.'
+        },
+        'gsc-account': {
+            icon: '👤', title: 'Bước 1 – Quản lý Tài khoản GSC',
+            desc: 'Thêm và quản lý nhiều tài khoản Google Search Console. Hỗ trợ đa tài khoản, add web vào nhiều GSC cùng lúc.',
+            steps: [
+                'Bấm <b>➕ Thêm Tài Khoản Google</b> → đăng nhập tài khoản GSC muốn dùng.',
+                'Tick checkbox để <b>chọn tài khoản</b> sẽ dùng. Có thể chọn nhiều tài khoản.',
+                'Nếu badge đỏ <i>Hết phiên</i> → bấm <b>🔄 Refresh</b> để lấy lại token (không cần nhập pass).',
+                'Bấm <b>❌ Xóa</b> để gỡ tài khoản khỏi danh sách.'
+            ],
+            tip: '💡 Phiên đăng nhập có hiệu lực ~58 phút. Tool không lưu mật khẩu — chỉ lưu token tạm trong bộ nhớ trình duyệt.'
+        },
+        'gsc-sitemap': {
+            icon: '🗺️', title: 'Bước 2 – Add Web & Nạp Sitemap',
+            desc: 'Tự động add hàng loạt domain vào GSC, lấy mã xác minh HTML Meta Tag và nộp sitemap — tất cả chỉ 1 click.',
+            steps: [
+                'Nhập danh sách domain vào textarea (mỗi dòng 1 domain, có hoặc không có https).',
+                'Điền tên các file sitemap cách nhau bằng dấu phẩy vào ô <b>Sitemap Names</b>.',
+                'Đảm bảo đã chọn tài khoản (Bước 1), rồi bấm <b>🚀 Bắt đầu Add & Lấy Mã</b>.',
+                'Cột <b>Mã HTML</b>: copy meta tag dán vào &lt;head&gt; website. Cột <b>Xác minh</b>: bấm để verify với Google.',
+                'Bấm <b>Nạp Sitemap</b> bất kỳ lúc nào để nộp sitemap cho tất cả web trong bảng.'
+            ],
+            tip: '💡 Nếu domain đã có trong GSC với quyền Owner, tool bỏ qua bước add và chuyển thẳng sang nộp sitemap.'
+        },
+        'check301': {
+            icon: '🔍', title: 'Check Website & 301 Status',
+            desc: 'Kiểm tra hàng loạt: trạng thái sống/chết, 301 redirect đúng đích chưa, admin còn hoạt động không, đăng nhập tự động.',
+            steps: [
+                '<b>Quét đầy đủ:</b> Nhập <code>web-gốc web-đích admin-path user pass</code> (mỗi dòng 1 web). Bấm <b>🔍 Quét Trạng Thái (Full)</b>.',
+                '<b>Chỉ check 301:</b> Dán list web gốc (1 dòng 1 URL), bấm <b>🔄 Chỉ Check 301</b> để xuất URL đích tương ứng.',
+                'Cột <b>So khớp 301</b>: ✅ KHHP = redirect đúng đích. 🚨 LHCH = redirect sai đích.',
+                'Cột <b>Login</b>: Có user/pass → bấm 🔑 Login để mở wp-admin tự động trong tab mới.'
+            ],
+            tip: '💡 Tool dùng proxy công khai (codetabs, allorigins). Web có Cloudflare bảo vệ có thể trả kết quả không chính xác.'
+        },
+        'outbound': {
+            icon: '🔗', title: 'Outbound Link Auditor',
+            desc: 'Quét mã nguồn trang web, tìm và kiểm tra tất cả link trỏ ra ngoài. Phát hiện affiliate cloaking qua đường dẫn /mlink/.',
+            steps: [
+                'Nhập danh sách URL cần quét (mỗi dòng 1 URL).',
+                'Bấm <b>🚀 Quét Tất Cả Outbound</b> để tìm toàn bộ link ngoài (thẻ a, onclick, data-href, JS...).',
+                'Bấm <b>🔗 Chỉ Check /mlink/ Cloaking</b> để chỉ kiểm tra link affiliate ẩn qua /mlink/.',
+                'Kết quả hiện link đích thực sau redirect (cột RDR), ✅ SỐNG / ❌ CHẾT, và HTTP code.'
+            ],
+            tip: '💡 Tool quét 5 nguồn: thẻ &lt;a&gt;, onclick, data-href, nội dung &lt;script&gt;, &lt;noscript&gt;. Rất hữu ích để audit PBN có link cloaking.'
+        },
+        'checkbot': {
+            icon: '🤖', title: 'Check Trạng Thái Mở Bot (Index)',
+            desc: 'Kiểm tra nhanh Googlebot có được phép thu thập dữ liệu không, hay bị chặn bởi robots.txt hoặc meta noindex.',
+            steps: [
+                'Nhập danh sách website vào textarea (mỗi dòng 1 URL).',
+                'Bấm <b>🤖 Bắt đầu Check Mở Bot</b>.',
+                '<b>🟢 MỞ BOT:</b> robots.txt không chặn + không có meta noindex → Googlebot vào được.',
+                '<b>🔴 ĐÓNG BOT:</b> Có <code>Disallow: /</code> trong robots.txt hoặc <code>meta noindex</code> → Googlebot bị chặn.'
+            ],
+            tip: '💡 Tool kiểm tra 2 lớp: (1) robots.txt có Disallow: / không, (2) trang chủ có meta robots=noindex không.'
+        }
+    };
+
+    function showHelp(id) {
+        const d = HELP_DATA[id]; if (!d) return;
+        document.getElementById('helpTitle').innerHTML = d.icon + ' ' + d.title;
+        document.getElementById('helpDesc').textContent = d.desc;
+        document.getElementById('helpSteps').innerHTML = d.steps.map((s, i) =>
+            '<li><span class="step-num">' + (i+1) + '</span><span>' + s + '</span></li>'
+        ).join('');
+        const tip = document.getElementById('helpTip');
+        if (d.tip) { tip.innerHTML = d.tip; tip.style.display = 'block'; }
+        else tip.style.display = 'none';
+        document.getElementById('helpOverlay').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeHelp() {
+        document.getElementById('helpOverlay').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHelp(); });
+
     const GOOGLE_CLIENT_ID = "938057045964-r7r5osdav10sgf6rhev3c8vri2qbal4r.apps.googleusercontent.com";
     let accessToken = null;
 
