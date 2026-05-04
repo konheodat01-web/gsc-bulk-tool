@@ -155,10 +155,19 @@
     <div id="tab2" class="tab-content">
         <div class="card">
             <h3 style="margin-top:0">Check Website &amp; 301 Status <button class="help-btn" onclick="showHelp('check301')" title="Hướng dẫn sử dụng">?</button></h3>
-            <textarea id="checkDomainList" placeholder="Gốc Đích Admin User Pass... (Hoặc chỉ dán list Web gốc nếu dùng chế độ 'Chỉ Check 301')"></textarea>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                    <label style="font-size:11px; color:var(--text-muted); margin-bottom:5px; display:block;">🌐 Web Gốc <span style="color:#64748b">(1 dòng 1 URL — dùng cho cả 2 chế độ)</span></label>
+                    <textarea id="srcList" placeholder="https://88go.futbol/&#10;https://site2.com/&#10;..." style="height:160px;"></textarea>
+                </div>
+                <div>
+                    <label style="font-size:11px; color:var(--text-muted); margin-bottom:5px; display:block;">🎯 Web Đích + Admin + User + Pass <span style="color:#64748b">(tùy chọn, chỉ cho Quét Full)</span></label>
+                    <textarea id="dstList" placeholder="xn--abc.jpn.com wp-admin admin pass123&#10;(tương ứng dòng với cột 1 — bỏ trống nếu chỉ check 301)" style="height:160px;"></textarea>
+                </div>
+            </div>
             <div style="margin-top:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
                 <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
-                    <input type="checkbox" id="chkAdmin" checked style="width:16px; height:16px; cursor:pointer;"> Check Admin & Login
+                    <input type="checkbox" id="chkAdmin" checked style="width:16px; height:16px; cursor:pointer;"> Check Admin &amp; Login
                 </label>
             </div>
             <div style="margin-top:10px; display: flex; gap: 10px;">
@@ -174,7 +183,7 @@
         <div class="card" style="margin-top:20px;">
             <table>
                 <thead>
-                    <tr><th width="25%">Website</th><th width="10%">Status</th><th width="8%">Code</th><th width="15%">So khớp 301</th><th width="12%">Admin</th><th width="10%">Login</th><th width="8%">Lại</th></tr>
+                    <tr><th width="16%">Web Gốc</th><th width="18%">Website (301 Đích)</th><th width="9%">Status</th><th width="6%">Code</th><th width="17%">So khớp 301</th><th width="13%">Admin</th><th width="9%">Login</th><th width="12%">Lại</th></tr>
                 </thead>
                 <tbody id="checkResultBody"></tbody>
             </table>
@@ -712,24 +721,34 @@
 
     // --- TAB 2 LOGIC ---
     async function startCheck() {
-        const lines = document.getElementById('checkDomainList').value.split('\n').filter(l => l.trim());
-        if (!lines.length) return alert('Nhập ít nhất 1 URL sếp ơi!');
+        const srcLines = document.getElementById('srcList').value.split('\n').filter(l => l.trim());
+        if (!srcLines.length) return alert('Nhập ít nhất 1 URL Web Gốc sếp ơi!');
+        const dstLines = document.getElementById('dstList').value.split('\n');
         const checkAdmin = document.getElementById('chkAdmin').checked;
         const tbody = document.getElementById('checkResultBody');
         tbody.innerHTML = '';
 
-        for (let i = 0; i < lines.length; i++) {
-            const p = lines[i].split(/\s+/);
-            let src = p[0]; if(!src.startsWith('http')) src='https://'+src; if(!src.endsWith('/')) src+='/';
-            let dst = p[1]||p[0]; if(!dst.startsWith('http')) dst='https://'+dst; if(!dst.endsWith('/')) dst+='/';
-            const adminPath = p[2] || 'wp-admin';
-            const user = p[3] || '';
-            const pass = p[4] || '';
+        for (let i = 0; i < srcLines.length; i++) {
+            let src = srcLines[i].trim();
+            if (!src.startsWith('http')) src = 'https://' + src;
+            if (!src.endsWith('/')) src += '/';
+
+            const dp = (dstLines[i] || '').trim().split(/\s+/);
+            let dst = dp[0] || src;
+            if (!dst.startsWith('http')) dst = 'https://' + dst;
+            if (!dst.endsWith('/')) dst += '/';
+            const adminPath = dp[1] || 'wp-admin';
+            const user = dp[2] || '';
+            const pass = dp[3] || '';
+
+            const srcShort = src.replace(/^https?:\/\//,'').replace(/\/$/,'');
+            const dstShort = dst.replace(/^https?:\/\//,'').replace(/\/$/,'');
 
             const tr = document.createElement('tr');
             tr.id = `crow_${i}`;
             tr.innerHTML = `
-                <td style="font-size:12px; word-break:break-all;"><a href="${dst}" target="_blank" style="color:var(--primary)">${dst}</a></td>
+                <td style="font-size:11px; word-break:break-all; color:var(--text-muted)">${srcShort}</td>
+                <td style="font-size:11px; word-break:break-all;"><a href="${dst}" target="_blank" style="color:var(--primary)">${dstShort}</a></td>
                 <td id="cSt_${i}"><span style="color:var(--warning)">⏳...</span></td>
                 <td id="cCo_${i}">-</td>
                 <td id="cMa_${i}">-</td>
@@ -915,20 +934,24 @@
     }
 
     async function recheckRow2(i) {
-        // Đọc lại từ input
-        const lines = document.getElementById('checkDomainList').value.split('\n').filter(l => l.trim());
-        if (i >= lines.length) return;
+        const srcLines = document.getElementById('srcList').value.split('\n').filter(l => l.trim());
+        if (i >= srcLines.length) return;
+        const dstLines = document.getElementById('dstList').value.split('\n');
         const checkAdmin = document.getElementById('chkAdmin').checked;
-        const p = lines[i].split(/\s+/);
-        let src = p[0]; if(!src.startsWith('http')) src='https://'+src; if(!src.endsWith('/')) src+='/';
-        let dst = p[1]||p[0]; if(!dst.startsWith('http')) dst='https://'+dst; if(!dst.endsWith('/')) dst+='/';
-        await checkOneRow(i, src, dst, p[2]||'wp-admin', p[3]||'', p[4]||'', checkAdmin);
+        let src = srcLines[i].trim();
+        if (!src.startsWith('http')) src = 'https://' + src;
+        if (!src.endsWith('/')) src += '/';
+        const dp = (dstLines[i] || '').trim().split(/\s+/);
+        let dst = dp[0] || src;
+        if (!dst.startsWith('http')) dst = 'https://' + dst;
+        if (!dst.endsWith('/')) dst += '/';
+        await checkOneRow(i, src, dst, dp[1]||'wp-admin', dp[2]||'', dp[3]||'', checkAdmin);
     }
 
     async function startCheck301Only() {
         const btn = document.getElementById('btnCheck301Only');
-        const lines = document.getElementById('checkDomainList').value.split('\n').filter(l => l.trim());
-        if(lines.length === 0) return alert("Nhập ít nhất 1 URL gốc sếp ơi!");
+        const srcLines = document.getElementById('srcList').value.split('\n').filter(l => l.trim());
+        if (srcLines.length === 0) return alert("Nhập ít nhất 1 URL gốc ở cột Web Gốc sếp ơi!");
         
         btn.innerText = "⏳ Đang quét...";
         btn.disabled = true;
@@ -939,12 +962,10 @@
         outputArea.value = '';
         
         let results = [];
-        
-        for (let i = 0; i < lines.length; i++) {
-            const p = lines[i].split(/\s+/);
-            let o = p[0]; 
-            if(!o.startsWith('http')) o='https://'+o; 
-            // Không tự động thêm slash ở chế độ này để giữ nguyên dạng nếu sếp copy
+
+        for (let i = 0; i < srcLines.length; i++) {
+            let o = srcLines[i].trim();
+            if(!o.startsWith('http')) o='https://'+o;
             
             try {
                 const ctrl = new AbortController();
