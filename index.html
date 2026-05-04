@@ -6,6 +6,8 @@
     <title>GSC Bulk & SEO Automation Pro</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600&family=Noto+Sans+SC:wght@400;600&display=swap">
     <style>
         :root {
             --bg: #0f172a;
@@ -19,7 +21,7 @@
             --border: #334155;
             --warning: #f59e0b;
         }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        body { font-family: 'Segoe UI', 'Noto Sans JP', 'Noto Sans SC', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 20px; }
         .header { text-align: center; margin-bottom: 10px; }
         .header h1 { margin: 0; color: var(--primary); font-size: 28px; }
@@ -742,6 +744,51 @@
         }
     }
 
+    // Danh sách path wp-admin thử tự động
+    const WP_ADMIN_PATHS = ['web_auth','kqbd_web_auth','kbd_web_auth','login','login_seo_top1_luon','seo-key-top-1','web_auth_pota','wp_hanaseo','wp-admin','wp_jisooseo'];
+
+    // Lấy HTML + HTTP status code thực sự qua allorigins
+    async function fetchStatus(url) {
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 9000);
+            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {signal: ctrl.signal});
+            clearTimeout(tid);
+            if (res.ok) {
+                const data = await res.json();
+                const code = (data.status && data.status.http_code) ? data.status.http_code : 200;
+                return { html: data.contents || '', code };
+            }
+        } catch(e) {}
+        // Fallback codetabs
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 8000);
+            const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, {signal: ctrl.signal});
+            clearTimeout(tid);
+            if (res.ok) return { html: await res.text(), code: 200 };
+            return { html: '', code: res.status };
+        } catch(e) {}
+        return { html: null, code: 0 };
+    }
+
+    // Tự động dò đúng path wp-admin
+    async function detectWpAdmin(dst) {
+        for (let path of WP_ADMIN_PATHS) {
+            try {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 6000);
+                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + path)}`, {signal: ctrl.signal});
+                clearTimeout(tid);
+                if (res.ok) {
+                    const h = await res.text();
+                    if (h && (h.includes('wp-login') || h.includes('user_login') || h.includes('loginform'))) return path;
+                }
+            } catch(e) {}
+        }
+        return null;
+    }
+
     async function checkOneRow(i, src, dst, adminPath, user, pass, checkAdmin) {
         const stEl = document.getElementById(`cSt_${i}`);
         const coEl = document.getElementById(`cCo_${i}`);
@@ -751,22 +798,33 @@
 
         stEl.innerHTML = '<span style="color:var(--warning)">⏳ Đang quét...</span>';
 
-        // Bước 1: Lấy HTML qua fetchHtml (nhiều proxy fallback)
-        const html = await fetchHtml(src);
+        // Bước 1: Lấy HTML + HTTP status code thực sự
+        const { html, code } = await fetchStatus(src);
 
-        if (!html) {
+        if (!html && code === 0) {
             stEl.innerHTML = '<span class="status-badge status-error">❌ Timeout</span>';
-            coEl.innerText = 'ERR';
-            maEl.innerText = '-';
-            adEl.innerText = '-';
+            coEl.innerText = 'ERR'; maEl.innerText = '-'; adEl.innerText = '-';
             return;
         }
 
-        stEl.innerHTML = '<span class="status-badge status-success">✅ Live</span>';
-        coEl.innerText = '200';
+        // Hiển thị HTTP status
+        coEl.innerText = code || '?';
+        if (code === 404) {
+            stEl.innerHTML = '<span class="status-badge status-error">🔴 404 Lỗi</span>';
+        } else if (code >= 500) {
+            stEl.innerHTML = `<span class="status-badge status-error">❌ Lỗi ${code}</span>`;
+        } else if (code >= 400) {
+            stEl.innerHTML = `<span class="status-badge" style="background:#b45309; color:#fff">${code} Lỗi</span>`;
+        } else if (!html || html.length < 50) {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Không đọc được</span>';
+            coEl.innerText = code || 'ERR'; maEl.innerText = '-'; adEl.innerText = '-';
+            return;
+        } else {
+            stEl.innerHTML = '<span class="status-badge status-success">✅ Live</span>';
+        }
 
-        // Bước 2: Đọc URL cuối (redirect đích) từ canonical / og:url / meta-refresh
-        const doc = new DOMParser().parseFromString(html, 'text/html');
+        // Bước 2: Đọc URL cuối từ canonical / og:url / meta-refresh
+        const doc = new DOMParser().parseFromString(html || '', 'text/html');
         let finalUrl = doc.querySelector('link[rel="canonical"]')?.getAttribute('href') ||
                        doc.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
         if (!finalUrl) {
@@ -782,19 +840,39 @@
             ? `✅ KHHP`
             : `<span style="color:var(--danger)">🚨 LHCH</span><br><span style="font-size:10px; color:var(--text-muted); word-break:break-all">${finalUrl}</span>`;
 
-        // Bước 3: Check Admin (nếu được bật)
+        // Bước 3: Check Admin + Auto-detect path WP
         if (checkAdmin) {
+            adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">⏳ Dò admin...</span>';
+            let foundPath = null;
+            let loginHtml = '';
+            // Thử path do sếp nhập trước
             try {
                 const ctrl = new AbortController();
-                const tid = setTimeout(() => ctrl.abort(), 8000);
+                const tid = setTimeout(() => ctrl.abort(), 7000);
                 const adRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + adminPath)}`, {signal: ctrl.signal});
                 clearTimeout(tid);
-                const adHtml = await adRes.text();
-                adEl.innerText = adHtml.includes('wp-login') ? '✅ OK' : '❌ Fail';
-            } catch(e) { adEl.innerText = 'Timeout'; }
+                if (adRes.ok) {
+                    loginHtml = await adRes.text();
+                    if (loginHtml.includes('wp-login') || loginHtml.includes('user_login') || loginHtml.includes('loginform')) {
+                        foundPath = adminPath;
+                    }
+                }
+            } catch(e) {}
 
-            if (user) loEl.innerHTML = `<button class="btn-mini" onclick="autoLogin('${dst}','${adminPath}','${user}','${pass}')">🔑 Login</button>`;
-            else loEl.innerText = '-';
+            // Nếu path sếp nhập sai → tự dò
+            if (!foundPath) {
+                adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">🔍 Tự dò path...</span>';
+                foundPath = await detectWpAdmin(dst);
+            }
+
+            if (foundPath) {
+                adEl.innerHTML = `<span style="color:var(--success); font-size:12px">✅ /${foundPath}</span>`;
+                if (user) loEl.innerHTML = `<button class="btn-mini" onclick="autoLogin('${dst}','${foundPath}','${user}','${pass}')">🔑 Login</button>`;
+                else loEl.innerText = '-';
+            } else {
+                adEl.innerHTML = '<span style="color:var(--danger); font-size:11px">❌ Không tìm thấy</span>';
+                loEl.innerText = '-';
+            }
         }
     }
 
