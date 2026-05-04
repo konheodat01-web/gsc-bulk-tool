@@ -893,6 +893,8 @@
         const rdrHostNorm = redirectUrl ? normalizeHostname(redirectUrl) : '';
         const didRedirect = redirectUrl && rdrHostNorm && rdrHostNorm !== srcHostNorm;
 
+        const dstHostNorm = normalizeHostname(dst);
+
         if (didRedirect) {
             // allorigins đã follow HTTP redirect — dùng luôn URL đích
             finalUrl = redirectUrl;
@@ -906,11 +908,18 @@
                 const mR = content.match(/url=([^;\s]+)/i);
                 if (mR) finalUrl = mR[1].trim().replace(/["']/g, '');
             }
+            
+            // Fallback mạnh cho proxy codetabs (không trả về redirectUrl)
+            // Nếu web đích (bị hack) không có thẻ canonical/og:url,
+            // nhưng proxy trả về HTML CỦA ĐÍCH chứa đầy domain đích -> KHHP
+            if ((!finalUrl || normalizeHostname(finalUrl) === srcHostNorm) && dstHostNorm && html && html.includes(dstHostNorm)) {
+                finalUrl = dst;
+            }
+
             if (!finalUrl) finalUrl = src;
         }
 
-        const dstHostNorm    = normalizeHostname(dst);
-        const finalHostNorm  = normalizeHostname(finalUrl);
+        const finalHostNorm = normalizeHostname(finalUrl);
         // So khớp sau khi cả hai đã Punycode-hóa (hỗ trợ domain tiếng Nhật/Trung)
         const isMatch = finalHostNorm === dstHostNorm
                      || finalHostNorm.endsWith('.' + dstHostNorm)
