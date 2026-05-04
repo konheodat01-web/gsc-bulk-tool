@@ -797,7 +797,7 @@
     // Danh sách path wp-admin thử tự động
     const WP_ADMIN_PATHS = ['web_auth','kqbd_web_auth','kbd_web_auth','login','login_seo_top1_luon','seo-key-top-1','web_auth_pota','wp_hanaseo','wp-admin','wp_jisooseo'];
 
-    // Lấy HTML + HTTP status code thực sự qua allorigins
+    // Lấy HTML + HTTP status code + redirect URL thực sự qua allorigins
     async function fetchStatus(url) {
         try {
             const ctrl = new AbortController();
@@ -807,7 +807,8 @@
             if (res.ok) {
                 const data = await res.json();
                 const code = (data.status && data.status.http_code) ? data.status.http_code : 200;
-                return { html: data.contents || '', code };
+                const redirectUrl = (data.status && data.status.url) ? data.status.url : '';
+                return { html: data.contents || '', code, redirectUrl };
             }
         } catch(e) {}
         // Fallback codetabs
@@ -816,10 +817,10 @@
             const tid = setTimeout(() => ctrl.abort(), 8000);
             const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, {signal: ctrl.signal});
             clearTimeout(tid);
-            if (res.ok) return { html: await res.text(), code: 200 };
-            return { html: '', code: res.status };
+            if (res.ok) return { html: await res.text(), code: 200, redirectUrl: '' };
+            return { html: '', code: res.status, redirectUrl: '' };
         } catch(e) {}
-        return { html: null, code: 0 };
+        return { html: null, code: 0, redirectUrl: '' };
     }
 
     // Tự động dò đúng path wp-admin
@@ -849,7 +850,7 @@
         stEl.innerHTML = '<span style="color:var(--warning)">⏳ Đang quét...</span>';
 
         // Bước 1: Lấy HTML + HTTP status code thực sự
-        const { html, code } = await fetchStatus(src);
+        const { html, code, redirectUrl } = await fetchStatus(src);
 
         if (!html && code === 0) {
             stEl.innerHTML = '<span class="status-badge status-error">❌ Timeout</span>';
@@ -873,16 +874,29 @@
             stEl.innerHTML = '<span class="status-badge status-success">✅ Live</span>';
         }
 
-        // Bước 2: Đọc URL cuối từ canonical / og:url / meta-refresh
-        const doc = new DOMParser().parseFromString(html || '', 'text/html');
-        let finalUrl = doc.querySelector('link[rel="canonical"]')?.getAttribute('href') ||
+        // Bước 2: Xác định URL đích sau redirect
+        // Ƭu tiên: redirectUrl từ allorigins (URL thực sau HTTP redirect)
+        // Fallback: đọc canonical / og:url / meta-refresh từ HTML
+        let finalUrl = '';
+        const srcHostNorm = normalizeHostname(src);
+        const rdrHostNorm = redirectUrl ? normalizeHostname(redirectUrl) : '';
+        const didRedirect = redirectUrl && rdrHostNorm && rdrHostNorm !== srcHostNorm;
+
+        if (didRedirect) {
+            // allorigins đã follow HTTP redirect — dùng luôn URL đích
+            finalUrl = redirectUrl;
+        } else {
+            // Không có redirect HTTP — đọc canonical / og:url / meta-refresh
+            const doc = new DOMParser().parseFromString(html || '', 'text/html');
+            finalUrl = doc.querySelector('link[rel="canonical"]')?.getAttribute('href') ||
                        doc.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
-        if (!finalUrl) {
-            const content = doc.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
-            const mR = content.match(/url=([^;\s]+)/i);
-            if (mR) finalUrl = mR[1].trim().replace(/["']/g, '');
+            if (!finalUrl) {
+                const content = doc.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
+                const mR = content.match(/url=([^;\s]+)/i);
+                if (mR) finalUrl = mR[1].trim().replace(/["']/g, '');
+            }
+            if (!finalUrl) finalUrl = src;
         }
-        if (!finalUrl) finalUrl = src;
 
         const dstHostNorm    = normalizeHostname(dst);
         const finalHostNorm  = normalizeHostname(finalUrl);
