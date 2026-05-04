@@ -744,6 +744,37 @@
         }
     }
 
+    // Chuẩn hóa hostname: tự động convert IDN/Unicode sang Punycode để so sánh đúng
+    // Ví dụ: ドンペリ塾.jpn.com → xn--gdk8a8b8az033b.jpn.com
+    function normalizeHostname(url) {
+        try {
+            let u = url.trim();
+            if (!u.startsWith('http')) u = 'https://' + u;
+            return new URL(u).hostname.toLowerCase(); // browser tự Punycode hóa IDN
+        } catch(e) {
+            return url.toLowerCase().replace(/^https?:\/\//,'').replace(/[/?#].*/,'');
+        }
+    }
+
+    // Hiển thị URL: nếu là Punycode thì cũng thêm dạng gốc (decode)
+    function displayUrl(url) {
+        if (!url) return '';
+        try {
+            const u = new URL(url.startsWith('http') ? url : 'https://' + url);
+            const punyHost = u.hostname;
+            // Decode Punycode label về Unicode
+            const unicodeHost = punyHost.split('.').map(label => {
+                if (!label.startsWith('xn--')) return label;
+                try {
+                    return new URL('https://' + label + '.com').hostname.replace('.com','');
+                } catch(e) { return label; }
+            }).join('.');
+            return unicodeHost !== punyHost
+                ? `${unicodeHost} <span style="color:#64748b;font-size:10px">(${punyHost})</span>`
+                : url;
+        } catch(e) { return url; }
+    }
+
     // Danh sách path wp-admin thử tự động
     const WP_ADMIN_PATHS = ['web_auth','kqbd_web_auth','kbd_web_auth','login','login_seo_top1_luon','seo-key-top-1','web_auth_pota','wp_hanaseo','wp-admin','wp_jisooseo'];
 
@@ -834,11 +865,18 @@
         }
         if (!finalUrl) finalUrl = src;
 
-        const dstHost = dst.toLowerCase().replace('https://','').replace('http://','').replace(/\/$/,'');
-        const isMatch = finalUrl.toLowerCase().includes(dstHost);
+        const dstHostNorm    = normalizeHostname(dst);
+        const finalHostNorm  = normalizeHostname(finalUrl);
+        // So khớp sau khi cả hai đã Punycode-hóa (hỗ trợ domain tiếng Nhật/Trung)
+        const isMatch = finalHostNorm === dstHostNorm
+                     || finalHostNorm.endsWith('.' + dstHostNorm)
+                     || dstHostNorm.endsWith('.' + finalHostNorm);
+
+        // Hiển thị URL đích (kèm dạng Unicode nếu là Punycode)
+        const displayFinalUrl = finalUrl !== src ? finalUrl : '';
         maEl.innerHTML = isMatch
-            ? `✅ KHHP`
-            : `<span style="color:var(--danger)">🚨 LHCH</span><br><span style="font-size:10px; color:var(--text-muted); word-break:break-all">${finalUrl}</span>`;
+            ? `<span style="color:var(--success)">✅ KHHP</span><br><span style="font-size:10px; color:var(--text-muted)">${displayUrl(finalUrl)}</span>`
+            : `<span style="color:var(--danger)">🚨 LHCH</span><br><span style="font-size:10px; color:var(--text-muted); word-break:break-all">${displayUrl(finalUrl)}</span>`;
 
         // Bước 3: Check Admin + Auto-detect path WP
         if (checkAdmin) {
