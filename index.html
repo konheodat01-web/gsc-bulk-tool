@@ -746,6 +746,11 @@
 
             const tr = document.createElement('tr');
             tr.id = `crow_${i}`;
+            tr.dataset.src = src;
+            tr.dataset.dst = dst;
+            tr.dataset.adminPath = adminPath;
+            tr.dataset.user = user;
+            tr.dataset.pass = pass;
             tr.innerHTML = `
                 <td style="font-size:11px; word-break:break-all; color:var(--text-muted)">${srcShort}</td>
                 <td style="font-size:11px; word-break:break-all;"><a href="${dst}" target="_blank" style="color:var(--primary)">${dstShort}</a></td>
@@ -861,11 +866,17 @@
         // Hiển thị HTTP status
         coEl.innerText = code || '?';
         if (code === 404) {
-            stEl.innerHTML = '<span class="status-badge status-error">🔴 404 Lỗi</span>';
+            stEl.innerHTML = '<span class="status-badge status-error">🔴 404 Không tìm thấy</span>';
+            maEl.innerText = '-'; adEl.innerText = '-';
+            return;
         } else if (code >= 500) {
-            stEl.innerHTML = `<span class="status-badge status-error">❌ Lỗi ${code}</span>`;
+            stEl.innerHTML = `<span class="status-badge status-error">❌ Lỗi Server ${code}</span>`;
+            maEl.innerText = '-'; adEl.innerText = '-';
+            return;
         } else if (code >= 400) {
-            stEl.innerHTML = `<span class="status-badge" style="background:#b45309; color:#fff">${code} Lỗi</span>`;
+            stEl.innerHTML = `<span class="status-badge status-error">❌ Lỗi ${code} (Timeout/Từ chối)</span>`;
+            maEl.innerText = '-'; adEl.innerText = '-';
+            return;
         } else if (!html || html.length < 50) {
             stEl.innerHTML = '<span class="status-badge status-error">❌ Không đọc được</span>';
             coEl.innerText = code || 'ERR'; maEl.innerText = '-'; adEl.innerText = '-';
@@ -948,18 +959,10 @@
     }
 
     async function recheckRow2(i) {
-        const srcLines = document.getElementById('srcList').value.split('\n').filter(l => l.trim());
-        if (i >= srcLines.length) return;
-        const dstLines = document.getElementById('dstList').value.split('\n');
+        const tr = document.getElementById(`crow_${i}`);
+        if (!tr) return;
         const checkAdmin = document.getElementById('chkAdmin').checked;
-        let src = srcLines[i].trim();
-        if (!src.startsWith('http')) src = 'https://' + src;
-        if (!src.endsWith('/')) src += '/';
-        const dp = (dstLines[i] || '').trim().split(/\s+/);
-        let dst = dp[0] || src;
-        if (!dst.startsWith('http')) dst = 'https://' + dst;
-        if (!dst.endsWith('/')) dst += '/';
-        await checkOneRow(i, src, dst, dp[1]||'wp-admin', dp[2]||'', dp[3]||'', checkAdmin);
+        await checkOneRow(i, tr.dataset.src, tr.dataset.dst, tr.dataset.adminPath, tr.dataset.user, tr.dataset.pass, checkAdmin);
     }
 
     async function startCheck301Only() {
