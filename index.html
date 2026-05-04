@@ -399,7 +399,7 @@
                             gscAccounts.push({ email: email, token: null, expiresAt: 0 });
                         }
                     });
-                    if(gscAccounts.length > 0 && !activeAccountEmail) activeAccountEmail = gscAccounts[0].email;
+                    if(gscAccounts.length > 0 && activeAccountEmails.length === 0) activeAccountEmails = [gscAccounts[0].email];
                     renderAccounts();
                     localStorage.setItem('gsc_emails', JSON.stringify(data.gsc_emails));
                 }
