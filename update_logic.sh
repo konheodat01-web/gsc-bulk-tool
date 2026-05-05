@@ -1,10 +1,10 @@
 #!/bash
 
-echo "🧠 Đang nâng cấp Siêu Agent (Bản Full + Auto Update)..."
+echo "🧠 Đang nâng cấp Siêu Agent (Fix lỗi Crash do thư viện)..."
 
 # 1. Cài đặt các thư viện cần thiết
 cd ~/seo-agent
-npm install axios cheerio p-limit express body-parser dotenv
+npm install axios cheerio express body-parser dotenv
 
 # 2. Tạo file agent.js HOÀN CHỈNH
 cat <<EOT > agent.js
@@ -13,7 +13,6 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const pLimit = require('p-limit');
 require('dotenv').config();
 
 const app = express();
@@ -42,7 +41,7 @@ app.get('/update-config', async (req, res) => {
     runFullAudit();
 });
 
-app.get('/status', (req, res) => { res.json({ status: 'online', version: '4.0.0' }); });
+app.get('/status', (req, res) => { res.json({ status: 'online', version: '4.1.0' }); });
 
 app.listen(3000, () => { console.log('🚀 Server listening on port 3000'); });
 
@@ -70,8 +69,15 @@ async function runFullAudit() {
         }).filter(r => r[0]);
 
         await sendTelegram(\`🚀 <b>Super Agent</b> đang quét <b>\${rows.length}</b> website...\`);
-        const limit = pLimit(5);
-        const results = await Promise.all(rows.map(row => limit(() => auditSite(row))));
+        
+        const results = [];
+        const chunkSize = 5;
+        for (let i = 0; i < rows.length; i += chunkSize) {
+            const chunk = rows.slice(i, i + chunkSize);
+            const chunkRes = await Promise.all(chunk.map(row => auditSite(row)));
+            results.push(...chunkRes);
+        }
+        
         await sendTelegram(\`🏁 <b>KẾT QUẢ:</b>\\n\\n\${results.join('\\n')}\`);
     } catch (e) { await sendTelegram(\`❌ <b>Lỗi:</b> \${e.message}\`); }
 }
@@ -110,5 +116,5 @@ EOT
 pm2 restart seo-agent || pm2 start agent.js --name "seo-agent"
 pm2 save
 
-echo "✅ ĐÃ XONG 100%! Con Agent hiện đã cực kỳ thông thái."
-echo "Bây giờ sếp hãy bấm nút Đồng bộ trên trình duyệt để hưởng thụ thành quả nhé!"
+echo "✅ ĐÃ XONG! Đã fix lỗi Server Crash."
+
