@@ -439,6 +439,10 @@
         <div class="card">
             <h3 style="margin-top:0">Kiểm tra Loại Trang Chủ (Homepage Status) <button class="help-btn" onclick="showHelp('homepagestatus')" title="Hướng dẫn">?</button></h3>
             <p style="font-size:13px; color:var(--text-muted);">Tự động quét để phát hiện web đang để Trang Chủ là <b>Bài viết mới nhất (Latest Posts)</b> hay <b>Trang tĩnh (Static Page)</b> dựa vào mã nguồn HTML (WordPress).</p>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <label style="font-size:12px; color:var(--text-muted);">Danh sách URL:</label>
+                <button class="btn btn-outline" onclick="importFromSheet('homepageUrlInput')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp từ Google Sheet</button>
+            </div>
             <textarea id="homepageUrlInput" placeholder="Danh sách website (Mỗi dòng 1 URL)..."></textarea>
             <div style="margin-top:10px;">
                 <button id="btnCheckHomepage" class="btn btn-success" onclick="startCheckHomepage()">🚀 Bắt đầu Quét</button>
