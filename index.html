@@ -81,6 +81,25 @@
         .help-tip { margin-top: 18px; padding: 10px 14px; background: rgba(59,130,246,0.1); border-left: 3px solid #3b82f6; border-radius: 4px; font-size: 12px; color: #93c5fd; line-height: 1.65; }
         .help-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #64748b; font-size: 24px; cursor: pointer; line-height: 1; padding: 0; }
         .help-close:hover { color: #fff; }
+    
+    /* Tab 5 & 6 CSS */
+    .input-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-muted); }
+    .dashboard-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .dashboard-table th, .dashboard-table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid var(--border); }
+    .dashboard-table th { background-color: rgba(255, 255, 255, 0.05); font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+    .badge-success { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+    .badge-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
+    .badge-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+    .badge-info { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+    .col-title, .col-desc, .col-h1, .col-h2h3, .col-img, .col-featimg, .col-word, .col-kw, .col-sapo, .col-urlslug, .col-catmatch { display: none; }
+    table.show-title .col-title, table.show-desc .col-desc, table.show-h1 .col-h1, table.show-h2h3 .col-h2h3, table.show-img .col-img, table.show-featimg .col-featimg, table.show-word .col-word, table.show-kw .col-kw, table.show-sapo .col-sapo, table.show-urlslug .col-urlslug, table.show-catmatch .col-catmatch { display: table-cell; }
+    .score-circle { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; }
+    .details-btn { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+    .rule-btn { float: right; background: rgba(59, 130, 246, 0.2); color: var(--primary); border: 1px solid var(--primary); padding: 4px 10px; border-radius: 20px; cursor: pointer; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+    .checkbox-grid label { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text); font-size: 13px; }
+    
     </style>
 </head>
 <body>
@@ -94,6 +113,8 @@
         <button class="tab-btn" onclick="switchTab('tab2')">🔍 Check 301 & WP</button>
         <button class="tab-btn" onclick="switchTab('tab3')">🔗 Outbound Audit</button>
         <button class="tab-btn" onclick="switchTab('tab4')">🤖 Check Mở Bot</button>
+        <button class="tab-btn" onclick="switchTab('tab5')">📝 SEO Content</button>
+        <button class="tab-btn" onclick="switchTab('tab6')">🏠 Homepage Status</button>
     </div>
 
     <!-- SETTINGS: TELEGRAM -->
@@ -183,7 +204,7 @@
         <div class="card" style="margin-top:20px;">
             <table>
                 <thead>
-                    <tr><th width="16%">Web Gốc</th><th width="18%">Website (301 Đích)</th><th width="9%">Status</th><th width="6%">Code</th><th width="17%">So khớp 301</th><th width="13%">Admin</th><th width="9%">Login</th><th width="12%">Lại</th></tr>
+                    <tr><th width="14%">Web Gốc</th><th width="16%">Website (301 Đích)</th><th width="7%">Status</th><th width="5%">Code</th><th width="14%">So khớp 301</th><th width="16%">Brand Gốc (Footer)</th><th width="10%">Admin</th><th width="8%">Login</th><th width="10%">Lại</th></tr>
                 </thead>
                 <tbody id="checkResultBody"></tbody>
             </table>
@@ -240,6 +261,199 @@
             </div>
         </div>
     </div>
+    
+    <!-- TAB 5: SEO Content Auditor -->
+    <div id="tab5" class="tab-content">
+        <button class="rule-btn" onclick="document.getElementById('ruleModal').style.display='flex'">
+            <span>📖</span> Quy chuẩn SEO
+        </button>
+        <h3 style="margin-top:0">Kiểm tra Chuẩn SEO (Title, Meta, H1/H2/H3, Ảnh, Word Count)</h3>
+        
+        <div class="card">
+            <div class="input-grid">
+                <div class="form-group">
+                    <label>Danh sách URL (Mỗi dòng 1 URL)</label>
+                    <textarea id="auditor_urlInput" placeholder="https://domain.com/bai-viet-1/&#10;https://domain.com/bai-viet-2/"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Từ khóa tương ứng (Mỗi dòng 1 từ khóa)</label>
+                    <textarea id="keywordInput" placeholder="laptop cũ&#10;điện thoại giá rẻ"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Danh mục tương ứng (Mỗi dòng 1 danh mục)</label>
+                    <textarea id="categoryInput" placeholder="Tin tức&#10;Đánh giá sản phẩm"></textarea>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+                <h3 style="font-size: 1rem; margin-top:0; color: var(--text-muted);">Tùy chọn Quy chuẩn cần quét:</h3>
+                <div class="checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 12px;">
+                    <label><input type="checkbox" id="chkUrl" checked> Cấu trúc URL</label>
+                    <label><input type="checkbox" id="chkTitle" checked> Title (45-60)</label>
+                    <label><input type="checkbox" id="chkDesc" checked> Meta Des (140-160)</label>
+                    <label><input type="checkbox" id="chkH1" checked> H1 duy nhất</label>
+                    <label><input type="checkbox" id="chkH2H3" checked> Logic H2/H3</label>
+                    <label><input type="checkbox" id="chkAlt" checked> Alt Ảnh</label>
+                    <label><input type="checkbox" id="chkFeatImg" checked> Ảnh Đại Diện</label>
+                    <label><input type="checkbox" id="chkWord" checked> Số từ (>=1000)</label>
+                    <label><input type="checkbox" id="chkKw" checked> Từ khóa (Title/Meta/H1)</label>
+                    <label><input type="checkbox" id="chkSapo" checked> Sapo (Link)</label>
+                </div>
+            </div>
+
+            <div style="display:none;">
+                <input type="number" id="startSTT" value="1">
+            </div>
+
+            <div style="display:flex; justify-content:center; margin-top:25px;">
+                <button id="auditor_btnStart" class="btn" style="margin:0; width:100%;" onclick="startAnalysis()">🚀 Chạy Tool Kiểm Tra</button>
+            </div>
+            
+            <div class="progress-bar-container" id="progressContainer" style="height:auto; background:none; margin-top:20px; display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:8px;">
+                    <span id="progressText" style="color:var(--text-muted); font-size:14px;">Đang chuẩn bị quét...</span>
+                    <button id="auditor_btnStop" class="btn" style="background:var(--danger); padding:4px 12px; font-size:13px; cursor:pointer; width:auto; border-radius:4px;">⛔ Dừng quét</button>
+                </div>
+                <div style="width:100%; background:var(--border); border-radius:8px; height:8px; overflow:hidden;">
+                    <div class="progress-bar" id="progressBar" style="height:100%; background:var(--success); width:0%; transition:width 0.3s;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <h3>Bảng Đánh Giá SEO</h3>
+            <div style="overflow-x: auto;">
+                <table class="dashboard-table" id="resultTable">
+                    <thead>
+                        <tr>
+                            <th>URL</th>
+                            <th>Điểm</th>
+                            <th class="col-title">Title (45-60)</th>
+                            <th class="col-desc">Meta Des (140-160)</th>
+                            <th class="col-h1">H1</th>
+                            <th class="col-h2h3">H2/H3 Logic</th>
+                            <th class="col-img">Ảnh (Alt)</th>
+                            <th class="col-featimg">Ảnh Đại Diện</th>
+                            <th class="col-word">Từ (>=1000)</th>
+                            <th class="col-kw">Từ khóa</th>
+                            <th>Danh mục</th>
+                            <th class="col-catmatch">So khớp DM</th>
+                            <th>Schema</th>
+                            <th class="col-sapo">Sapo (Link)</th>
+                            <th class="col-urlslug">Cấu trúc URL</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultBody">
+                        <tr><td colspan="10" style="text-align:center; padding: 30px; color:var(--text-muted)">Chưa có dữ liệu. Hãy dán Link và bấm Quét!</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h2 style="font-size: 1.2rem; margin:0;">📝 Báo Cáo Lỗi (Dành cho Content)</h2>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn" onclick="copyExcelReport()" style="width:auto; background:#059669; padding:6px 12px; font-size:14px; border-radius:4px;" title="Copy 1 dòng/bài theo đúng vị trí STT - dán thẳng vào cột Excel">📊 Copy Excel</button>
+                    <button class="btn" onclick="copyReport()" style="width:auto; background:#4b5563; padding:6px 12px; font-size:14px; border-radius:4px;">📋 Copy Báo Cáo</button>
+                </div>
+            </div>
+            <textarea id="reportText" style="width:100%; height:200px; background:rgba(15,23,42,0.5); color:var(--text-main); border:1px solid var(--border); border-radius:8px; padding:15px; font-size:14px; font-family:monospace; resize:vertical;" readonly placeholder="Kết quả báo cáo lỗi sẽ tự động hiển thị ở đây..."></textarea>
+        </div>
+        
+    <!-- Modal for details (hidden) -->
+    <div id="detailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center;">
+        <div class="card" style="width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; background: var(--panel-bg);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h2 style="margin:0">Chi tiết Lỗi SEO</h2>
+                <button class="btn" style="width:auto; padding:5px 10px; background:var(--danger)" onclick="document.getElementById('detailModal').style.display='none'">Đóng</button>
+            </div>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <!-- Modal for Rule details -->
+    <div id="ruleModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center;">
+        <div class="card" style="width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; background: var(--panel-bg);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+                <h2 style="margin:0; color: var(--primary);">📖 Quy Chuẩn SEO Hệ Thống</h2>
+                <button class="btn" style="width:auto; padding:5px 15px; background:var(--border)" onclick="document.getElementById('ruleModal').style.display='none'">Đóng</button>
+            </div>
+            <div style="font-size: 15px; line-height: 1.7;">
+                <h3 style="color:#60a5fa">1. Cấu trúc URL</h3>
+                <ul>
+                    <li>Phải chứa từ khóa chính dạng slug (không dấu, gạch ngang).</li>
+                    <li>Không chứa số rác ở đuôi URL (trừ khi số đó nằm trong từ khóa chính).</li>
+                    <li>Dấu "/" trong ngày tháng của từ khóa tự động chuyển thành "-".</li>
+                </ul>
+
+                <h3 style="color:#60a5fa">2. Title & Meta Description</h3>
+                <ul>
+                    <li><strong>Title:</strong> Dài từ 45 - 60 ký tự.</li>
+                    <li><strong>Meta Description:</strong> Dài từ 140 - 160 ký tự.</li>
+                </ul>
+
+                <h3 style="color:#60a5fa">3. Cấu trúc Thẻ Heading (H1, H2, H3)</h3>
+                <ul>
+                    <li><strong>H1:</strong> Chỉ được phép có duy nhất 1 thẻ H1 trên toàn trang.</li>
+                    <li><strong>H2/H3 Logic:</strong> Chỉ xét trong phần nội dung chính bài viết.</li>
+                    <li>Dưới mỗi thẻ H2 phải có <strong>ít nhất 2 thẻ H3</strong>. Không được phép chỉ có 1 thẻ H3 (ngoại trừ H2 cuối cùng kết luận).</li>
+                    <li>H3 không được đứng lơ lửng nếu phía trên không có H2.</li>
+                </ul>
+
+                <h3 style="color:#60a5fa">4. Hình Ảnh</h3>
+                <ul>
+                    <li><strong>Alt Ảnh:</strong> Mọi thẻ hình ảnh trong nội dung bài viết bắt buộc phải có thuộc tính <code>alt</code>.</li>
+                    <li><strong>Ảnh đại diện:</strong> Bắt buộc phải cài đặt Featured Image (Phát hiện thông qua thẻ meta <code>og:image</code> chuẩn SEO).</li>
+                </ul>
+
+                <h3 style="color:#60a5fa">5. Số từ (Word Count)</h3>
+                <ul>
+                    <li>Chỉ đếm chữ trong phần nội dung chính (Loại bỏ Footer, Sidebar, Comments...).</li>
+                    <li>Yêu cầu: Tối thiểu <strong>1000 từ</strong>.</li>
+                </ul>
+
+                <h3 style="color:#60a5fa">6. Mật độ Từ khóa</h3>
+                <ul>
+                    <li>Từ khóa bắt buộc phải xuất hiện đầy đủ ở 3 vị trí chiến lược: <strong>Title, Meta Description, và thẻ H1</strong>.</li>
+                </ul>
+
+                <h3 style="color:#60a5fa">7. Liên kết Sapo (Đoạn đầu tiên)</h3>
+                <ul>
+                    <li>Đoạn Sapo phải chứa ít nhất 1 <strong>Internal Link trỏ về chính bài viết đó</strong> (Anchor text chứa từ khóa).</li>
+                    <li>Đoạn Sapo phải chứa ít nhất 1 <strong>Link trỏ về Trang chủ</strong> của website.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- TAB 6: Homepage Status -->
+    <div id="tab6" class="tab-content">
+        <div class="card">
+            <h3 style="margin-top:0">Kiểm tra Loại Trang Chủ (Homepage Status) <button class="help-btn" onclick="showHelp('homepagestatus')" title="Hướng dẫn">?</button></h3>
+            <p style="font-size:13px; color:var(--text-muted);">Tự động quét để phát hiện web đang để Trang Chủ là <b>Bài viết mới nhất (Latest Posts)</b> hay <b>Trang tĩnh (Static Page)</b> dựa vào mã nguồn HTML (WordPress).</p>
+            <textarea id="homepageUrlInput" placeholder="Danh sách website (Mỗi dòng 1 URL)..."></textarea>
+            <div style="margin-top:10px;">
+                <button id="btnCheckHomepage" class="btn btn-success" onclick="startCheckHomepage()">🚀 Bắt đầu Quét</button>
+            </div>
+            
+            <table id="homepageTable" style="margin-top:20px; display:none; width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr><th style="text-align: left; border-bottom: solid 1px var(--border); padding: 10px;" width="40%">Website</th><th style="text-align: left; border-bottom: solid 1px var(--border); padding: 10px;" width="30%">Trạng thái Trang Chủ</th><th style="text-align: left; border-bottom: solid 1px var(--border); padding: 10px;" width="30%">Mã HTTP</th></tr>
+                </thead>
+                <tbody id="homepageBody"></tbody>
+            </table>
+            
+            <div id="homepageOutputContainer" style="margin-top: 15px; display: none;">
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--primary);">Báo cáo kết quả:</label>
+                <textarea id="homepageOutput" readonly style="height:200px; border-color:var(--primary); background:rgba(59, 130, 246, 0.05); font-size:12px;"></textarea>
+                <button class="btn" style="margin-top:10px; width:100%;" onclick="copyToClipboard(this, document.getElementById('homepageOutput').value)">📋 Copy Báo Cáo</button>
+            </div>
+        </div>
+    </div>
+    
 </div>
 
 <!-- HELP MODAL -->
@@ -757,6 +971,7 @@
                 <td id="cSt_${i}"><span style="color:var(--warning)">⏳...</span></td>
                 <td id="cCo_${i}">-</td>
                 <td id="cMa_${i}">-</td>
+                <td id="cBr_${i}">-</td>
                 <td id="cAd_${i}">${checkAdmin ? '...' : '-'}</td>
                 <td id="cLo_${i}">-</td>
                 <td><button class="btn-mini" onclick="recheckRow2(${i})">🔄</button></td>
@@ -849,6 +1064,7 @@
         const stEl = document.getElementById(`cSt_${i}`);
         const coEl = document.getElementById(`cCo_${i}`);
         const maEl = document.getElementById(`cMa_${i}`);
+        const brEl = document.getElementById(`cBr_${i}`);
         const adEl = document.getElementById(`cAd_${i}`);
         const loEl = document.getElementById(`cLo_${i}`);
 
@@ -925,11 +1141,36 @@
                      || finalHostNorm.endsWith('.' + dstHostNorm)
                      || dstHostNorm.endsWith('.' + finalHostNorm);
 
-        // Hiển thị URL đích (kèm dạng Unicode nếu là Punycode)
+                // Hiển thị URL đích (kèm dạng Unicode nếu là Punycode)
         const displayFinalUrl = finalUrl !== src ? finalUrl : '';
         maEl.innerHTML = isMatch
             ? `<span style="color:var(--success)">✅ KHHP</span><br><span style="font-size:10px; color:var(--text-muted)">${displayUrl(finalUrl)}</span>`
             : `<span style="color:var(--danger)">🚨 LHCH</span><br><span style="font-size:10px; color:var(--text-muted); word-break:break-all">${displayUrl(finalUrl)}</span>`;
+
+        // Bước: Check Brand Gốc ở Footer
+        if (html) {
+            brEl.innerHTML = '<span style="color:var(--warning); font-size:11px">⏳ Dò...</span>';
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            let footerText = '';
+            const footers = doc.querySelectorAll('footer, [class*="footer"], [id*="footer"], [class*="copyright"], [id*="copyright"]');
+            footers.forEach(f => footerText += f.textContent + ' ');
+            if(!footerText) {
+                const bodyText = doc.body ? doc.body.textContent : '';
+                footerText = bodyText.slice(-3000);
+            }
+            
+            let coreBrand = srcHostNorm.split('.')[0];
+            if (coreBrand === 'www') coreBrand = srcHostNorm.split('.')[1] || '';
+            const cleanCore = coreBrand.replace(/-/g, '');
+            
+            if (coreBrand && (footerText.toLowerCase().includes(coreBrand.toLowerCase()) || footerText.toLowerCase().includes(cleanCore.toLowerCase()))) {
+                brEl.innerHTML = `<span style="color:var(--success); font-size:11px; font-weight:bold;">✅ ĐÚNG (${coreBrand})</span>`;
+            } else {
+                brEl.innerHTML = `<span style="color:var(--danger); font-size:11px; font-weight:bold;">🚨 LỆCH BRAND</span>`;
+            }
+        } else {
+            brEl.innerText = '-';
+        }
 
         // Bước 3: Check Admin + Auto-detect path WP
         // Đọc checkbox TRỰC TIẾP lúc này — nếu sếp bỏ tích giữa chừng sẽ dừng ngay
@@ -1448,5 +1689,88 @@
         await sendToTelegram(teleMsg);
     }
 </script>
+
+    <script src="auditor.js"></script>
+    <script>
+        async function startCheckHomepage() {
+            const rawUrls = document.getElementById('homepageUrlInput').value.split('\n').map(u => u.trim()).filter(u => u);
+            if(rawUrls.length === 0) return alert('Nhập danh sách URL!');
+            const btn = document.getElementById('btnCheckHomepage');
+            btn.disabled = true; btn.innerText = 'Đang quét...';
+            document.getElementById('homepageTable').style.display = 'table';
+            const tbody = document.getElementById('homepageBody'); tbody.innerHTML = '';
+            document.getElementById('homepageOutputContainer').style.display = 'none';
+            let report = []; let pC = 0, sC = 0, eC = 0;
+            for(let i=0; i<rawUrls.length; i++) {
+                let url = rawUrls[i]; if (!url.startsWith('http')) url = 'https://' + url;
+                let tr = document.createElement('tr');
+                tr.innerHTML = '<td><a href="' + url + '" target="_blank" style="color:var(--primary);text-decoration:none">' + url + '</a></td><td id="hp_status_' + i + '"><span class="badge badge-warning">Đang check...</span></td><td id="hp_code_' + i + '">-</td>';
+                tbody.appendChild(tr);
+                let type = 'Lỗi';
+                try {
+                    let html = ''; let statusText = 'Lỗi truy cập'; let httpCode = '-';
+                    try {
+                        const ctrl = new AbortController();
+                        const tid = setTimeout(() => ctrl.abort(), 8000);
+                        const res1 = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url), {signal: ctrl.signal});
+                        clearTimeout(tid);
+                        if (res1.ok) {
+                            const data = await res1.json().catch(()=>({}));
+                            html = data.contents || '';
+                            httpCode = data.status?.http_code || 200;
+                        } else { throw new Error('CORS'); }
+                    } catch(e1) {
+                        try {
+                            const ctrl2 = new AbortController();
+                            const tid2 = setTimeout(() => ctrl2.abort(), 8000);
+                            const res2 = await fetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url), {signal: ctrl2.signal});
+                            clearTimeout(tid2);
+                            if (res2.ok) {
+                                html = await res2.text();
+                                httpCode = 200;
+                            } else { httpCode = res2.status; }
+                        } catch(e2) { statusText = 'Lỗi mạng'; }
+                    }
+
+                    if (html) {
+                        document.getElementById('hp_code_'+i).innerText = httpCode;
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const bc = doc.body ? doc.body.className : '';
+                        if (bc.includes('blog') || bc.includes('home-blog')) {
+                            type = 'Bài viết mới nhất (Posts)';
+                            document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-info">Bài viết mới nhất</span>';
+                            pC++;
+                        } else if (bc.includes('page-template-default') || bc.includes('home-page')) {
+                            type = 'Trang tĩnh (Static)';
+                            document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
+                            sC++;
+                        } else {
+                            if (html.includes('entry-content')) {
+                                type = 'Trang tĩnh (Static)';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
+                                sC++;
+                            } else {
+                                type = 'Không xác định';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge" style="background:#64748b;color:white">Không xác định</span>';
+                            }
+                        }
+                    } else { 
+                        document.getElementById('hp_status_'+i).innerHTML = `<span class="status-badge status-error">${statusText}</span>`; 
+                        document.getElementById('hp_code_'+i).innerText = httpCode;
+                        eC++; 
+                    }
+                } catch(e) { document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-error">Lỗi hệ thống</span>'; eC++; }
+                report.push('[' + type + '] ' + url);
+                await new Promise(r => setTimeout(r, 800));
+            }
+            btn.innerText = '🚀 Bắt đầu Quét'; btn.disabled = false;
+            document.getElementById('homepageOutputContainer').style.display = 'block';
+            document.getElementById('homepageOutput').value = report.join('\n');
+            let m = '<b>🏠 BÁO CÁO HOMEPAGE STATUS</b>\n';
+            m += 'Tổng: ' + rawUrls.length + ' | 📝 Posts: ' + pC + ' | 📄 Static: ' + sC + ' | ❌ Lỗi: ' + eC + '\n\n' + report.join('\n');
+            await sendToTelegram(m);
+        }
+    </script>
+    
 </body>
 </html>
