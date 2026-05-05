@@ -1,19 +1,18 @@
 #!/bash
 
-echo "🧠 Đang nâng cấp Siêu Agent với tính năng Điều khiển từ xa..."
+echo "🧠 Đang nâng cấp Siêu Agent (Bản Full + Auto Update)..."
 
 # 1. Cài đặt các thư viện cần thiết
 cd ~/seo-agent
 npm install axios cheerio p-limit express body-parser dotenv
 
-# 2. Tạo file agent.js với tính năng "nghe lệnh" từ xa
+# 2. Tạo file agent.js HOÀN CHỈNH
 cat <<EOT > agent.js
 const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const cheerio = require('cheerio');
 const pLimit = require('p-limit');
 require('dotenv').config();
 
@@ -22,35 +21,32 @@ app.use(bodyParser.json());
 
 // API tự động nâng cấp Agent từ xa
 app.get('/update-agent', (req, res) => {
-    res.json({ success: true, message: 'Agent đang tự động nâng cấp... Đợi 5 giây rồi F5 lại nhé sếp!' });
+    res.json({ success: true, message: 'Agent đang tự động nâng cấp... Sếp đợi 5 giây nhé!' });
     const { exec } = require('child_process');
     exec('curl -sL https://raw.githubusercontent.com/konheodat01-web/gsc-bulk-tool/main/update_logic.sh | bash', (err) => {
         if (err) console.error('Lỗi nâng cấp:', err);
     });
 });
 
-// API nhận cấu hình và tự động chạy audit ngay lập tức
+// API nhận cấu hình và chạy audit ngay
 app.get('/update-config', async (req, res) => {
     const { telegramToken, chatId, sheetUrl } = req.query;
     const content = \`TELEGRAM_TOKEN=\${telegramToken}\nCHAT_ID=\${chatId}\nSHEET_URL=\${sheetUrl}\`;
     fs.writeFileSync(path.join(__dirname, '.env'), content);
     
-    // Reload env
     process.env.TELEGRAM_TOKEN = telegramToken;
     process.env.CHAT_ID = chatId;
     process.env.SHEET_URL = sheetUrl;
 
-    res.json({ success: true, message: 'Cấu hình đã được nạp. Agent đang bắt đầu quét thử ngay!' });
-    
-    console.log('✅ Đã nhận cấu hình. Đang chạy quét thử...');
-    runFullAudit(); // Chạy luôn khi nhận cấu hình mới
+    res.json({ success: true, message: 'Cấu hình OK. Agent đang xuất kích!' });
+    runFullAudit();
 });
 
-app.get('/status', (req, res) => { res.json({ status: 'online', version: '3.0.0' }); });
+app.get('/status', (req, res) => { res.json({ status: 'online', version: '4.0.0' }); });
 
-app.listen(3000, () => { console.log('🚀 Control Server on port 3000'); });
+app.listen(3000, () => { console.log('🚀 Server listening on port 3000'); });
 
-// --- LOGIC AUDIT ---
+// --- LOGIC QUÉT WEB ---
 async function sendTelegram(msg) {
     const token = process.env.TELEGRAM_TOKEN;
     const cid = process.env.CHAT_ID;
@@ -65,73 +61,54 @@ async function sendTelegram(msg) {
 async function runFullAudit() {
     const sheetUrl = process.env.SHEET_URL;
     if (!sheetUrl) return;
-
     try {
-        console.log('📡 Đang lấy dữ liệu từ Sheet...');
         const sheetId = sheetUrl.match(/\\/d\\/([^/]+)/)?.[1];
         const csvUrl = \`https://docs.google.com/spreadsheets/d/\${sheetId}/gviz/tq?tqx=out:csv\`;
         const res = await axios.get(csvUrl);
-        
-        // Parse CSV đơn giản (bỏ qua header)
         const rows = res.data.split('\\n').slice(1).map(row => {
             return row.split(',').map(cell => cell.replace(/^"|"$/g, '').trim());
-        }).filter(r => r[0]); // Lấy những dòng có URL gốc
+        }).filter(r => r[0]);
 
-        await sendTelegram(\`🚀 <b>Super Agent</b> bắt đầu quét <b>\${rows.length}</b> website...\`);
-
-        const limit = pLimit(5); // Chạy 5 site cùng lúc
+        await sendTelegram(\`🚀 <b>Super Agent</b> đang quét <b>\${rows.length}</b> website...\`);
+        const limit = pLimit(5);
         const results = await Promise.all(rows.map(row => limit(() => auditSite(row))));
-
-        const summary = results.join('\\n');
-        await sendTelegram(\`🏁 <b>KẾT QUẢ QUÉT ĐỊNH KỲ:</b>\\n\\n\${summary || 'Không có dữ liệu'}\`);
-        console.log('✅ Đã gửi báo cáo lên Telegram.');
-    } catch (e) {
-        console.error('Lỗi Audit:', e.message);
-        await sendTelegram(\`❌ <b>Lỗi Agent:</b> \${e.message}\`);
-    }
+        await sendTelegram(\`🏁 <b>KẾT QUẢ:</b>\\n\\n\${results.join('\\n')}\`);
+    } catch (e) { await sendTelegram(\`❌ <b>Lỗi:</b> \${e.message}\`); }
 }
 
 async function auditSite(row) {
     const [src, dst, adminPath, user, pass] = row;
-    let status = \`🌐 <code>\${src.substring(0, 30)}</code>: \`;
-
+    let status = \`🌐 <code>\${src.substring(0, 25)}</code>: \`;
     try {
-        const response = await axios.get(src, { timeout: 10000, validateStatus: false });
-        if (response.status === 200) {
+        const res = await axios.get(src, { timeout: 10000, validateStatus: false });
+        if (res.status === 200) {
             status += '✅ Live';
-            // Kiểm tra Login nếu có đủ thông tin
             if (user && pass) {
-                const loginResult = await verifyLogin(dst || src, user, pass);
-                status += \` | Admin: \${loginResult}\`;
+                const login = await verifyLogin(dst || src, user, pass);
+                status += \` | Login: \${login}\`;
             }
-        } else {
-            status += \`⚠️ Lỗi \${response.status}\`;
-        }
-    } catch (e) { status += '❌ Chết/Timeout'; }
-    
+        } else status += \`⚠️ Lỗi \${res.status}\`;
+    } catch (e) { status += '❌ Chết'; }
     return status;
 }
 
 async function verifyLogin(url, user, pass) {
     const xmlrpcUrl = url.replace(/\\/$/, '') + '/xmlrpc.php';
     const body = \`<?xml version="1.0"?><methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>\${user}</string></value></param><param><value><string>\${pass}</string></value></param></params></methodCall>\`;
-    
     try {
         const res = await axios.post(xmlrpcUrl, body, { timeout: 7000, headers: {'Content-Type': 'text/xml'} });
         if (res.data.includes('<struct>')) return '🔑 OK';
         if (res.data.includes('Incorrect')) return '🚫 Sai Pass';
-        return '🔒 Bị chặn';
-    } catch (e) { return '❓ Ko check đc'; }
+        return '🔒 Chặn';
+    } catch (e) { return '❓ Lỗi'; }
 }
 
-// Chạy định kỳ mỗi 6 tiếng
 setInterval(runFullAudit, 6 * 60 * 60 * 1000);
 EOT
 
-# 3. Khởi động lại bằng PM2
+# 3. Khởi chạy lại
 pm2 restart seo-agent || pm2 start agent.js --name "seo-agent"
 pm2 save
 
-echo "✅ Đã xong! Con Agent hiện đã có 'đôi tai' tại cổng 3000."
-echo "Bây giờ sếp hãy dùng Tool trên trình duyệt để điều khiển nó nhé!"
-
+echo "✅ ĐÃ XONG 100%! Con Agent hiện đã cực kỳ thông thái."
+echo "Bây giờ sếp hãy bấm nút Đồng bộ trên trình duyệt để hưởng thụ thành quả nhé!"
