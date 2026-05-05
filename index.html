@@ -2180,7 +2180,6 @@
             document.getElementById('statWrong301').innerText = '0';
             document.getElementById('statNoGsc').innerText = '0';
 
-            // 1. Build Site Map across all active GSC accounts
             let masterSiteMap = new Map();
             for (let acc of gscAccounts) {
                 if (!activeAccountEmails.includes(acc.email)) continue;
@@ -2195,7 +2194,6 @@
                 }
             }
 
-            // 2. Dates for Insights (7 days)
             let latestDate = new Date(new Date().getTime() - (3 * 24 * 60 * 60 * 1000));
             let strAEnd = formatDateGSC(latestDate);
             let strAStart = formatDateGSC(new Date(latestDate.getTime() - (6 * 24 * 60 * 60 * 1000)));
@@ -2224,7 +2222,6 @@
                 `;
                 tbody.appendChild(tr);
 
-                // --- GSC Check ---
                 const owners = masterSiteMap.get(srcClean) || [];
                 const gscEl = document.getElementById(`ov_gsc_${i}`);
                 if (owners.length > 0) {
@@ -2234,35 +2231,48 @@
                     noGsc++; document.getElementById('statNoGsc').innerText = noGsc;
                 }
 
-                // --- HTTP & 301 Check ---
+                // --- HTTP & Content Check ---
                 const { html, code, redirectUrl } = await fetchStatus(src);
                 const httpEl = document.getElementById(`ov_http_${i}`);
                 const rdrEl = document.getElementById(`ov_301_${i}`);
                 
-                if (code === 200 || code === 301 || code === 302) {
-                    httpEl.innerHTML = `<span class="status-badge status-success">${code} OK</span>`;
+                let label = ''; let labelClass = 'status-error';
+                if (code === 0) label = 'Không phản hồi';
+                else if (code === 1016) label = 'Lỗi 1016 (CF)';
+                else if (code === 404) label = 'Lỗi 404';
+                else if (code === 403) label = 'Lỗi 403';
+                else if (code >= 500) label = 'Lỗi Server (' + code + ')';
+                else if (html && (html.includes('Error establishing a database connection') || html.includes('Internal Server Error'))) label = 'Lỗi WP/DB';
+                else if (html && html.length < 200 && !redirectUrl) label = 'Trắng trang';
+                else if (code === 200 || code === 301 || code === 302) {
+                    label = 'Tốt'; labelClass = 'status-success';
                     live++; document.getElementById('statLive').innerText = live;
                 } else {
-                    httpEl.innerHTML = `<span class="status-badge status-error">${code || 'ERR'}</span>`;
-                    dead++; document.getElementById('statDead').innerText = dead;
-                    failedSites.push(`❌ ${srcClean} (HTTP ${code || 'ERR'})`);
+                    label = 'Lỗi ' + code;
                 }
 
+                httpEl.innerHTML = `<span class="status-badge ${labelClass}">${label}</span>`;
+                if (labelClass === 'status-error') {
+                    dead++; document.getElementById('statDead').innerText = dead;
+                    failedSites.push(`❌ ${srcClean} (${label})`);
+                }
+
+                // --- 301 Check ---
                 const finalHost = redirectUrl ? normalizeHostname(redirectUrl) : (html ? normalizeHostname(src) : '');
                 const isMatch = finalHost === normalizeHostname(dst) || finalHost.includes(normalizeHostname(dst));
                 
                 if (srcClean !== dstClean) {
-                    if (isMatch) rdrEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ Khớp Đích</span>';
+                    if (isMatch) rdrEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ KHHP (301 OK)</span>';
                     else {
-                        rdrEl.innerHTML = `<span style="color:var(--danger); font-size:11px;">🚨 Sai Đích</span><br><span style="font-size:9px; color:var(--text-muted)">-> ${finalHost || '???'}</span>`;
+                        const rdrLabel = finalHost ? 'Sai domain gốc' : 'Đứt chuỗi RDR';
+                        rdrEl.innerHTML = `<span style="color:var(--danger); font-size:11px;">🚨 ${rdrLabel}</span><br><span style="font-size:9px; color:var(--text-muted)">-> ${finalHost || '???'}</span>`;
                         wrong301++; document.getElementById('statWrong301').innerText = wrong301;
-                        failedSites.push(`🚨 ${srcClean} (Sai Redirect: ${finalHost || '???'})`);
+                        failedSites.push(`🚨 ${srcClean} (${rdrLabel}: ${finalHost || '???'})`);
                     }
                 } else {
                     rdrEl.innerText = '-';
                 }
 
-                // --- Admin Check ---
                 if (user) {
                     const adRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + adminPath)}`);
                     const adEl = document.getElementById(`ov_admin_${i}`);
@@ -2270,10 +2280,9 @@
                         const h = await adRes.text();
                         if (h.includes('wp-login') || h.includes('user_login')) adEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ Admin Live</span>';
                         else adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">⚠️ Đổi Path?</span>';
-                    } else adEl.innerHTML = '<span style="color:var(--danger); font-size:11px;">❌ Lỗi Admin</span>';
+                    } else adEl.innerHTML = '<span style="color:var(--danger); font-size:11px;">❌ Lỗi WP</span>';
                 }
 
-                // --- GSC Insight (Quick check 7 days clicks) ---
                 if (owners.length > 0) {
                     const insEl = document.getElementById(`ov_ins_${i}`);
                     const data = await fetchGscMetrics(owners[0].originalUrl, owners[0].token, strAStart, strAEnd);
@@ -2281,13 +2290,12 @@
                     else insEl.innerText = '-';
                 }
 
-                await new Promise(r => setTimeout(r, 300)); // Rate limit
+                await new Promise(r => setTimeout(r, 300));
             }
 
             document.getElementById('overviewLoading').style.display = 'none';
             document.getElementById('btnRunOverview').disabled = false;
 
-            // Telegram Summary
             let teleMsg = `<b>📊 BÁO CÁO GIÁM SÁT HỆ THỐNG</b>\n\n` +
                           `✅ Tổng: <b>${total}</b> | Live: <b>${live}</b> | Chết: <b>${dead}</b>\n` +
                           `⚠️ Sai 301: <b>${wrong301}</b> | Thiếu GSC: <b>${noGsc}</b>\n\n`;
