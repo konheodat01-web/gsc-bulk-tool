@@ -19,8 +19,8 @@ const app = express();
 app.use(bodyParser.json());
 
 // API để nhận cấu hình từ trình duyệt
-app.post('/update-config', (req, res) => {
-    const { telegramToken, chatId, sheetUrl } = req.body;
+app.get('/update-config', (req, res) => {
+    const { telegramToken, chatId, sheetUrl } = req.query;
     const content = \`TELEGRAM_TOKEN=\${telegramToken}\nCHAT_ID=\${chatId}\nSHEET_URL=\${sheetUrl}\`;
     fs.writeFileSync(path.join(__dirname, '.env'), content);
     res.json({ success: true, message: 'Đã cập nhật cấu hình thành công!' });
