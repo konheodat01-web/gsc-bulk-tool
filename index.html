@@ -2375,12 +2375,10 @@
                 const adEl = document.getElementById(`ov_admin_${i}`);
                 adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">⏳ Đang check Pass...</span>';
                 
-                // Thử check qua XML-RPC (Phương pháp phổ biến nhất của WP)
                 const xmlrpcUrl = dst.replace(/\/$/, '') + '/xmlrpc.php';
                 const xmlBody = `<?xml version="1.0"?><methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>${user}</string></value></param><param><value><string>${pass}</string></value></param></params></methodCall>`;
                 
                 try {
-                    // Dùng proxy để tránh CORS
                     const adRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(xmlrpcUrl)}`, {
                         method: 'POST',
                         body: xmlBody
@@ -2389,31 +2387,33 @@
                     if (adRes.ok) {
                         const h = await adRes.text();
                         if (h.includes('<struct>')) {
-                            adEl.innerHTML = '<span style="color:var(--success); font-size:11px; font-weight:bold;">✅ Login OK</span>';
+                            adEl.innerHTML = '<span class="status-badge status-success" style="font-size:10px;">✅ Login OK</span>';
                         } else if (h.includes('Incorrect username or password')) {
-                            adEl.innerHTML = '<span style="color:var(--danger); font-size:11px; font-weight:bold;">❌ Sai Pass</span>';
+                            adEl.innerHTML = '<span class="status-badge status-error" style="font-size:10px;">❌ Sai Pass</span>';
                         } else {
-                            // Nếu XML-RPC bị chặn hoặc lỗi, thử check path admin thông thường
+                            // Nếu không xác định được, báo là bị chặn
                             const normalRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + adminPath)}`);
                             const nh = await normalRes.text();
-                            if (nh.includes('wp-login') || nh.includes('user_login')) adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">⚠️ XML-RPC Off</span>';
-                            else adEl.innerHTML = '<span style="color:var(--danger); font-size:11px;">❌ Lỗi Admin</span>';
+                            if (nh.includes('wp-login') || nh.includes('user_login') || nh.includes('user_pass')) {
+                                adEl.innerHTML = '<span style="color:var(--warning); font-size:10px;">⚠️ XML-RPC Off (Cần VPS)</span>';
+                            } else {
+                                adEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">❌ Lỗi Admin</span>';
+                            }
                         }
                     } else {
-                        adEl.innerHTML = '<span style="color:var(--danger); font-size:11px;">❌ XML-RPC Error</span>';
+                        adEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">❌ XML-RPC Error</span>';
                     }
                 } catch(e) {
-                    adEl.innerHTML = '<span style="color:var(--danger); font-size:11px;">❌ Lỗi Kết Nối</span>';
+                    adEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">❌ Lỗi Kết Nối</span>';
                 }
             } else if (user) {
-                // Nếu chỉ có user mà không có pass, chỉ check path admin như cũ
                 const adRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + adminPath)}`);
                 const adEl = document.getElementById(`ov_admin_${i}`);
                 if (adRes.ok) {
                     const h = await adRes.text();
-                    if (h.includes('wp-login') || h.includes('user_login')) adEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ Admin Live</span>';
-                    else adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">⚠️ Đổi Path?</span>';
-                } else adEl.innerHTML = '<span style="color:var(--danger); font-size:11px;">❌ Lỗi WP</span>';
+                    if (h.includes('wp-login') || h.includes('user_login') || h.includes('user_pass')) adEl.innerHTML = '<span class="status-badge status-success" style="font-size:10px;">✅ Admin Live</span>';
+                    else adEl.innerHTML = '<span style="color:var(--warning); font-size:10px;">⚠️ Đổi Path?</span>';
+                } else adEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">❌ Lỗi WP</span>';
             }
 
             if (owners.length > 0) {
