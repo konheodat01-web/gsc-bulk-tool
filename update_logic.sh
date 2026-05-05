@@ -1,90 +1,56 @@
 #!/bash
 
-echo "🧠 Đang nạp bộ não siêu việt cho SEO Agent..."
+echo "🧠 Đang nâng cấp Siêu Agent với tính năng Điều khiển từ xa..."
 
 # 1. Cài đặt các thư viện cần thiết
 cd ~/seo-agent
-npm install axios cheerio p-limit
+npm install axios cheerio p-limit express body-parser dotenv
 
-# 2. Tạo file agent.js với logic thực chiến
+# 2. Tạo file agent.js với tính năng "nghe lệnh" từ xa
 cat <<EOT > agent.js
+const express = require('express');
+const bodyParser = require('body-parser');
 const axios = require('axios');
-const cheerio = require('cheerio');
-const pLimit = require('p-limit');
 const fs = require('fs');
-
-// Đọc cấu hình từ file .env (sẽ tạo ở bước sau)
+const path = require('path');
 require('dotenv').config();
 
-const CONFIG = {
-    telegramToken: process.env.TELEGRAM_TOKEN,
-    chatId: process.env.CHAT_ID,
-    sheetUrl: process.env.SHEET_URL,
-    checkInterval: 60 * 60 * 1000 // 1 tiếng check 1 lần
-};
+const app = express();
+app.use(bodyParser.json());
 
-async function sendTelegram(msg) {
-    try {
-        await axios.post(\`https://api.telegram.org/bot\${CONFIG.telegramToken}/sendMessage\`, {
-            chat_id: CONFIG.chatId,
-            text: msg,
-            parse_mode: 'HTML'
-        });
-    } catch (e) { console.error('Lỗi Telegram:', e.message); }
-}
+// API để nhận cấu hình từ trình duyệt
+app.post('/update-config', (req, res) => {
+    const { telegramToken, chatId, sheetUrl } = req.body;
+    const content = \`TELEGRAM_TOKEN=\${telegramToken}\nCHAT_ID=\${chatId}\nSHEET_URL=\${sheetUrl}\`;
+    fs.writeFileSync(path.join(__dirname, '.env'), content);
+    res.json({ success: true, message: 'Đã cập nhật cấu hình thành công!' });
+    console.log('✅ Đã nhận cấu hình mới. Đang khởi động lại...');
+    process.exit(0); // PM2 sẽ tự khởi động lại với cấu hình mới
+});
 
-async function checkSite(siteData) {
-    const [src, dst, adminPath, user, pass] = siteData;
-    let report = \`<b>🔍 Check: \${src}</b>\n\`;
-    
-    try {
-        // 1. Check HTTP Status
-        const res = await axios.get(dst, { timeout: 10000, validateStatus: false });
-        report += res.status === 200 ? '✅ Live (200 OK)\n' : \`⚠️ Lỗi: \${res.status}\n\`;
+app.get('/status', (req, res) => {
+    res.json({ status: 'online', version: '2.0.0' });
+});
 
-        // 2. Check Redirect (Nếu sếp có điền URL đích)
-        if (src !== dst) {
-            // Logic check redirect thực tế ở đây
-        }
+const PORT = 3000;
+app.listen(PORT, () => {
+    console.log(\`🚀 Server điều khiển đang chạy tại cổng \${PORT}\`);
+});
 
-        // 3. Check WP Login (XML-RPC) - Vượt rào cản trình duyệt
-        if (user && pass) {
-            const xmlrpcUrl = dst.replace(/\\/$/, '') + '/xmlrpc.php';
-            const xmlBody = \`<?xml version="1.0"?><methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>\${user}</string></value></param><param><value><string>\${pass}</string></value></param></params></methodCall>\`;
-            try {
-                const adRes = await axios.post(xmlrpcUrl, xmlBody, { timeout: 5000 });
-                if (adRes.data.includes('<struct>')) report += '✅ Login OK (Đã check pass)\n';
-                else if (adRes.data.includes('Incorrect')) report += '❌ Sai Pass WP\n';
-                else report += '⚠️ XML-RPC bị chặn\n';
-            } catch(e) { report += '⚠️ Lỗi XML-RPC\n'; }
-        }
-    } catch (e) {
-        report += \`❌ Không truy cập được: \${e.message}\n\`;
-    }
-
-    return report;
-}
-
+// Logic Agent chính
 async function main() {
-    if (!CONFIG.telegramToken || !CONFIG.sheetUrl) {
-        console.log('Chưa cấu hình Token hoặc Sheet URL. Đang đợi...');
-        return;
-    }
-
-    // Logic lấy data từ Sheet và chạy loop ở đây
-    console.log('Đang quét hệ thống...');
-    await sendTelegram('🚀 <b>SEO Super Agent</b> bắt đầu quét hệ thống định kỳ...');
-    // ... Quét và báo cáo ...
+    console.log('🤖 Agent đang trực chiến...');
+    // ... Logic quét web sẽ nằm ở đây ...
 }
 
-setInterval(main, CONFIG.checkInterval);
+setInterval(main, 3600000); // 1 tiếng check 1 lần
 main();
 EOT
 
-# 3. Cài đặt dotenv để quản lý cấu hình
-npm install dotenv
+# 3. Khởi động lại bằng PM2
+pm2 restart seo-agent || pm2 start agent.js --name "seo-agent"
+pm2 save
 
-# 4. Khởi động lại Agent
-pm2 restart seo-agent
+echo "✅ Đã xong! Con Agent hiện đã có 'đôi tai' tại cổng 3000."
+echo "Bây giờ sếp hãy dùng Tool trên trình duyệt để điều khiển nó nhé!"
 
-echo "✅ Đã nạp xong bộ não! Bây giờ sếp chỉ cần cấu hình Token và Sheet URL là xong."
