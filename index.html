@@ -1736,16 +1736,26 @@
                         document.getElementById('hp_code_'+i).innerText = httpCode;
                         const doc = new DOMParser().parseFromString(html, 'text/html');
                         const bc = doc.body ? doc.body.className : '';
-                        if (bc.includes('blog') || bc.includes('home-blog')) {
+                        const isWP = html.includes('wp-content') || html.includes('wp-includes');
+                        
+                        if (bc.match(/\b(blog|home-blog|posts-page)\b/)) {
                             type = 'Bài viết mới nhất (Posts)';
                             document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-info">Bài viết mới nhất</span>';
                             pC++;
-                        } else if (bc.includes('page-template-default') || bc.includes('home-page')) {
+                        } else if (bc.match(/\b(page|page-template|page-template-default|home-page|page-id-\d+)\b/)) {
                             type = 'Trang tĩnh (Static)';
                             document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
                             sC++;
                         } else {
-                            if (html.includes('entry-content')) {
+                            if (html.includes('class="entry-content"') && !html.includes('class="blog"')) {
+                                type = 'Trang tĩnh (Static)';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
+                                sC++;
+                            } else if (html.match(/class="[^"]*type-post[^"]*"/)) {
+                                type = 'Bài viết mới nhất (Posts)';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-info">Bài viết mới nhất</span>';
+                                pC++;
+                            } else if (html.match(/class="[^"]*type-page[^"]*"/)) {
                                 type = 'Trang tĩnh (Static)';
                                 document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
                                 sC++;
