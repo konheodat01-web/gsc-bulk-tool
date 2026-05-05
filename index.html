@@ -230,9 +230,14 @@
                 </div>
             </div>
         </div>
-        <div style="margin-top: 15px;">
-            <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Google Sheet URL (Link nguồn cố định để nạp dữ liệu)</label>
-            <input type="text" id="globalSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/1X2Y3Z.../edit" onchange="saveTeleSettings()" style="width:100%; border:1px solid var(--border); padding:8px; font-size:12px; background:var(--bg); color:var(--text); border-radius:6px;">
+        <div style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
+            <div style="flex-grow: 1;">
+                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Google Sheet URL (Link nguồn cố định để nạp dữ liệu)</label>
+                <input type="text" id="globalSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/1X2Y3Z.../edit" onchange="saveTeleSettings()" style="width:100%; border:1px solid var(--border); padding:8px; font-size:12px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box;">
+            </div>
+            <div style="align-self: flex-end;">
+                <button class="btn btn-primary" onclick="saveTeleSettings()" style="padding: 8px 15px; font-size: 12px; height: 35px; white-space: nowrap;">💾 Lưu Cấu Hình</button>
+            </div>
         </div>
         <div id="teleStatus" style="font-size:11px; margin-top:8px; color:var(--success); display:none;">✅ Đã lưu cấu hình chung!</div>
     </div>
