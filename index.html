@@ -134,6 +134,20 @@
             <div>
                 <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Google Sheet URL (Link nguồn cố định để nạp dữ liệu)</label>
                 <input type="text" id="globalSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/1X2Y3Z.../edit" onchange="saveTeleSettings()" style="width:100%; border:1px solid var(--border); padding:8px; font-size:12px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box;">
+                <!-- Cấu hình VPS -->
+                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px dashed rgba(255,255,255,0.1);">
+                    <h4 style="margin-top:0; font-size:14px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:18px;">🖥️</span> Điều khiển VPS (Super Agent)
+                    </h4>
+                    <div class="input-group">
+                        <label>Địa chỉ IP VPS:</label>
+                        <input type="text" id="vpsIp" placeholder="Ví dụ: 103.82.195.87">
+                    </div>
+                    <button onclick="syncToVps()" id="syncVpsBtn" style="width:100%; margin-top:10px; background:var(--secondary); border:none; padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                        <span>📤</span> Đồng bộ cấu hình lên VPS
+                    </button>
+                    <div id="vpsStatus" style="font-size:11px; margin-top:8px; text-align:center;"></div>
+                </div>
             </div>
         </div>
         <div style="margin-top: 15px; text-align: right;">
@@ -774,6 +788,43 @@
     // --- TELEGRAM LOGIC ---
     const TELE_JSON_URL = "https://api.restful-api.dev/objects/ff8081819d82fab6019dd7f81ef5626c";
     
+        async function syncToVps() {
+            const ip = document.getElementById('vpsIp').value.trim();
+            const token = document.getElementById('teleToken').value.trim();
+            const chatId = document.getElementById('teleChatId').value.trim();
+            const sheetUrl = document.getElementById('globalSheetUrl').value.trim();
+            const statusEl = document.getElementById('vpsStatus');
+            const btn = document.getElementById('syncVpsBtn');
+
+            if (!ip) { alert('Vui lòng nhập IP VPS!'); return; }
+            if (!token || !chatId || !sheetUrl) { alert('Vui lòng điền đủ Token, Chat ID và Sheet URL trước!'); return; }
+
+            btn.disabled = true;
+            btn.innerText = '⏳ Đang đồng bộ...';
+            statusEl.innerHTML = '🟡 Đang kết nối tới VPS...';
+
+            try {
+                const response = await fetch(`http://${ip}:3000/update-config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ telegramToken: token, chatId: chatId, sheetUrl: sheetUrl })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    statusEl.innerHTML = '<span style="color:var(--success)">✅ Đồng bộ thành công! Agent đang khởi động lại...</span>';
+                } else {
+                    statusEl.innerHTML = '<span style="color:var(--danger)">❌ Thất bại: ' + data.message + '</span>';
+                }
+            } catch (error) {
+                console.error(error);
+                statusEl.innerHTML = '<span style="color:var(--danger)">❌ Lỗi kết nối! Hãy đảm bảo VPS đã chạy lệnh update_logic.sh và mở cổng 3000.</span>';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = '📤 Đồng bộ cấu hình lên VPS';
+            }
+        }
+
     async function saveTeleSettings() {
         const token = document.getElementById('teleToken').value;
         const chatId = document.getElementById('teleChatId').value;
