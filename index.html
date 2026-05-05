@@ -194,12 +194,13 @@
                 <table class="dashboard-table" id="overviewTable">
                     <thead>
                         <tr>
-                            <th width="20%">Website</th>
-                            <th width="20%">GSC Owner (Email)</th>
-                            <th width="15%">Trạng thái HTTP</th>
-                            <th width="20%">Redirect (301)</th>
+                            <th width="18%">Website</th>
+                            <th width="15%">GSC Owner</th>
+                            <th width="12%">Trạng thái</th>
+                            <th width="18%">Redirect (301)</th>
+                            <th width="12%">Brand Footer</th>
                             <th width="15%">Admin/Login</th>
-                            <th width="10%">Insight (7d)</th>
+                            <th width="10%">Insight</th>
                         </tr>
                     </thead>
                     <tbody id="overviewBody">
@@ -2217,6 +2218,7 @@
                     <td id="ov_gsc_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
                     <td id="ov_http_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
                     <td id="ov_301_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_brand_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
                     <td id="ov_admin_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
                     <td id="ov_ins_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
                 `;
@@ -2257,20 +2259,41 @@
                     failedSites.push(`❌ ${srcClean} (${label})`);
                 }
 
-                // --- 301 Check ---
+                // --- 301 & Brand Check ---
                 const finalHost = redirectUrl ? normalizeHostname(redirectUrl) : (html ? normalizeHostname(src) : '');
                 const isMatch = finalHost === normalizeHostname(dst) || finalHost.includes(normalizeHostname(dst));
+                const brandEl = document.getElementById(`ov_brand_${i}`);
                 
                 if (srcClean !== dstClean) {
                     if (isMatch) rdrEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ KHHP (301 OK)</span>';
                     else {
-                        const rdrLabel = finalHost ? 'Sai domain gốc' : 'Đứt chuỗi RDR';
-                        rdrEl.innerHTML = `<span style="color:var(--danger); font-size:11px;">🚨 ${rdrLabel}</span><br><span style="font-size:9px; color:var(--text-muted)">-> ${finalHost || '???'}</span>`;
+                        rdrEl.innerHTML = `<span style="color:var(--danger); font-size:11px;">🚨 Sai domain gốc</span><br><span style="font-size:9px; color:var(--text-muted)">-> ${finalHost || '???'}</span>`;
                         wrong301++; document.getElementById('statWrong301').innerText = wrong301;
-                        failedSites.push(`🚨 ${srcClean} (${rdrLabel}: ${finalHost || '???'})`);
+                        failedSites.push(`🚨 ${srcClean} (Sai domain gốc: ${finalHost || '???'})`);
                     }
                 } else {
                     rdrEl.innerText = '-';
+                }
+
+                // Check Brand Gốc (Footer)
+                if (html) {
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    let footerText = '';
+                    const footers = doc.querySelectorAll('footer, [class*="footer"], [id*="footer"], [class*="copyright"], [id*="copyright"]');
+                    footers.forEach(f => footerText += f.textContent + ' ');
+                    if(!footerText) footerText = doc.body ? doc.body.textContent.slice(-2000) : '';
+                    
+                    let coreBrand = srcClean.split('.')[0];
+                    if (coreBrand === 'www') coreBrand = srcClean.split('.')[1] || '';
+                    const cleanCore = coreBrand.replace(/-/g, '');
+                    
+                    if (coreBrand && (footerText.toLowerCase().includes(coreBrand.toLowerCase()) || footerText.toLowerCase().includes(cleanCore.toLowerCase()))) {
+                        brandEl.innerHTML = `<span style="color:var(--success); font-size:11px; font-weight:bold;">✅ ĐÚNG</span>`;
+                    } else {
+                        brandEl.innerHTML = `<span style="color:var(--danger); font-size:11px; font-weight:bold;">🚨 LỆCH</span>`;
+                    }
+                } else {
+                    brandEl.innerText = '-';
                 }
 
                 if (user) {
