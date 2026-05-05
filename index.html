@@ -1986,33 +1986,40 @@
                 return alert('Vui lòng qua Bước 1 thêm tài khoản Google trước!');
             }
             
-            let allSites = [];
+            let siteMap = new Map();
             for (let acc of gscAccounts) {
                 if (!activeAccountEmails.includes(acc.email)) continue;
                 if (!acc.token || Date.now() > acc.expiresAt) continue;
                 
-                // Nếu chưa có danh sách site, thử fetch ngay
                 if (!acc.sites || acc.sites.length === 0) {
                     await fetchAccountSites(acc);
                 }
 
                 if (acc.sites && acc.sites.length > 0) {
-                    acc.sites.forEach(s => allSites.push({ url: s.siteUrl, token: acc.token, email: acc.email }));
+                    acc.sites.forEach(s => {
+                        if (!siteMap.has(s.siteUrl)) {
+                            siteMap.set(s.siteUrl, { url: s.siteUrl, allTokens: [] });
+                        }
+                        siteMap.get(s.siteUrl).allTokens.push({ token: acc.token, email: acc.email });
+                    });
                 }
             }
             
+            let allSites = Array.from(siteMap.values());
             const domainListStr = document.getElementById('gscInsightsUrls').value.trim();
             const filterDomains = domainListStr ? domainListStr.split('\n').map(d => d.trim().toLowerCase()).filter(d => d) : [];
             
-            // Nếu có danh sách domain để lọc, thì chỉ giữ lại các site khớp
             if (filterDomains.length > 0) {
                 allSites = allSites.filter(s => {
                     const cleanUrl = s.url.replace('https://', '').replace('sc-domain:', '').replace(/\/$/, '').toLowerCase();
                     return filterDomains.some(fd => cleanUrl.includes(fd) || fd.includes(cleanUrl));
                 });
             }
+
             if (allSites.length === 0) {
-                return alert('Không tìm thấy website nào trong các tài khoản đã thêm. Bạn đã Refresh token chưa?');
+                document.getElementById('insightsLoading').style.display = 'none';
+                document.getElementById('btnRunInsights').disabled = false;
+                return alert('Không tìm thấy website nào khớp với danh sách check. Vui lòng kiểm tra lại Tab 1 hoặc bật Search Console API!');
             }
 
             document.getElementById('insightsTable').style.display = 'table';
@@ -2021,41 +2028,36 @@
             document.getElementById('insightsLoading').style.display = 'block';
             document.getElementById('btnRunInsights').disabled = true;
 
-            // Tính ngày (GSC lag ~3 days)
+            // ... (dates calculation remains same) ...
             let today = new Date();
             let latestDate = new Date(today.getTime() - (3 * 24 * 60 * 60 * 1000));
+            let dayCount = currentGscMode === 'day' ? 1 : (currentGscMode === 'week' ? 7 : 30);
             
-            let aStart, aEnd, bStart, bEnd;
-            let dayCount = 0;
-            if (currentGscMode === 'day') { dayCount = 1; }
-            else if (currentGscMode === 'week') { dayCount = 7; }
-            else if (currentGscMode === 'month') { dayCount = 30; }
-
-            aEnd = new Date(latestDate);
-            aStart = new Date(latestDate.getTime() - ((dayCount - 1) * 24 * 60 * 60 * 1000));
-            
-            bEnd = new Date(aStart.getTime() - (1 * 24 * 60 * 60 * 1000));
-            bStart = new Date(bEnd.getTime() - ((dayCount - 1) * 24 * 60 * 60 * 1000));
+            let aEnd = new Date(latestDate);
+            let aStart = new Date(latestDate.getTime() - ((dayCount - 1) * 24 * 60 * 60 * 1000));
+            let bEnd = new Date(aStart.getTime() - (1 * 24 * 60 * 60 * 1000));
+            let bStart = new Date(bEnd.getTime() - ((dayCount - 1) * 24 * 60 * 60 * 1000));
 
             let strAStart = formatDateGSC(aStart); let strAEnd = formatDateGSC(aEnd);
             let strBStart = formatDateGSC(bStart); let strBEnd = formatDateGSC(bEnd);
 
             for (let i = 0; i < allSites.length; i++) {
                 let site = allSites[i];
+                let firstEmail = site.allTokens[0].email;
                 let tr = document.createElement('tr');
-                tr.innerHTML = `<td style="font-size:12px;">${site.url.replace('https://', '').replace('sc-domain:', '')} <br><span style="font-size:10px; color:var(--text-muted);">${site.email}</span></td>
+                tr.innerHTML = `<td style="font-size:12px;">${site.url.replace('https://', '').replace('sc-domain:', '')} <br><span id="ins_e_${i}" style="font-size:10px; color:var(--text-muted);">${firstEmail}</span></td>
                     <td id="ins_c_${i}">⏳</td><td id="ins_i_${i}">⏳</td><td id="ins_p_${i}">⏳</td><td id="ins_s_${i}">⏳</td>`;
                 tbody.appendChild(tr);
 
-                let dataA = null; let dataB = null; let usedEmail = site.email;
+                let dataA = null; let dataB = null; let usedEmail = firstEmail;
                 for (let tk of site.allTokens) {
                     dataA = await fetchGscMetrics(site.url, tk.token, strAStart, strAEnd);
-                    if (dataA && dataA.error === 403) continue; // Try next token
+                    if (dataA && dataA.error === 403) continue; 
                     dataB = await fetchGscMetrics(site.url, tk.token, strBStart, strBEnd);
                     usedEmail = tk.email;
                     break;
                 }
-                site.email = usedEmail; // update for display
+                document.getElementById(`ins_e_${i}`).innerText = usedEmail;
 
                 if (dataA && dataB) {
                     let clicksA = dataA.clicks || 0; let clicksB = dataB.clicks || 0;
