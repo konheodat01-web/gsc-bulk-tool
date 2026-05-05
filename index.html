@@ -161,7 +161,7 @@
             <h3 style="margin-top:0">Bước 2: Website &amp; Sitemap <button class="help-btn" onclick="showHelp('gsc-sitemap')" title="Hướng dẫn sử dụng">?</button></h3>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
             <label style="font-size:12px; color:var(--text-muted);">Danh sách Domain:</label>
-            <button class="btn btn-outline" onclick="importFromSheet(\'domainList\')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); cursor: pointer;">📊 Nạp vùng dữ liệu</button>
+            <button class="btn btn-outline" onclick="importFromSheet('domainList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); cursor: pointer;">📊 Nạp vùng dữ liệu</button>
         </div>
         <textarea id="domainList" placeholder="Danh sách domain..."></textarea>
             <div style="margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px;">
@@ -456,7 +456,7 @@
             <p style="font-size:13px; color:var(--text-muted);">Tự động quét để phát hiện web đang để Trang Chủ là <b>Bài viết mới nhất (Latest Posts)</b> hay <b>Trang tĩnh (Static Page)</b> dựa vào mã nguồn HTML (WordPress).</p>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                 <label style="font-size:12px; color:var(--text-muted);">Danh sách URL:</label>
-                <button class="btn btn-outline" onclick="importFromSheet(\'homepageUrlInput\')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); cursor: pointer;">📊 Nạp vùng dữ liệu</button>
+                <button class="btn btn-outline" onclick="importFromSheet('homepageUrlInput')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); cursor: pointer;">📊 Nạp vùng dữ liệu</button>
             </div>
             <textarea id="homepageUrlInput" placeholder="Danh sách website (Mỗi dòng 1 URL)..."></textarea>
             <div style="margin-top:10px;">
@@ -529,7 +529,8 @@
   </div>
 </div>
 
-<script src="https://accounts.google.com/gsi/client" async defer>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
     async function importFromSheet(targetTextareaId) {
         if (!activeAccountEmails || activeAccountEmails.length === 0) {
             return alert('Vui lòng qua Bước 1 để thêm hoặc chọn Tài khoản Google trước! Tool cần quyền để đọc Sheet.');
