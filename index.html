@@ -545,7 +545,7 @@
             return alert('Tài khoản đã hết phiên. Vui lòng sang Bước 1 bấm Refresh (🔄).');
         }
 
-        let sheetUrl = localStorage.getItem('globalSheetUrl');
+        let sheetUrl = localStorage.getItem('global_sheet_url');
         if (!sheetUrl) {
             sheetUrl = prompt('Vui lòng dán Link Google Sheet vào đây:\n(Lưu ý: Bạn có thể lưu link này ở phần Cấu hình Chung phía trên)');
             if (!sheetUrl) return;
