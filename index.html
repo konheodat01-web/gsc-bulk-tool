@@ -143,7 +143,8 @@
     </div>
 
     <div class="tab-nav">
-        <button class="tab-btn active" onclick="switchTab('tab1')">🔌 Quản lý GSC</button>
+        <button class="tab-btn active" onclick="switchTab('tab0')">📊 Tổng Quan</button>
+        <button class="tab-btn" onclick="switchTab('tab1')">🔌 Quản lý GSC</button>
         <button class="tab-btn" onclick="switchTab('tab2')">🔍 Check 301 & WP</button>
         <button class="tab-btn" onclick="switchTab('tab3')">🔗 Outbound Audit</button>
         <button class="tab-btn" onclick="switchTab('tab4')">🤖 Check Mở Bot</button>
@@ -153,8 +154,65 @@
     </div>
 
     
+    <!-- TAB 0: System Overview Dashboard -->
+    <div id="tab0" class="tab-content active">
+        <div class="card" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%); border-color: var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 style="margin:0; color: var(--primary);"><i class="fa-solid fa-gauge-high"></i> Giám Sát Hệ Thống (300+ Web)</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-outline" onclick="importFromSheet('overviewUrlInput')" style="border-color:#0f9d58; color:#0f9d58; background: rgba(15, 157, 88, 0.1);"><i class="fa-solid fa-file-import"></i> Nạp Data từ Sheet</button>
+                    <button class="btn btn-success" id="btnRunOverview" onclick="startSystemOverview()"><i class="fa-solid fa-play"></i> Quét Toàn Bộ Hệ Thống</button>
+                </div>
+            </div>
+            
+            <div id="overviewStats" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 25px;">
+                <div class="card" style="padding: 15px; text-align: center; background: rgba(255,255,255,0.03);">
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 5px;">TỔNG WEBSITE</div>
+                    <div id="statTotal" style="font-size: 24px; font-weight: 700; color: var(--text);">0</div>
+                </div>
+                <div class="card" style="padding: 15px; text-align: center; background: rgba(16, 185, 129, 0.05);">
+                    <div style="font-size: 11px; color: var(--success); margin-bottom: 5px;">LIVE (200 OK)</div>
+                    <div id="statLive" style="font-size: 24px; font-weight: 700; color: var(--success);">0</div>
+                </div>
+                <div class="card" style="padding: 15px; text-align: center; background: rgba(239, 68, 68, 0.05);">
+                    <div style="font-size: 11px; color: var(--danger); margin-bottom: 5px;">CHẾT/LỖI</div>
+                    <div id="statDead" style="font-size: 24px; font-weight: 700; color: var(--danger);">0</div>
+                </div>
+                <div class="card" style="padding: 15px; text-align: center; background: rgba(245, 158, 11, 0.05);">
+                    <div style="font-size: 11px; color: var(--warning); margin-bottom: 5px;">SAI REDIRECT</div>
+                    <div id="statWrong301" style="font-size: 24px; font-weight: 700; color: var(--warning);">0</div>
+                </div>
+                <div class="card" style="padding: 15px; text-align: center; background: rgba(139, 92, 246, 0.05);">
+                    <div style="font-size: 11px; color: #a78bfa; margin-bottom: 5px;">CHƯA CÓ GSC</div>
+                    <div id="statNoGsc" style="font-size: 24px; font-weight: 700; color: #a78bfa;">0</div>
+                </div>
+            </div>
+
+            <textarea id="overviewUrlInput" placeholder="Dán danh sách Web Gốc, Web Đích, Admin, User, Pass... (Hoặc Nạp từ Sheet)" style="display:none;"></textarea>
+
+            <div style="overflow-x: auto;">
+                <table class="dashboard-table" id="overviewTable">
+                    <thead>
+                        <tr>
+                            <th width="20%">Website</th>
+                            <th width="20%">GSC Owner (Email)</th>
+                            <th width="15%">Trạng thái HTTP</th>
+                            <th width="20%">Redirect (301)</th>
+                            <th width="15%">Admin/Login</th>
+                            <th width="10%">Insight (7d)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="overviewBody">
+                        <tr><td colspan="6" style="text-align:center; padding: 40px; color:var(--text-muted)">Chưa có dữ liệu. Hãy Nạp Data và bấm Quét Toàn Bộ Hệ Thống!</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="overviewLoading" style="display:none; margin-top: 20px; font-size:13px; color:var(--warning); text-align: center;">⏳ Hệ thống đang quét toàn bộ 300+ website... Sếp vui lòng đợi trong giây lát...</div>
+        </div>
+    </div>
+
     <!-- TAB 1: GSC -->
-    <div id="tab1" class="tab-content active">
+    <div id="tab1" class="tab-content">
         <div class="card">
             <h3 style="margin-top:0">Bước 1: Quản lý Tài khoản Google <button class="help-btn" onclick="showHelp('gsc-account')" title="Hướng dẫn sử dụng">?</button></h3>
             <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Thêm các tài khoản GSC của bạn vào đây. Chọn tài khoản muốn sử dụng để Add Web.</p>
@@ -2104,6 +2162,143 @@
 
             document.getElementById('insightsLoading').style.display = 'none';
             document.getElementById('btnRunInsights').disabled = false;
+        }
+        async function startSystemOverview() {
+            const rawLines = document.getElementById('overviewUrlInput').value.split('\n').filter(l => l.trim());
+            if (rawLines.length === 0) return alert('Sếp chưa nạp dữ liệu! Hãy bấm "Nạp Data từ Sheet" hoặc dán danh sách vào trước nhé.');
+            
+            const tbody = document.getElementById('overviewBody');
+            tbody.innerHTML = '';
+            document.getElementById('overviewLoading').style.display = 'block';
+            document.getElementById('btnRunOverview').disabled = true;
+
+            // Reset Stats
+            let total = rawLines.length, live = 0, dead = 0, wrong301 = 0, noGsc = 0;
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statLive').innerText = '0';
+            document.getElementById('statDead').innerText = '0';
+            document.getElementById('statWrong301').innerText = '0';
+            document.getElementById('statNoGsc').innerText = '0';
+
+            // 1. Build Site Map across all active GSC accounts
+            let masterSiteMap = new Map();
+            for (let acc of gscAccounts) {
+                if (!activeAccountEmails.includes(acc.email)) continue;
+                if (!acc.token || Date.now() > acc.expiresAt) continue;
+                if (!acc.sites || acc.sites.length === 0) await fetchAccountSites(acc);
+                if (acc.sites) {
+                    acc.sites.forEach(s => {
+                        const clean = s.siteUrl.replace('https://', '').replace('sc-domain:', '').replace(/\/$/, '').toLowerCase();
+                        if (!masterSiteMap.has(clean)) masterSiteMap.set(clean, []);
+                        masterSiteMap.get(clean).push({ email: acc.email, token: acc.token, originalUrl: s.siteUrl });
+                    });
+                }
+            }
+
+            // 2. Dates for Insights (7 days)
+            let latestDate = new Date(new Date().getTime() - (3 * 24 * 60 * 60 * 1000));
+            let strAEnd = formatDateGSC(latestDate);
+            let strAStart = formatDateGSC(new Date(latestDate.getTime() - (6 * 24 * 60 * 60 * 1000)));
+
+            const failedSites = [];
+
+            for (let i = 0; i < rawLines.length; i++) {
+                const parts = rawLines[i].trim().split(/\s+/);
+                let src = parts[0]; if(!src.startsWith('http')) src = 'https://' + src;
+                let dst = parts[1] || src; if(!dst.startsWith('http')) dst = 'https://' + dst;
+                const adminPath = parts[2] || 'wp-admin';
+                const user = parts[3] || '';
+                const pass = parts[4] || '';
+
+                const srcClean = src.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+                const dstClean = dst.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-size:12px;"><b>${srcClean}</b></td>
+                    <td id="ov_gsc_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_http_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_301_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_admin_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_ins_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                `;
+                tbody.appendChild(tr);
+
+                // --- GSC Check ---
+                const owners = masterSiteMap.get(srcClean) || [];
+                const gscEl = document.getElementById(`ov_gsc_${i}`);
+                if (owners.length > 0) {
+                    gscEl.innerHTML = owners.map(o => `<div style="font-size:10px; color:var(--primary)">${o.email}</div>`).join('');
+                } else {
+                    gscEl.innerHTML = '<span class="status-badge" style="background:#4b5563">🔴 Chưa có</span>';
+                    noGsc++; document.getElementById('statNoGsc').innerText = noGsc;
+                }
+
+                // --- HTTP & 301 Check ---
+                const { html, code, redirectUrl } = await fetchStatus(src);
+                const httpEl = document.getElementById(`ov_http_${i}`);
+                const rdrEl = document.getElementById(`ov_301_${i}`);
+                
+                if (code === 200 || code === 301 || code === 302) {
+                    httpEl.innerHTML = `<span class="status-badge status-success">${code} OK</span>`;
+                    live++; document.getElementById('statLive').innerText = live;
+                } else {
+                    httpEl.innerHTML = `<span class="status-badge status-error">${code || 'ERR'}</span>`;
+                    dead++; document.getElementById('statDead').innerText = dead;
+                    failedSites.push(`❌ ${srcClean} (HTTP ${code || 'ERR'})`);
+                }
+
+                const finalHost = redirectUrl ? normalizeHostname(redirectUrl) : (html ? normalizeHostname(src) : '');
+                const isMatch = finalHost === normalizeHostname(dst) || finalHost.includes(normalizeHostname(dst));
+                
+                if (srcClean !== dstClean) {
+                    if (isMatch) rdrEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ Khớp Đích</span>';
+                    else {
+                        rdrEl.innerHTML = `<span style="color:var(--danger); font-size:11px;">🚨 Sai Đích</span><br><span style="font-size:9px; color:var(--text-muted)">-> ${finalHost || '???'}</span>`;
+                        wrong301++; document.getElementById('statWrong301').innerText = wrong301;
+                        failedSites.push(`🚨 ${srcClean} (Sai Redirect: ${finalHost || '???'})`);
+                    }
+                } else {
+                    rdrEl.innerText = '-';
+                }
+
+                // --- Admin Check ---
+                if (user) {
+                    const adRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + adminPath)}`);
+                    const adEl = document.getElementById(`ov_admin_${i}`);
+                    if (adRes.ok) {
+                        const h = await adRes.text();
+                        if (h.includes('wp-login') || h.includes('user_login')) adEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ Admin Live</span>';
+                        else adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">⚠️ Đổi Path?</span>';
+                    } else adEl.innerHTML = '<span style="color:var(--danger); font-size:11px;">❌ Lỗi Admin</span>';
+                }
+
+                // --- GSC Insight (Quick check 7 days clicks) ---
+                if (owners.length > 0) {
+                    const insEl = document.getElementById(`ov_ins_${i}`);
+                    const data = await fetchGscMetrics(owners[0].originalUrl, owners[0].token, strAStart, strAEnd);
+                    if (data && !data.error) insEl.innerHTML = `<span style="color:var(--primary); font-weight:bold;">${data.clicks}</span> <span style="font-size:9px; color:var(--text-muted)">clicks</span>`;
+                    else insEl.innerText = '-';
+                }
+
+                await new Promise(r => setTimeout(r, 300)); // Rate limit
+            }
+
+            document.getElementById('overviewLoading').style.display = 'none';
+            document.getElementById('btnRunOverview').disabled = false;
+
+            // Telegram Summary
+            let teleMsg = `<b>📊 BÁO CÁO GIÁM SÁT HỆ THỐNG</b>\n\n` +
+                          `✅ Tổng: <b>${total}</b> | Live: <b>${live}</b> | Chết: <b>${dead}</b>\n` +
+                          `⚠️ Sai 301: <b>${wrong301}</b> | Thiếu GSC: <b>${noGsc}</b>\n\n`;
+            
+            if (failedSites.length > 0) {
+                teleMsg += `<b>🚨 CÁC WEB CẦN KIỂM TRA NGAY:</b>\n` + failedSites.slice(0, 15).join('\n');
+                if (failedSites.length > 15) teleMsg += `\n... và ${failedSites.length - 15} web khác.`;
+            } else {
+                teleMsg += `🎉 Chúc mừng sếp! Mọi thứ đều đang vận hành hoàn hảo.`;
+            }
+            await sendToTelegram(teleMsg);
         }
     </script>
 
