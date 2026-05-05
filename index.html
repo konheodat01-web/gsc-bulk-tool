@@ -2050,16 +2050,23 @@
                 tbody.appendChild(tr);
 
                 let dataA = null; let dataB = null; let usedEmail = firstEmail;
+                let foundData = false;
+                
                 for (let tk of site.allTokens) {
                     dataA = await fetchGscMetrics(site.url, tk.token, strAStart, strAEnd);
-                    if (dataA && dataA.error === 403) continue; 
+                    // Nếu lỗi 403 (không có quyền) hoặc lỗi kết nối, thử tài khoản tiếp theo
+                    if (!dataA || dataA.error === 403 || dataA.error === 401) continue; 
+                    
                     dataB = await fetchGscMetrics(site.url, tk.token, strBStart, strBEnd);
+                    if (!dataB || dataB.error === 403 || dataB.error === 401) continue;
+
                     usedEmail = tk.email;
+                    foundData = true;
                     break;
                 }
                 document.getElementById(`ins_e_${i}`).innerText = usedEmail;
 
-                if (dataA && dataB) {
+                if (foundData && dataA && dataB && !dataA.error && !dataB.error) {
                     let clicksA = dataA.clicks || 0; let clicksB = dataB.clicks || 0;
                     let impA = dataA.impressions || 0; let impB = dataB.impressions || 0;
                     let posA = dataA.position || 0; let posB = dataB.position || 0;
