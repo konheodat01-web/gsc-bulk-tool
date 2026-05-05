@@ -880,19 +880,36 @@
                             const existing = gscAccounts.find(a => a.email === uData.email);
                             if (existing) {
                                 existing.token = res.access_token;
-                                existing.expiresAt = Date.now() + 3500000; // ~58 mins
+                                existing.expiresAt = Date.now() + 3500000;
+                                await fetchAccountSites(existing);
                             } else {
-                                gscAccounts.push({ email: uData.email, token: res.access_token, expiresAt: Date.now() + 3500000 });
+                                const newAcc = { email: uData.email, token: res.access_token, expiresAt: Date.now() + 3500000, sites: [] };
+                                gscAccounts.push(newAcc);
+                                await fetchAccountSites(newAcc);
                             }
                             if(!activeAccountEmails.includes(uData.email)) activeAccountEmails.push(uData.email);
                             saveAccountsToLocal();
                             renderAccounts();
                         }
-                    } catch(e) { alert("Lỗi khi lấy thông tin Email. Vui lòng thử lại."); }
+                    } catch(e) { alert("Lỗi khi lấy thông tin Email hoặc Danh sách website. Vui lòng thử lại."); }
                 } 
             }
         });
         client.requestAccessToken({prompt: 'select_account'});
+    }
+
+    async function fetchAccountSites(acc) {
+        try {
+            const res = await fetch('https://www.googleapis.com/webmasters/v3/sites', { headers: { 'Authorization': `Bearer ${acc.token}` } });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.siteEntry) {
+                acc.sites = data.siteEntry.map(e => ({ siteUrl: e.siteUrl, permissionLevel: e.permissionLevel }));
+            } else {
+                acc.sites = [];
+            }
+            saveAccountsToLocal();
+        } catch(e) { console.error("Lỗi fetch sites cho " + acc.email, e); }
     }
 
     function refreshAccount(email) {
@@ -905,6 +922,7 @@
                     if (existing) {
                         existing.token = res.access_token;
                         existing.expiresAt = Date.now() + 3500000;
+                        await fetchAccountSites(existing);
                         renderAccounts();
                     }
                 } 
@@ -1970,9 +1988,28 @@
             
             let allSites = [];
             for (let acc of gscAccounts) {
+                if (!activeAccountEmails.includes(acc.email)) continue;
+                if (!acc.token || Date.now() > acc.expiresAt) continue;
+                
+                // Nếu chưa có danh sách site, thử fetch ngay
+                if (!acc.sites || acc.sites.length === 0) {
+                    await fetchAccountSites(acc);
+                }
+
                 if (acc.sites && acc.sites.length > 0) {
                     acc.sites.forEach(s => allSites.push({ url: s.siteUrl, token: acc.token, email: acc.email }));
                 }
+            }
+            
+            const domainListStr = document.getElementById('gscInsightsUrls').value.trim();
+            const filterDomains = domainListStr ? domainListStr.split('\n').map(d => d.trim().toLowerCase()).filter(d => d) : [];
+            
+            // Nếu có danh sách domain để lọc, thì chỉ giữ lại các site khớp
+            if (filterDomains.length > 0) {
+                allSites = allSites.filter(s => {
+                    const cleanUrl = s.url.replace('https://', '').replace('sc-domain:', '').replace(/\/$/, '').toLowerCase();
+                    return filterDomains.some(fd => cleanUrl.includes(fd) || fd.includes(cleanUrl));
+                });
             }
             if (allSites.length === 0) {
                 return alert('Không tìm thấy website nào trong các tài khoản đã thêm. Bạn đã Refresh token chưa?');
