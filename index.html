@@ -150,7 +150,11 @@
         </div>
         <div class="card" style="margin-top:20px;">
             <h3 style="margin-top:0">Bước 2: Website &amp; Sitemap <button class="help-btn" onclick="showHelp('gsc-sitemap')" title="Hướng dẫn sử dụng">?</button></h3>
-            <textarea id="domainList" placeholder="Danh sách domain..."></textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <label style="font-size:12px; color:var(--text-muted);">Danh sách Domain:</label>
+            <button class="btn btn-outline" onclick="importFromSheet('domainList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp từ Google Sheet</button>
+        </div>
+        <textarea id="domainList" placeholder="Danh sách domain..."></textarea>
             <div style="margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px;">
                 <label style="font-size:12px; color:var(--text-muted);">Sitemap Names (cách nhau bằng dấu phẩy):</label>
                 <div style="display:flex; gap:10px; margin-top:5px;">
@@ -771,7 +775,7 @@
     function addGoogleAccount() {
         const client = google.accounts.oauth2.initTokenClient({
             client_id: GOOGLE_CLIENT_ID,
-            scope: 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/siteverification https://www.googleapis.com/auth/userinfo.email',
+            scope: 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/siteverification https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets.readonly',
             callback: async (res) => { 
                 if (res.access_token) { 
                     try {
@@ -799,7 +803,7 @@
     function refreshAccount(email) {
         const client = google.accounts.oauth2.initTokenClient({
             client_id: GOOGLE_CLIENT_ID,
-            scope: 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/siteverification https://www.googleapis.com/auth/userinfo.email',
+            scope: 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/siteverification https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets.readonly',
             callback: async (res) => { 
                 if (res.access_token) { 
                     const existing = gscAccounts.find(a => a.email === email);
