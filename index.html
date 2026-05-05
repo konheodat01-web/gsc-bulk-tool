@@ -161,7 +161,7 @@
             <h3 style="margin-top:0">Bước 2: Website &amp; Sitemap <button class="help-btn" onclick="showHelp('gsc-sitemap')" title="Hướng dẫn sử dụng">?</button></h3>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
             <label style="font-size:12px; color:var(--text-muted);">Danh sách Domain:</label>
-            <button class="btn btn-outline" onclick="importFromSheet('domainList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp vùng dữ liệu</button>
+            <button class="btn btn-outline" onclick="importFromSheet(\'domainList\')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); cursor: pointer;">📊 Nạp vùng dữ liệu</button>
         </div>
         <textarea id="domainList" placeholder="Danh sách domain..."></textarea>
             <div style="margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px;">
@@ -456,7 +456,7 @@
             <p style="font-size:13px; color:var(--text-muted);">Tự động quét để phát hiện web đang để Trang Chủ là <b>Bài viết mới nhất (Latest Posts)</b> hay <b>Trang tĩnh (Static Page)</b> dựa vào mã nguồn HTML (WordPress).</p>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                 <label style="font-size:12px; color:var(--text-muted);">Danh sách URL:</label>
-                <button class="btn btn-outline" onclick="importFromSheet('homepageUrlInput')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp vùng dữ liệu</button>
+                <button class="btn btn-outline" onclick="importFromSheet(\'homepageUrlInput\')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); cursor: pointer;">📊 Nạp vùng dữ liệu</button>
             </div>
             <textarea id="homepageUrlInput" placeholder="Danh sách website (Mỗi dòng 1 URL)..."></textarea>
             <div style="margin-top:10px;">
@@ -485,17 +485,13 @@
             <p style="font-size:13px; color:var(--text-muted);">Tự động quét và so sánh dữ liệu Clicks, Impressions từ tất cả các tài khoản Google đã nạp ở Tab 1.</p>
             
             <div style="display: flex; gap: 10px; align-items: center; margin-top: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                            <div style="width: 100%;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                <label style="font-size:12px; color:var(--text-muted);">Danh sách Domain cần check (mỗi dòng 1 URL):</label>
-                <button class="btn btn-outline" onclick="importFromSheet('gscInsightsUrls')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp vùng dữ liệu</button>
+                    <label style="font-size:12px; color:var(--text-muted);">Danh sách Domain cần check (mỗi dòng 1 URL):</label>
+                    <button class="btn btn-outline" onclick="importFromSheet('gscInsightsUrls')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); display: inline-flex; align-items: center; gap: 4px; cursor: pointer; transition: all 0.2s;">📊 Nạp vùng dữ liệu</button>
+                </div>
+                <textarea id="gscInsightsUrls" placeholder="Dán danh sách domain cần check..." style="margin-bottom:15px; width: 100%; box-sizing: border-box;"></textarea>
             </div>
-            <textarea id="gscInsightsUrls" placeholder="Dán danh sách domain cần check..." style="margin-bottom:15px;"></textarea>
-            
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                <label style="font-size:12px; color:var(--text-muted);">Danh sách Domain cần check (mỗi dòng 1 URL):</label>
-                <button class="btn btn-outline" onclick="importFromSheet('gscInsightsUrls')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp vùng dữ liệu</button>
-            </div>
-            <textarea id="gscInsightsUrls" placeholder="Dán danh sách domain cần check..." style="margin-bottom:15px; height: 100px;"></textarea>
             
             <div style="background: rgba(255,255,255,0.05); padding: 5px; border-radius: 6px; display: flex; gap: 5px;">
                     <button class="btn btn-outline" id="btnModeDay" onclick="setGscMode('day')" style="font-size:12px; padding:6px 15px;">☀️ Theo Ngày (1 vs 1)</button>
@@ -533,7 +529,68 @@
   </div>
 </div>
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer>
+    async function importFromSheet(targetTextareaId) {
+        if (!activeAccountEmails || activeAccountEmails.length === 0) {
+            return alert('Vui lòng qua Bước 1 để thêm hoặc chọn Tài khoản Google trước! Tool cần quyền để đọc Sheet.');
+        }
+        
+        let activeAcc = gscAccounts.find(a => a.email === activeAccountEmails[0]);
+        if (!activeAcc || !activeAcc.token || Date.now() > activeAcc.expiresAt) {
+            return alert('Tài khoản đã hết phiên. Vui lòng sang Bước 1 bấm Refresh (🔄).');
+        }
+
+        let sheetUrl = localStorage.getItem('globalSheetUrl');
+        if (!sheetUrl) {
+            sheetUrl = prompt('Vui lòng dán Link Google Sheet vào đây:\n(Lưu ý: Bạn có thể lưu link này ở phần Cấu hình Chung phía trên)');
+            if (!sheetUrl) return;
+        }
+
+        let sheetId = '';
+        try {
+            const match = sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (match && match[1]) sheetId = match[1];
+            else throw new Error('Invalid URL');
+        } catch(e) {
+            return alert('Link Google Sheet không hợp lệ! Vui lòng kiểm tra lại Link ở phần Cấu hình Chung.');
+        }
+
+        const range = prompt('Nhập vùng dữ liệu cần lấy (Mặc định: A2:E100):\nVí dụ: Lấy 1 cột thì nhập A2:A100. Lấy nhiều cột (Gốc, Đích, User, Pass) thì nhập A2:E100', 'A2:A100');
+        if (!range) return;
+
+        try {
+            document.getElementById(targetTextareaId).value = 'Đang tải dữ liệu từ Google Sheet...';
+            const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`, {
+                headers: { 'Authorization': 'Bearer ' + activeAcc.token }
+            });
+            
+            if (!res.ok) {
+                if(res.status === 403) throw new Error('Lỗi 403: Không có quyền truy cập. Bạn đã share Sheet này cho email ' + activeAcc.email + ' chưa? Hoặc hãy mở quyền "Anyone with the link".');
+                throw new Error('Lỗi HTTP: ' + res.status);
+            }
+            
+            const data = await res.json();
+            if (!data.values || data.values.length === 0) {
+                document.getElementById(targetTextareaId).value = '';
+                return alert('Google Sheet rỗng hoặc vùng dữ liệu không có gì!');
+            }
+
+            let resultText = '';
+            data.values.forEach(row => {
+                // Lọc các ô trống và nối lại bằng dấu cách (để phù hợp với format web-gốc web-đích admin user pass)
+                const line = row.filter(cell => cell.trim() !== '').join(' ');
+                if(line) resultText += line + '\n';
+            });
+
+            document.getElementById(targetTextareaId).value = resultText.trim();
+            alert('✅ Đã nạp thành công ' + data.values.length + ' dòng dữ liệu từ Google Sheet!');
+            
+        } catch(e) {
+            document.getElementById(targetTextareaId).value = '';
+            alert('❌ Lỗi khi đọc Sheet:\n' + e.message);
+        }
+    }
+\n</script>
 <script>
     const HELP_DATA = {
         'telegram': {
