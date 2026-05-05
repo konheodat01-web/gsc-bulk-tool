@@ -152,7 +152,7 @@
             <h3 style="margin-top:0">Bước 2: Website &amp; Sitemap <button class="help-btn" onclick="showHelp('gsc-sitemap')" title="Hướng dẫn sử dụng">?</button></h3>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
             <label style="font-size:12px; color:var(--text-muted);">Danh sách Domain:</label>
-            <button class="btn btn-outline" onclick="importFromSheet('domainList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp từ Google Sheet</button>
+            <button class="btn btn-outline" onclick="importFromSheet('domainList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp vùng dữ liệu</button>
         </div>
         <textarea id="domainList" placeholder="Danh sách domain..."></textarea>
             <div style="margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px;">
@@ -185,14 +185,14 @@
                 <div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                         <label style="font-size:11px; color:var(--text-muted); display:block;">🌐 Web Gốc <span style="color:#64748b">(1 dòng 1 URL)</span></label>
-                        <button class="btn btn-outline" onclick="importFromSheet('srcList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp Sheet</button>
+                        <button class="btn btn-outline" onclick="importFromSheet('srcList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp vùng dữ liệu</button>
                     </div>
                     <textarea id="srcList" placeholder="https://88go.futbol/&#10;https://site2.com/&#10;..." style="height:160px;"></textarea>
                 </div>
                 <div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                         <label style="font-size:11px; color:var(--text-muted); display:block;">🎯 Web Đích + Admin + User + Pass</label>
-                        <button class="btn btn-outline" onclick="importFromSheet('dstList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp Sheet</button>
+                        <button class="btn btn-outline" onclick="importFromSheet('dstList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp vùng dữ liệu</button>
                     </div>
                     <textarea id="dstList" placeholder="xn--abc.jpn.com wp-admin admin pass123&#10;(tương ứng dòng với cột 1 — bỏ trống nếu chỉ check 301)" style="height:160px;"></textarea>
                 </div>
@@ -447,7 +447,7 @@
             <p style="font-size:13px; color:var(--text-muted);">Tự động quét để phát hiện web đang để Trang Chủ là <b>Bài viết mới nhất (Latest Posts)</b> hay <b>Trang tĩnh (Static Page)</b> dựa vào mã nguồn HTML (WordPress).</p>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                 <label style="font-size:12px; color:var(--text-muted);">Danh sách URL:</label>
-                <button class="btn btn-outline" onclick="importFromSheet('homepageUrlInput')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp từ Google Sheet</button>
+                <button class="btn btn-outline" onclick="importFromSheet('homepageUrlInput')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp vùng dữ liệu</button>
             </div>
             <textarea id="homepageUrlInput" placeholder="Danh sách website (Mỗi dòng 1 URL)..."></textarea>
             <div style="margin-top:10px;">
@@ -476,7 +476,13 @@
             <p style="font-size:13px; color:var(--text-muted);">Tự động quét và so sánh dữ liệu Clicks, Impressions từ tất cả các tài khoản Google đã nạp ở Tab 1.</p>
             
             <div style="display: flex; gap: 10px; align-items: center; margin-top: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-                <div style="background: rgba(255,255,255,0.05); padding: 5px; border-radius: 6px; display: flex; gap: 5px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                <label style="font-size:12px; color:var(--text-muted);">Danh sách Domain cần check (mỗi dòng 1 URL):</label>
+                <button class="btn btn-outline" onclick="importFromSheet('gscInsightsUrls')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp vùng dữ liệu</button>
+            </div>
+            <textarea id="gscInsightsUrls" placeholder="Dán danh sách domain cần check..." style="margin-bottom:15px;"></textarea>
+            
+            <div style="background: rgba(255,255,255,0.05); padding: 5px; border-radius: 6px; display: flex; gap: 5px;">
                     <button class="btn btn-outline" id="btnModeDay" onclick="setGscMode('day')" style="font-size:12px; padding:6px 15px;">☀️ Theo Ngày (1 vs 1)</button>
                     <button class="btn btn-outline active" id="btnModeWeek" onclick="setGscMode('week')" style="font-size:12px; padding:6px 15px; background:var(--primary); color:white; border-color:var(--primary);">📅 Theo Tuần (7 vs 7)</button>
                     <button class="btn btn-outline" id="btnModeMonth" onclick="setGscMode('month')" style="font-size:12px; padding:6px 15px;">📊 Theo Tháng (30 vs 30)</button>
@@ -620,20 +626,21 @@
     // --- TELEGRAM LOGIC ---
     const TELE_JSON_URL = "https://api.restful-api.dev/objects/ff8081819d82fab6019dd7f81ef5626c";
     
-    async function saveTeleSettings() {
+    async async function saveTeleSettings() {
         const token = document.getElementById('teleToken').value;
         const chatId = document.getElementById('teleChatId').value;
+        const sheetUrl = document.getElementById('globalSheetUrl').value;
         
         localStorage.setItem('tele_token', token);
         localStorage.setItem('tele_chat_id', chatId);
+        localStorage.setItem('global_sheet_url', sheetUrl);
         
         try {
-            // Đồng bộ qua Restful API (Cập nhật cả Telegram và danh sách GSC)
             const emails = typeof gscAccounts !== 'undefined' ? gscAccounts.map(a => a.email) : [];
             await fetch(TELE_JSON_URL, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data: { tele_token: token, tele_chat_id: chatId, gsc_emails: emails } })
+                body: JSON.stringify({ data: { tele_token: token, tele_chat_id: chatId, global_sheet_url: sheetUrl, gsc_emails: emails } })
             });
         } catch(e) { console.error("Lỗi đồng bộ cấu hình (Save)", e); }
 
@@ -643,31 +650,23 @@
     }
 
     async function loadTeleSettings() {
-        // Khôi phục từ localStorage trước để render nhanh
         document.getElementById('teleToken').value = localStorage.getItem('tele_token') || '';
         document.getElementById('teleChatId').value = localStorage.getItem('tele_chat_id') || '';
+        document.getElementById('globalSheetUrl').value = localStorage.getItem('global_sheet_url') || '';
         
         try {
-            // GET cấu hình trực tiếp (API hỗ trợ sẵn CORS)
             const res = await fetch(TELE_JSON_URL + "?t=" + Date.now());
             if(!res.ok) return;
             const resData = await res.json();
-            const data = resData.data; // restful-api wrap data inside "data"
+            const data = resData.data;
             
             if(data) {
-                if(data.tele_token) {
-                    localStorage.setItem('tele_token', data.tele_token);
-                    document.getElementById('teleToken').value = data.tele_token;
-                }
-                if(data.tele_chat_id) {
-                    localStorage.setItem('tele_chat_id', data.tele_chat_id);
-                    document.getElementById('teleChatId').value = data.tele_chat_id;
-                }
+                if(data.tele_token) { localStorage.setItem('tele_token', data.tele_token); document.getElementById('teleToken').value = data.tele_token; }
+                if(data.tele_chat_id) { localStorage.setItem('tele_chat_id', data.tele_chat_id); document.getElementById('teleChatId').value = data.tele_chat_id; }
+                if(data.global_sheet_url) { localStorage.setItem('global_sheet_url', data.global_sheet_url); document.getElementById('globalSheetUrl').value = data.global_sheet_url; }
                 if(data.gsc_emails && Array.isArray(data.gsc_emails) && typeof gscAccounts !== 'undefined') {
                     data.gsc_emails.forEach(email => {
-                        if(!gscAccounts.find(a=>a.email === email)) {
-                            gscAccounts.push({ email: email, token: null, expiresAt: 0 });
-                        }
+                        if(!gscAccounts.find(a=>a.email === email)) gscAccounts.push({ email: email, token: null, expiresAt: 0 });
                     });
                     if(gscAccounts.length > 0 && activeAccountEmails.length === 0) activeAccountEmails = [gscAccounts[0].email];
                     renderAccounts();
@@ -1869,7 +1868,7 @@
                     headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
                 });
-                if (!res.ok) return null;
+                if (!res.ok) { if(res.status===403) return {error: 403}; return null; }
                 const data = await res.json();
                 if (data.rows && data.rows.length > 0) {
                     return data.rows[0]; // Without dimensions, it returns 1 row with total sums
@@ -1925,8 +1924,15 @@
                     <td id="ins_c_${i}">⏳</td><td id="ins_i_${i}">⏳</td><td id="ins_p_${i}">⏳</td><td id="ins_s_${i}">⏳</td>`;
                 tbody.appendChild(tr);
 
-                let dataA = await fetchGscMetrics(site.url, site.token, strAStart, strAEnd);
-                let dataB = await fetchGscMetrics(site.url, site.token, strBStart, strBEnd);
+                let dataA = null; let dataB = null; let usedEmail = site.email;
+                for (let tk of site.allTokens) {
+                    dataA = await fetchGscMetrics(site.url, tk.token, strAStart, strAEnd);
+                    if (dataA && dataA.error === 403) continue; // Try next token
+                    dataB = await fetchGscMetrics(site.url, tk.token, strBStart, strBEnd);
+                    usedEmail = tk.email;
+                    break;
+                }
+                site.email = usedEmail; // update for display
 
                 if (dataA && dataB) {
                     let clicksA = dataA.clicks || 0; let clicksB = dataB.clicks || 0;
