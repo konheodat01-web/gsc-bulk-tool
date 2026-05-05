@@ -41,9 +41,9 @@ app.get('/update-config', async (req, res) => {
     runFullAudit();
 });
 
-app.get('/status', (req, res) => { res.json({ status: 'online', version: '4.1.0' }); });
+app.get('/status', (req, res) => { res.json({ status: 'online', version: '4.2.0' }); });
 
-app.listen(3000, () => { console.log('🚀 Server listening on port 3000'); });
+app.listen(3000, '0.0.0.0', () => { console.log('🚀 Server listening on port 3000 (0.0.0.0)'); });
 
 // --- LOGIC QUÉT WEB ---
 async function sendTelegram(msg) {
