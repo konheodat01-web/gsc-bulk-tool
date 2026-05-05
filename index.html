@@ -247,26 +247,7 @@
         <button class="tab-btn" onclick="switchTab('tab7')">📈 GSC Insights</button>
     </div>
 
-    <!-- SETTINGS: TELEGRAM -->
-    <div class="card" style="margin-top: 20px; background: rgba(59, 130, 246, 0.05); border-color: var(--primary);">
-        <h3 style="margin-top:0; font-size: 14px; color: var(--primary); display: flex; align-items: center; gap: 8px;">
-            <i class="fa-brands fa-telegram"></i> Cấu hình Telegram Bot (Tự động báo cáo)
-            <button class="help-btn" onclick="showHelp('telegram')" title="Hướng dẫn sử dụng">?</button>
-        </h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <div class="form-group" style="margin-bottom:0">
-                <label style="font-size:11px; color:var(--text-muted)">Bot Token</label>
-                <input type="password" id="teleToken" placeholder="Dán Token vào đây..." onchange="saveTeleSettings()" style="width:100%; padding:8px; font-size:12px;">
-            </div>
-            <div class="form-group" style="margin-bottom:0">
-                <label style="font-size:11px; color:var(--text-muted)">Chat ID (Dãy số)</label>
-                <div style="display:flex; gap:8px;">
-                    <input type="text" id="teleChatId" placeholder="VD: 543216789" onchange="saveTeleSettings()" style="flex-grow:1; padding:8px; font-size:12px;">
-                    <button class="btn-mini" onclick="testTele()" style="background:var(--success); border:none; height:33px; white-space:nowrap;">🔔 Test</button>
-                </div>
-            </div>
-        </div>
-        <div id="teleStatus" style="font-size:11px; margin-top:8px; color:var(--success); display:none;">✅ Đã lưu cấu hình Telegram!</div>
+    
     </div>
 
     <!-- TAB 1: GSC -->
