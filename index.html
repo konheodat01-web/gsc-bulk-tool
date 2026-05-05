@@ -183,11 +183,17 @@
             <h3 style="margin-top:0">Check Website &amp; 301 Status <button class="help-btn" onclick="showHelp('check301')" title="Hướng dẫn sử dụng">?</button></h3>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
-                    <label style="font-size:11px; color:var(--text-muted); margin-bottom:5px; display:block;">🌐 Web Gốc <span style="color:#64748b">(1 dòng 1 URL — dùng cho cả 2 chế độ)</span></label>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <label style="font-size:11px; color:var(--text-muted); display:block;">🌐 Web Gốc <span style="color:#64748b">(1 dòng 1 URL)</span></label>
+                        <button class="btn btn-outline" onclick="importFromSheet('srcList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp Sheet</button>
+                    </div>
                     <textarea id="srcList" placeholder="https://88go.futbol/&#10;https://site2.com/&#10;..." style="height:160px;"></textarea>
                 </div>
                 <div>
-                    <label style="font-size:11px; color:var(--text-muted); margin-bottom:5px; display:block;">🎯 Web Đích + Admin + User + Pass <span style="color:#64748b">(tùy chọn, chỉ cho Quét Full)</span></label>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                        <label style="font-size:11px; color:var(--text-muted); display:block;">🎯 Web Đích + Admin + User + Pass</label>
+                        <button class="btn btn-outline" onclick="importFromSheet('dstList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp Sheet</button>
+                    </div>
                     <textarea id="dstList" placeholder="xn--abc.jpn.com wp-admin admin pass123&#10;(tương ứng dòng với cột 1 — bỏ trống nếu chỉ check 301)" style="height:160px;"></textarea>
                 </div>
             </div>
