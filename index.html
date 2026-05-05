@@ -115,6 +115,7 @@
         <button class="tab-btn" onclick="switchTab('tab4')">🤖 Check Mở Bot</button>
         <button class="tab-btn" onclick="switchTab('tab5')">📝 SEO Content</button>
         <button class="tab-btn" onclick="switchTab('tab6')">🏠 Homepage Status</button>
+        <button class="tab-btn" onclick="switchTab('tab7')">📈 GSC Insights</button>
     </div>
 
     <!-- SETTINGS: TELEGRAM -->
@@ -456,6 +457,38 @@
     
 </div>
 
+
+    <!-- TAB 7: GSC Insights -->
+    <div id="tab7" class="tab-content">
+        <div class="card">
+            <h3 style="margin-top:0">Phân tích Chỉ số GSC (So sánh Tăng trưởng) <button class="help-btn" onclick="showHelp('gsc-insights')" title="Hướng dẫn">?</button></h3>
+            <p style="font-size:13px; color:var(--text-muted);">Tự động quét và so sánh dữ liệu Clicks, Impressions từ tất cả các tài khoản Google đã nạp ở Tab 1.</p>
+            
+            <div style="display: flex; gap: 10px; align-items: center; margin-top: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                <div style="background: rgba(255,255,255,0.05); padding: 5px; border-radius: 6px; display: flex; gap: 5px;">
+                    <button class="btn btn-outline" id="btnModeDay" onclick="setGscMode('day')" style="font-size:12px; padding:6px 15px;">☀️ Theo Ngày (1 vs 1)</button>
+                    <button class="btn btn-outline active" id="btnModeWeek" onclick="setGscMode('week')" style="font-size:12px; padding:6px 15px; background:var(--primary); color:white; border-color:var(--primary);">📅 Theo Tuần (7 vs 7)</button>
+                    <button class="btn btn-outline" id="btnModeMonth" onclick="setGscMode('month')" style="font-size:12px; padding:6px 15px;">📊 Theo Tháng (30 vs 30)</button>
+                </div>
+                <button class="btn btn-success" id="btnRunInsights" onclick="startGscInsights()">🚀 Quét Toàn Bộ Website</button>
+            </div>
+            
+            <table id="insightsTable" class="dashboard-table" style="display:none; width: 100%;">
+                <thead>
+                    <tr>
+                        <th width="25%">Website</th>
+                        <th width="25%">Clicks (Tăng trưởng)</th>
+                        <th width="25%">Impressions</th>
+                        <th width="15%">Vị trí TB</th>
+                        <th width="10%">Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody id="insightsBody"></tbody>
+            </table>
+            <div id="insightsLoading" style="display:none; margin-top: 20px; font-size:13px; color:var(--warning);">⏳ Đang bốc dữ liệu từ Google... Vui lòng chờ...</div>
+        </div>
+    </div>
+
 <!-- HELP MODAL -->
 <div class="help-overlay" id="helpOverlay" onclick="if(event.target===this)closeHelp()">
   <div class="help-modal">
@@ -480,6 +513,17 @@
                 'Nếu Telegram nhận được tin nhắn test là xong — tool sẽ tự báo cáo sau mỗi lần quét.'
             ],
             tip: '💡 Cấu hình được đồng bộ lên cloud, nên nhiều máy/người dùng chung tool đều nhận báo cáo cùng lúc.'
+        },
+                'gsc-insights': {
+            icon: '📈', title: 'Phân tích Chỉ số GSC',
+            desc: 'Tự động quét Clicks, Impressions, Position của toàn bộ website và tính toán tỷ lệ tăng trưởng.',
+            steps: [
+                'Chọn mốc thời gian: <b>Ngày</b> (hôm qua vs hôm kia), <b>Tuần</b> (7 ngày qua vs 7 ngày trước), <b>Tháng</b> (30 ngày).',
+                'Bấm <b>🚀 Quét Toàn Bộ Website</b>.',
+                'Tool tự động lấy danh sách web từ Tab 1, sau đó tải dữ liệu GSC về so sánh.',
+                'Quan sát mũi tên Xanh/Đỏ để biết ngay web nào đang tăng hay tụt dốc.'
+            ],
+            tip: '💡 Dữ liệu GSC luôn trễ khoảng 3 ngày. Tool đã tự động lùi 3 ngày để làm mốc thời gian lấy dữ liệu.'
         },
         'gsc-account': {
             icon: '👤', title: 'Bước 1 – Quản lý Tài khoản GSC',
@@ -1782,5 +1826,136 @@
         }
     </script>
     
+
+    <script>
+        let currentGscMode = 'week';
+        
+        function setGscMode(mode) {
+            currentGscMode = mode;
+            document.getElementById('btnModeDay').style.cssText = 'font-size:12px; padding:6px 15px;';
+            document.getElementById('btnModeWeek').style.cssText = 'font-size:12px; padding:6px 15px;';
+            document.getElementById('btnModeMonth').style.cssText = 'font-size:12px; padding:6px 15px;';
+            
+            const activeCss = 'font-size:12px; padding:6px 15px; background:var(--primary); color:white; border-color:var(--primary);';
+            if(mode === 'day') document.getElementById('btnModeDay').style.cssText = activeCss;
+            if(mode === 'week') document.getElementById('btnModeWeek').style.cssText = activeCss;
+            if(mode === 'month') document.getElementById('btnModeMonth').style.cssText = activeCss;
+        }
+
+        function formatDateGSC(d) {
+            let month = '' + (d.getMonth() + 1), day = '' + d.getDate(), year = d.getFullYear();
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+            return [year, month, day].join('-');
+        }
+
+        async function fetchGscMetrics(siteUrl, token, startDate, endDate) {
+            const body = { startDate: startDate, endDate: endDate };
+            try {
+                const res = await fetch(`https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) return null;
+                const data = await res.json();
+                if (data.rows && data.rows.length > 0) {
+                    return data.rows[0]; // Without dimensions, it returns 1 row with total sums
+                }
+                return { clicks: 0, impressions: 0, ctr: 0, position: 0 };
+            } catch(e) { return null; }
+        }
+
+        async function startGscInsights() {
+            if (typeof gscAccounts === 'undefined' || gscAccounts.length === 0) {
+                return alert('Vui lòng qua Bước 1 thêm tài khoản Google trước!');
+            }
+            
+            let allSites = [];
+            for (let acc of gscAccounts) {
+                if (acc.sites && acc.sites.length > 0) {
+                    acc.sites.forEach(s => allSites.push({ url: s.siteUrl, token: acc.token, email: acc.email }));
+                }
+            }
+            if (allSites.length === 0) {
+                return alert('Không tìm thấy website nào trong các tài khoản đã thêm. Bạn đã Refresh token chưa?');
+            }
+
+            document.getElementById('insightsTable').style.display = 'table';
+            const tbody = document.getElementById('insightsBody');
+            tbody.innerHTML = '';
+            document.getElementById('insightsLoading').style.display = 'block';
+            document.getElementById('btnRunInsights').disabled = true;
+
+            // Tính ngày (GSC lag ~3 days)
+            let today = new Date();
+            let latestDate = new Date(today.getTime() - (3 * 24 * 60 * 60 * 1000));
+            
+            let aStart, aEnd, bStart, bEnd;
+            let dayCount = 0;
+            if (currentGscMode === 'day') { dayCount = 1; }
+            else if (currentGscMode === 'week') { dayCount = 7; }
+            else if (currentGscMode === 'month') { dayCount = 30; }
+
+            aEnd = new Date(latestDate);
+            aStart = new Date(latestDate.getTime() - ((dayCount - 1) * 24 * 60 * 60 * 1000));
+            
+            bEnd = new Date(aStart.getTime() - (1 * 24 * 60 * 60 * 1000));
+            bStart = new Date(bEnd.getTime() - ((dayCount - 1) * 24 * 60 * 60 * 1000));
+
+            let strAStart = formatDateGSC(aStart); let strAEnd = formatDateGSC(aEnd);
+            let strBStart = formatDateGSC(bStart); let strBEnd = formatDateGSC(bEnd);
+
+            for (let i = 0; i < allSites.length; i++) {
+                let site = allSites[i];
+                let tr = document.createElement('tr');
+                tr.innerHTML = `<td style="font-size:12px;">${site.url.replace('https://', '').replace('sc-domain:', '')} <br><span style="font-size:10px; color:var(--text-muted);">${site.email}</span></td>
+                    <td id="ins_c_${i}">⏳</td><td id="ins_i_${i}">⏳</td><td id="ins_p_${i}">⏳</td><td id="ins_s_${i}">⏳</td>`;
+                tbody.appendChild(tr);
+
+                let dataA = await fetchGscMetrics(site.url, site.token, strAStart, strAEnd);
+                let dataB = await fetchGscMetrics(site.url, site.token, strBStart, strBEnd);
+
+                if (dataA && dataB) {
+                    let clicksA = dataA.clicks || 0; let clicksB = dataB.clicks || 0;
+                    let impA = dataA.impressions || 0; let impB = dataB.impressions || 0;
+                    let posA = dataA.position || 0; let posB = dataB.position || 0;
+
+                    let clickDelta = clicksA - clicksB;
+                    let clickPct = clicksB === 0 ? (clicksA > 0 ? 100 : 0) : ((clickDelta / clicksB) * 100);
+                    let clickColor = clickDelta > 0 ? 'var(--success)' : (clickDelta < 0 ? 'var(--danger)' : 'var(--text-muted)');
+                    let clickArrow = clickDelta > 0 ? '↑' : (clickDelta < 0 ? '↓' : '-');
+
+                    let cDisplay = currentGscMode === 'day' ? clickDelta : clickPct.toFixed(1) + '%';
+                    
+                    document.getElementById(`ins_c_${i}`).innerHTML = `${clicksA} <br><span style="color:${clickColor}; font-size:11px; font-weight:bold;">${clickArrow} ${Math.abs(cDisplay)}${currentGscMode==='day'?'':'%'}</span>`;
+                    
+                    let impDelta = impA - impB;
+                    let impPct = impB === 0 ? (impA > 0 ? 100 : 0) : ((impDelta / impB) * 100);
+                    let impColor = impDelta > 0 ? 'var(--success)' : (impDelta < 0 ? 'var(--danger)' : 'var(--text-muted)');
+                    document.getElementById(`ins_i_${i}`).innerHTML = `${impA.toLocaleString()} <br><span style="color:${impColor}; font-size:11px;">${impDelta > 0 ? '↑' : (impDelta < 0 ? '↓' : '')} ${Math.abs(impPct).toFixed(1)}%</span>`;
+
+                    let posDelta = posB - posA; // Lower position is better
+                    let posColor = posDelta > 0 ? 'var(--success)' : (posDelta < 0 ? 'var(--danger)' : 'var(--text-muted)');
+                    document.getElementById(`ins_p_${i}`).innerHTML = `${posA > 0 ? posA.toFixed(1) : '-'} <br><span style="color:${posColor}; font-size:11px;">${posDelta > 0 ? '↑' : (posDelta < 0 ? '↓' : '')} ${Math.abs(posDelta).toFixed(1)}</span>`;
+
+                    let statusBadge = '<span class="badge badge-warning">Đi ngang</span>';
+                    if (clickPct >= 5) statusBadge = '<span class="badge badge-success">Đang Lên</span>';
+                    if (clickPct <= -5) statusBadge = '<span class="badge badge-danger">Sụt Giảm</span>';
+                    document.getElementById(`ins_s_${i}`).innerHTML = statusBadge;
+                } else {
+                    document.getElementById(`ins_c_${i}`).innerHTML = '<span style="color:var(--danger)">Lỗi/No Data</span>';
+                    document.getElementById(`ins_i_${i}`).innerText = '-';
+                    document.getElementById(`ins_p_${i}`).innerText = '-';
+                    document.getElementById(`ins_s_${i}`).innerText = '-';
+                }
+                await new Promise(r => setTimeout(r, 200)); // Rate limit
+            }
+
+            document.getElementById('insightsLoading').style.display = 'none';
+            document.getElementById('btnRunInsights').disabled = false;
+        }
+    </script>
+
 </body>
 </html>
