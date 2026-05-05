@@ -647,6 +647,14 @@
             });
 
             document.getElementById(targetTextareaId).value = resultText.trim();
+            
+            // Cập nhật số lượng tổng ngay lập tức nếu là Tab Tổng Quan
+            if (targetTextareaId === 'overviewUrlInput') {
+                const lines = resultText.trim().split('\n').filter(l => l.trim());
+                document.getElementById('statTotal').innerText = lines.length;
+                document.getElementById('overviewBody').innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 40px; color:var(--success)">✅ Đã nạp ${lines.length} website! Mời sếp bấm nút "Quét Toàn Bộ Hệ Thống" để bắt đầu.</td></tr>`;
+            }
+
             alert('✅ Đã nạp thành công ' + data.values.length + ' dòng dữ liệu từ Google Sheet!');
             
         } catch(e) {
