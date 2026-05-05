@@ -20,6 +20,15 @@ require('dotenv').config();
 const app = express();
 app.use(bodyParser.json());
 
+// API tự động nâng cấp Agent từ xa
+app.get('/update-agent', (req, res) => {
+    res.json({ success: true, message: 'Agent đang tự động nâng cấp... Đợi 5 giây rồi F5 lại nhé sếp!' });
+    const { exec } = require('child_process');
+    exec('curl -sL https://raw.githubusercontent.com/konheodat01-web/gsc-bulk-tool/main/update_logic.sh | bash', (err) => {
+        if (err) console.error('Lỗi nâng cấp:', err);
+    });
+});
+
 // API nhận cấu hình và tự động chạy audit ngay lập tức
 app.get('/update-config', async (req, res) => {
     const { telegramToken, chatId, sheetUrl } = req.query;

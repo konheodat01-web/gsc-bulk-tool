@@ -145,9 +145,14 @@
                 <label>Địa chỉ IP VPS:</label>
                 <input type="text" id="vpsIp" placeholder="Ví dụ: 103.82.195.87" onchange="saveTeleSettings()">
             </div>
-            <button onclick="syncToVps()" id="syncVpsBtn" style="width:100%; margin-top:10px; background:var(--secondary); border:none; padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                <span>📤</span> Đồng bộ cấu hình lên VPS
-            </button>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button onclick="syncToVps()" id="syncVpsBtn" style="flex:1; background:var(--secondary); border:none; padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <span>📤</span> Đồng bộ cấu hình
+                </button>
+                <button onclick="upgradeAgent()" id="upgradeVpsBtn" style="flex:1; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <span>🔄</span> Nâng cấp Agent
+                </button>
+            </div>
             <div id="vpsStatus" style="font-size:11px; margin-top:8px; text-align:center;"></div>
         </div>
         <div style="margin-top: 15px; text-align: right;">
@@ -788,6 +793,26 @@
     // --- TELEGRAM LOGIC ---
     const TELE_JSON_URL = "https://api.restful-api.dev/objects/ff8081819d82fab6019dd7f81ef5626c";
     
+        async function upgradeAgent() {
+            const ip = document.getElementById('vpsIp').value.trim();
+            const statusEl = document.getElementById('vpsStatus');
+            if (!ip) { alert('Vui lòng nhập IP VPS!'); return; }
+
+            if (!confirm('Sếp có chắc muốn nâng cấp Agent từ xa không?')) return;
+
+            statusEl.innerHTML = '🟡 Đang gửi lệnh nâng cấp tới VPS...';
+            try {
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`http://${ip}:3000/update-agent`)}`;
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+                if (data.success) {
+                    statusEl.innerHTML = '<span style="color:var(--success)">✅ ' + data.message + '</span>';
+                }
+            } catch (error) {
+                statusEl.innerHTML = '<span style="color:var(--danger)">❌ Lỗi: VPS chưa hỗ trợ tự nâng cấp hoặc sai IP.</span>';
+            }
+        }
+
         async function syncToVps() {
             const ip = document.getElementById('vpsIp').value.trim();
             const token = document.getElementById('teleToken').value.trim();
