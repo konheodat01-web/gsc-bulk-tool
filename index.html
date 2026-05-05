@@ -126,14 +126,18 @@
                 </div>
             </div>
         </div>
-        <div style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">
-            <div style="flex-grow: 1;">
+        <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div>
+                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Google Client ID (Dùng cho GSC & Sheets API)</label>
+                <input type="password" id="googleClientId" placeholder="Dán Client ID vào đây..." onchange="saveTeleSettings()" style="width:100%; border:1px solid var(--border); padding:8px; font-size:12px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box;">
+            </div>
+            <div>
                 <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Google Sheet URL (Link nguồn cố định để nạp dữ liệu)</label>
                 <input type="text" id="globalSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/1X2Y3Z.../edit" onchange="saveTeleSettings()" style="width:100%; border:1px solid var(--border); padding:8px; font-size:12px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box;">
             </div>
-            <div style="align-self: flex-end;">
-                <button class="btn btn-primary" onclick="saveTeleSettings()" style="padding: 8px 15px; font-size: 12px; height: 35px; white-space: nowrap;">💾 Lưu Cấu Hình</button>
-            </div>
+        </div>
+        <div style="margin-top: 15px; text-align: right;">
+            <button class="btn btn-primary" onclick="saveTeleSettings()" style="padding: 8px 25px; font-size: 12px; height: 35px; white-space: nowrap;">💾 Lưu Cấu Hình</button>
         </div>
         <div id="teleStatus" style="font-size:11px; margin-top:8px; color:var(--success); display:none;">✅ Đã lưu cấu hình chung!</div>
     </div>
@@ -693,7 +697,7 @@
     }
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHelp(); });
 
-    const GOOGLE_CLIENT_ID = "938057045964-r7r5osdav10sgf6rhev3c8vri2qbal4r.apps.googleusercontent.com";
+    let GOOGLE_CLIENT_ID = localStorage.getItem('google_client_id') || "938057045964-r7r5osdav10sgf6rhev3c8vri2qbal4r.apps.googleusercontent.com";
     let accessToken = null;
 
     // --- TELEGRAM LOGIC ---
@@ -703,17 +707,20 @@
         const token = document.getElementById('teleToken').value;
         const chatId = document.getElementById('teleChatId').value;
         const sheetUrl = document.getElementById('globalSheetUrl').value;
+        const clientId = document.getElementById('googleClientId').value;
         
         localStorage.setItem('tele_token', token);
         localStorage.setItem('tele_chat_id', chatId);
         localStorage.setItem('global_sheet_url', sheetUrl);
+        localStorage.setItem('google_client_id', clientId);
+        GOOGLE_CLIENT_ID = clientId; // Cập nhật biến toàn cục ngay lập tức
         
         try {
             const emails = typeof gscAccounts !== 'undefined' ? gscAccounts.map(a => a.email) : [];
             await fetch(TELE_JSON_URL, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data: { tele_token: token, tele_chat_id: chatId, global_sheet_url: sheetUrl, gsc_emails: emails } })
+                body: JSON.stringify({ data: { tele_token: token, tele_chat_id: chatId, global_sheet_url: sheetUrl, google_client_id: clientId, gsc_emails: emails } })
             });
         } catch(e) { console.error("Lỗi đồng bộ cấu hình (Save)", e); }
 
@@ -726,6 +733,7 @@
         document.getElementById('teleToken').value = localStorage.getItem('tele_token') || '';
         document.getElementById('teleChatId').value = localStorage.getItem('tele_chat_id') || '';
         document.getElementById('globalSheetUrl').value = localStorage.getItem('global_sheet_url') || '';
+        document.getElementById('googleClientId').value = localStorage.getItem('google_client_id') || GOOGLE_CLIENT_ID;
         
         try {
             const res = await fetch(TELE_JSON_URL + "?t=" + Date.now());
@@ -737,6 +745,11 @@
                 if(data.tele_token) { localStorage.setItem('tele_token', data.tele_token); document.getElementById('teleToken').value = data.tele_token; }
                 if(data.tele_chat_id) { localStorage.setItem('tele_chat_id', data.tele_chat_id); document.getElementById('teleChatId').value = data.tele_chat_id; }
                 if(data.global_sheet_url) { localStorage.setItem('global_sheet_url', data.global_sheet_url); document.getElementById('globalSheetUrl').value = data.global_sheet_url; }
+                if(data.google_client_id) { 
+                    localStorage.setItem('google_client_id', data.google_client_id); 
+                    document.getElementById('googleClientId').value = data.google_client_id; 
+                    GOOGLE_CLIENT_ID = data.google_client_id;
+                }
                 if(data.gsc_emails && Array.isArray(data.gsc_emails) && typeof gscAccounts !== 'undefined') {
                     data.gsc_emails.forEach(email => {
                         if(!gscAccounts.find(a=>a.email === email)) gscAccounts.push({ email: email, token: null, expiresAt: 0 });
