@@ -197,10 +197,11 @@
                             <th width="18%">Website</th>
                             <th width="15%">GSC Owner</th>
                             <th width="12%">Trạng thái</th>
-                            <th width="18%">Redirect (301)</th>
+                            <th width="15%">Redirect (301)</th>
                             <th width="12%">Brand Footer</th>
-                            <th width="15%">Admin/Login</th>
+                            <th width="10%">Admin</th>
                             <th width="10%">Insight</th>
+                            <th width="8%">Check</th>
                         </tr>
                     </thead>
                     <tbody id="overviewBody">
@@ -2221,6 +2222,8 @@
                 const dstClean = dst.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
 
                 const tr = document.createElement('tr');
+                tr.id = `ov_row_${i}`;
+                tr.dataset.src = src; tr.dataset.dst = dst; tr.dataset.adminPath = adminPath; tr.dataset.user = user; tr.dataset.pass = pass;
                 tr.innerHTML = `
                     <td style="font-size:12px;"><b>${srcClean}</b></td>
                     <td id="ov_gsc_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
@@ -2229,98 +2232,11 @@
                     <td id="ov_brand_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
                     <td id="ov_admin_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
                     <td id="ov_ins_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td><button class="btn-mini" onclick="recheckOverviewRow(${i})">🔄</button></td>
                 `;
                 tbody.appendChild(tr);
 
-                const owners = masterSiteMap.get(srcClean) || [];
-                const gscEl = document.getElementById(`ov_gsc_${i}`);
-                if (owners.length > 0) {
-                    gscEl.innerHTML = owners.map(o => `<div style="font-size:10px; color:var(--primary)">${o.email}</div>`).join('');
-                } else {
-                    gscEl.innerHTML = '<span class="status-badge" style="background:#4b5563">🔴 Chưa có</span>';
-                    noGsc++; document.getElementById('statNoGsc').innerText = noGsc;
-                }
-
-                // --- HTTP & Content Check ---
-                const { html, code, redirectUrl } = await fetchStatus(src);
-                const httpEl = document.getElementById(`ov_http_${i}`);
-                const rdrEl = document.getElementById(`ov_301_${i}`);
-                
-                let label = ''; let labelClass = 'status-error';
-                if (code === 0) label = 'Không phản hồi';
-                else if (code === 1016) label = 'Lỗi 1016 (CF)';
-                else if (code === 404) label = 'Lỗi 404';
-                else if (code === 403) label = 'Lỗi 403';
-                else if (code >= 500) label = 'Lỗi Server (' + code + ')';
-                else if (html && (html.includes('Error establishing a database connection') || html.includes('Internal Server Error'))) label = 'Lỗi WP/DB';
-                else if (html && html.length < 200 && !redirectUrl) label = 'Trắng trang';
-                else if (code === 200 || code === 301 || code === 302) {
-                    label = 'Tốt'; labelClass = 'status-success';
-                    live++; document.getElementById('statLive').innerText = live;
-                } else {
-                    label = 'Lỗi ' + code;
-                }
-
-                httpEl.innerHTML = `<span class="status-badge ${labelClass}">${label}</span>`;
-                if (labelClass === 'status-error') {
-                    dead++; document.getElementById('statDead').innerText = dead;
-                    failedSites.push(`❌ ${srcClean} (${label})`);
-                }
-
-                // --- 301 & Brand Check ---
-                const finalHost = redirectUrl ? normalizeHostname(redirectUrl) : (html ? normalizeHostname(src) : '');
-                const isMatch = finalHost === normalizeHostname(dst) || finalHost.includes(normalizeHostname(dst));
-                const brandEl = document.getElementById(`ov_brand_${i}`);
-                
-                if (srcClean !== dstClean) {
-                    if (isMatch) rdrEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ KHHP (301 OK)</span>';
-                    else {
-                        rdrEl.innerHTML = `<span style="color:var(--danger); font-size:11px;">🚨 Sai domain gốc</span><br><span style="font-size:9px; color:var(--text-muted)">-> ${finalHost || '???'}</span>`;
-                        wrong301++; document.getElementById('statWrong301').innerText = wrong301;
-                        failedSites.push(`🚨 ${srcClean} (Sai domain gốc: ${finalHost || '???'})`);
-                    }
-                } else {
-                    rdrEl.innerText = '-';
-                }
-
-                // Check Brand Gốc (Footer)
-                if (html) {
-                    const doc = new DOMParser().parseFromString(html, 'text/html');
-                    let footerText = '';
-                    const footers = doc.querySelectorAll('footer, [class*="footer"], [id*="footer"], [class*="copyright"], [id*="copyright"]');
-                    footers.forEach(f => footerText += f.textContent + ' ');
-                    if(!footerText) footerText = doc.body ? doc.body.textContent.slice(-2000) : '';
-                    
-                    let coreBrand = srcClean.split('.')[0];
-                    if (coreBrand === 'www') coreBrand = srcClean.split('.')[1] || '';
-                    const cleanCore = coreBrand.replace(/-/g, '');
-                    
-                    if (coreBrand && (footerText.toLowerCase().includes(coreBrand.toLowerCase()) || footerText.toLowerCase().includes(cleanCore.toLowerCase()))) {
-                        brandEl.innerHTML = `<span style="color:var(--success); font-size:11px; font-weight:bold;">✅ ĐÚNG</span>`;
-                    } else {
-                        brandEl.innerHTML = `<span style="color:var(--danger); font-size:11px; font-weight:bold;">🚨 LỆCH</span>`;
-                    }
-                } else {
-                    brandEl.innerText = '-';
-                }
-
-                if (user) {
-                    const adRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + adminPath)}`);
-                    const adEl = document.getElementById(`ov_admin_${i}`);
-                    if (adRes.ok) {
-                        const h = await adRes.text();
-                        if (h.includes('wp-login') || h.includes('user_login')) adEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ Admin Live</span>';
-                        else adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">⚠️ Đổi Path?</span>';
-                    } else adEl.innerHTML = '<span style="color:var(--danger); font-size:11px;">❌ Lỗi WP</span>';
-                }
-
-                if (owners.length > 0) {
-                    const insEl = document.getElementById(`ov_ins_${i}`);
-                    const data = await fetchGscMetrics(owners[0].originalUrl, owners[0].token, strAStart, strAEnd);
-                    if (data && !data.error) insEl.innerHTML = `<span style="color:var(--primary); font-weight:bold;">${data.clicks}</span> <span style="font-size:9px; color:var(--text-muted)">clicks</span>`;
-                    else insEl.innerText = '-';
-                }
-
+                await checkOverviewRow(i, src, dst, adminPath, user, pass, strAStart, strAEnd, masterSiteMap);
                 await new Promise(r => setTimeout(r, 300));
             }
 
@@ -2328,8 +2244,8 @@
             document.getElementById('btnRunOverview').disabled = false;
 
             let teleMsg = `<b>📊 BÁO CÁO GIÁM SÁT HỆ THỐNG</b>\n\n` +
-                          `✅ Tổng: <b>${total}</b> | Live: <b>${live}</b> | Chết: <b>${dead}</b>\n` +
-                          `⚠️ Sai 301: <b>${wrong301}</b> | Thiếu GSC: <b>${noGsc}</b>\n\n`;
+                          `✅ Tổng: <b>${total}</b> | Live: <b>${document.getElementById('statLive').innerText}</b> | Chết: <b>${document.getElementById('statDead').innerText}</b>\n` +
+                          `⚠️ Sai 301: <b>${document.getElementById('statWrong301').innerText}</b> | Thiếu GSC: <b>${document.getElementById('statNoGsc').innerText}</b>\n\n`;
             
             if (failedSites.length > 0) {
                 teleMsg += `<b>🚨 CÁC WEB CẦN KIỂM TRA NGAY:</b>\n` + failedSites.slice(0, 15).join('\n');
@@ -2338,6 +2254,139 @@
                 teleMsg += `🎉 Chúc mừng sếp! Mọi thứ đều đang vận hành hoàn hảo.`;
             }
             await sendToTelegram(teleMsg);
+        }
+
+        async function recheckOverviewRow(i) {
+            const tr = document.getElementById(`ov_row_${i}`);
+            if (!tr) return;
+            
+            let masterSiteMap = new Map();
+            for (let acc of gscAccounts) {
+                if (!activeAccountEmails.includes(acc.email) || !acc.token || Date.now() > acc.expiresAt) continue;
+                if (acc.sites) {
+                    acc.sites.forEach(s => {
+                        const clean = s.siteUrl.replace('https://', '').replace('sc-domain:', '').replace(/\/$/, '').toLowerCase();
+                        if (!masterSiteMap.has(clean)) masterSiteMap.set(clean, []);
+                        masterSiteMap.get(clean).push({ email: acc.email, token: acc.token, originalUrl: s.siteUrl });
+                    });
+                }
+            }
+
+            let latestDate = new Date(new Date().getTime() - (3 * 24 * 60 * 60 * 1000));
+            let strAEnd = formatDateGSC(latestDate);
+            let strAStart = formatDateGSC(new Date(latestDate.getTime() - (6 * 24 * 60 * 60 * 1000)));
+
+            document.getElementById(`ov_http_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+            document.getElementById(`ov_301_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+            document.getElementById(`ov_brand_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+            document.getElementById(`ov_admin_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+
+            await checkOverviewRow(i, tr.dataset.src, tr.dataset.dst, tr.dataset.adminPath, tr.dataset.user, tr.dataset.pass, strAStart, strAEnd, masterSiteMap);
+        }
+
+        async function checkOverviewRow(i, src, dst, adminPath, user, pass, strAStart, strAEnd, masterSiteMap) {
+            const srcClean = src.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+            const dstClean = dst.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+
+            const owners = masterSiteMap.get(srcClean) || [];
+            const gscEl = document.getElementById(`ov_gsc_${i}`);
+            if (owners.length > 0) {
+                gscEl.innerHTML = owners.map(o => `<div style="font-size:10px; color:var(--primary)">${o.email}</div>`).join('');
+            } else {
+                gscEl.innerHTML = '<span class="status-badge" style="background:#4b5563">🔴 Chưa có</span>';
+            }
+
+            // --- HTTP & Content Check ---
+            const { html, code, redirectUrl } = await fetchStatus(src);
+            const httpEl = document.getElementById(`ov_http_${i}`);
+            const rdrEl = document.getElementById(`ov_301_${i}`);
+            
+            let label = ''; let labelClass = 'status-error';
+            if (code === 0) label = 'Không phản hồi';
+            else if (code === 1016) label = 'Lỗi 1016 (CF)';
+            else if (code === 404) label = 'Lỗi 404';
+            else if (code === 403) label = 'Lỗi 403';
+            else if (code >= 500) label = 'Lỗi Server (' + code + ')';
+            else if (html && (html.includes('Error establishing a database connection') || html.includes('Internal Server Error'))) label = 'Lỗi WP/DB';
+            else if (html && html.length < 200 && !redirectUrl) label = 'Trắng trang';
+            else if (code === 200 || code === 301 || code === 302) {
+                label = 'Tốt'; labelClass = 'status-success';
+            } else {
+                label = 'Lỗi ' + code;
+            }
+
+            httpEl.innerHTML = `<span class="status-badge ${labelClass}">${label}</span>`;
+
+            // --- 301 & Brand Check ---
+            const finalHost = redirectUrl ? normalizeHostname(redirectUrl) : (html ? normalizeHostname(src) : '');
+            const isMatch = finalHost === normalizeHostname(dst) || finalHost.includes(normalizeHostname(dst));
+            const brandEl = document.getElementById(`ov_brand_${i}`);
+            
+            if (srcClean !== dstClean) {
+                if (isMatch) rdrEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ KHHP (301 OK)</span>';
+                else {
+                    rdrEl.innerHTML = `<span style="color:var(--danger); font-size:11px;">🚨 Sai domain gốc</span><br><span style="font-size:9px; color:var(--text-muted)">-> ${finalHost || '???'}</span>`;
+                }
+            } else {
+                rdrEl.innerText = '-';
+            }
+
+            // Check Brand Gốc (Footer)
+            if (html) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                let footerText = '';
+                const footers = doc.querySelectorAll('footer, [class*="footer"], [id*="footer"], [class*="copyright"], [id*="copyright"]');
+                footers.forEach(f => footerText += f.textContent + ' ');
+                if(!footerText) footerText = doc.body ? doc.body.textContent.slice(-2000) : '';
+                
+                let coreBrand = srcClean.split('.')[0].replace(/-/g, '');
+                if (coreBrand === 'www') coreBrand = srcClean.split('.')[1].replace(/-/g, '');
+                
+                const srcNumMatch = coreBrand.match(/\\d+$/);
+                const srcNum = srcNumMatch ? srcNumMatch[0] : '';
+                const srcAlpha = coreBrand.replace(/\\d+$/, '');
+                
+                let brandMatch = false;
+
+                if (footerText.toLowerCase().includes(coreBrand.toLowerCase())) {
+                    brandMatch = true;
+                } else if (srcAlpha.length >= 3) {
+                    const regex = new RegExp(srcAlpha + '(\\\\d*)', 'gi');
+                    let match;
+                    while ((match = regex.exec(footerText)) !== null) {
+                        const foundNum = match[1];
+                        if (foundNum === '' || foundNum === srcNum) {
+                            brandMatch = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (brandMatch) {
+                    brandEl.innerHTML = `<span style="color:var(--success); font-size:11px; font-weight:bold;">✅ ĐÚNG</span>`;
+                } else {
+                    brandEl.innerHTML = `<span style="color:var(--danger); font-size:11px; font-weight:bold;">🚨 LỆCH</span>`;
+                }
+            } else {
+                brandEl.innerText = '-';
+            }
+
+            if (user) {
+                const adRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + adminPath)}`);
+                const adEl = document.getElementById(`ov_admin_${i}`);
+                if (adRes.ok) {
+                    const h = await adRes.text();
+                    if (h.includes('wp-login') || h.includes('user_login')) adEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ Admin Live</span>';
+                    else adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">⚠️ Đổi Path?</span>';
+                } else adEl.innerHTML = '<span style="color:var(--danger); font-size:11px;">❌ Lỗi WP</span>';
+            }
+
+            if (owners.length > 0) {
+                const insEl = document.getElementById(`ov_ins_${i}`);
+                const data = await fetchGscMetrics(owners[0].originalUrl, owners[0].token, strAStart, strAEnd);
+                if (data && !data.error) insEl.innerHTML = `<span style="color:var(--primary); font-weight:bold;">${data.clicks}</span> <span style="font-size:9px; color:var(--text-muted)">clicks</span>`;
+                else insEl.innerText = '-';
+            }
         }
     </script>
 
