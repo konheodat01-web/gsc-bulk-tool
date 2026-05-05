@@ -804,7 +804,10 @@
             statusEl.innerHTML = '🟡 Đang kết nối tới VPS...';
 
             try {
-                const response = await fetch(`http://${ip}:3000/update-config`, {
+                // Dùng proxy để vượt lỗi Mixed Content (HTTPS -> HTTP)
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`http://${ip}:3000/update-config`)}`;
+                
+                const response = await fetch(proxyUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ telegramToken: token, chatId: chatId, sheetUrl: sheetUrl })
