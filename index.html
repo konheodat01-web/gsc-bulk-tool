@@ -134,21 +134,21 @@
             <div>
                 <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Google Sheet URL (Link nguồn cố định để nạp dữ liệu)</label>
                 <input type="text" id="globalSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/1X2Y3Z.../edit" onchange="saveTeleSettings()" style="width:100%; border:1px solid var(--border); padding:8px; font-size:12px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box;">
-                <!-- Cấu hình VPS -->
-                <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px dashed rgba(255,255,255,0.1);">
-                    <h4 style="margin-top:0; font-size:14px; color:var(--primary); display:flex; align-items:center; gap:8px;">
-                        <span style="font-size:18px;">🖥️</span> Điều khiển VPS (Super Agent)
-                    </h4>
-                    <div class="input-group">
-                        <label>Địa chỉ IP VPS:</label>
-                        <input type="text" id="vpsIp" placeholder="Ví dụ: 103.82.195.87">
-                    </div>
-                    <button onclick="syncToVps()" id="syncVpsBtn" style="width:100%; margin-top:10px; background:var(--secondary); border:none; padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                        <span>📤</span> Đồng bộ cấu hình lên VPS
-                    </button>
-                    <div id="vpsStatus" style="font-size:11px; margin-top:8px; text-align:center;"></div>
-                </div>
             </div>
+        </div>
+        <!-- Cấu hình VPS -->
+        <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px dashed rgba(255,255,255,0.1);">
+            <h4 style="margin-top:0; font-size:14px; color:var(--primary); display:flex; align-items:center; gap:8px;">
+                <span style="font-size:18px;">🖥️</span> Điều khiển VPS (Super Agent)
+            </h4>
+            <div class="input-group">
+                <label>Địa chỉ IP VPS:</label>
+                <input type="text" id="vpsIp" placeholder="Ví dụ: 103.82.195.87" onchange="saveTeleSettings()">
+            </div>
+            <button onclick="syncToVps()" id="syncVpsBtn" style="width:100%; margin-top:10px; background:var(--secondary); border:none; padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                <span>📤</span> Đồng bộ cấu hình lên VPS
+            </button>
+            <div id="vpsStatus" style="font-size:11px; margin-top:8px; text-align:center;"></div>
         </div>
         <div style="margin-top: 15px; text-align: right;">
             <button class="btn btn-primary" onclick="saveTeleSettings()" style="padding: 8px 25px; font-size: 12px; height: 35px; white-space: nowrap;">💾 Lưu Cấu Hình</button>
@@ -804,14 +804,11 @@
             statusEl.innerHTML = '🟡 Đang kết nối tới VPS...';
 
             try {
-                // Dùng proxy để vượt lỗi Mixed Content (HTTPS -> HTTP)
-                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`http://${ip}:3000/update-config`)}`;
+                // Dùng proxy với phương thức GET để tránh lỗi Preflight/CORS của POST
+                const targetUrl = `http://${ip}:3000/update-config?telegramToken=${encodeURIComponent(token)}&chatId=${encodeURIComponent(chatId)}&sheetUrl=${encodeURIComponent(sheetUrl)}`;
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
                 
-                const response = await fetch(proxyUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ telegramToken: token, chatId: chatId, sheetUrl: sheetUrl })
-                });
+                const response = await fetch(proxyUrl);
 
                 const data = await response.json();
                 if (data.success) {
@@ -833,11 +830,13 @@
         const chatId = document.getElementById('teleChatId').value;
         const sheetUrl = document.getElementById('globalSheetUrl').value;
         const clientId = document.getElementById('googleClientId').value;
+        const vpsIp = document.getElementById('vpsIp').value;
         
         localStorage.setItem('tele_token', token);
         localStorage.setItem('tele_chat_id', chatId);
         localStorage.setItem('global_sheet_url', sheetUrl);
         localStorage.setItem('google_client_id', clientId);
+        localStorage.setItem('vps_ip', vpsIp);
         GOOGLE_CLIENT_ID = clientId; // Cập nhật biến toàn cục ngay lập tức
         
         try {
@@ -859,6 +858,7 @@
         document.getElementById('teleChatId').value = localStorage.getItem('tele_chat_id') || '';
         document.getElementById('globalSheetUrl').value = localStorage.getItem('global_sheet_url') || '';
         document.getElementById('googleClientId').value = localStorage.getItem('google_client_id') || GOOGLE_CLIENT_ID;
+        document.getElementById('vpsIp').value = localStorage.getItem('vps_ip') || '';
         
         try {
             const res = await fetch(TELE_JSON_URL + "?t=" + Date.now());
@@ -875,6 +875,7 @@
                     document.getElementById('googleClientId').value = data.google_client_id; 
                     GOOGLE_CLIENT_ID = data.google_client_id;
                 }
+
                 if(data.gsc_emails && Array.isArray(data.gsc_emails) && typeof gscAccounts !== 'undefined') {
                     data.gsc_emails.forEach(email => {
                         if(!gscAccounts.find(a=>a.email === email)) gscAccounts.push({ email: email, token: null, expiresAt: 0 });
