@@ -1450,6 +1450,7 @@
 
     // Tự động dò đúng path wp-admin
     async function detectWpAdmin(dst) {
+        const dstBase = stripLocalePath(dst);
         for (let path of WP_ADMIN_PATHS) {
             try {
                 const ctrl = new AbortController();
@@ -1466,6 +1467,7 @@
     }
 
     async function checkOneRow(i, src, dst, adminPath, user, pass, checkAdmin) {
+        const dstBase = stripLocalePath(dst || src);
         const stEl = document.getElementById(`cSt_${i}`);
         const coEl = document.getElementById(`cCo_${i}`);
         const maEl = document.getElementById(`cMa_${i}`);
