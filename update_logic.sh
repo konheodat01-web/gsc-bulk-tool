@@ -31,6 +31,20 @@ app.get('/update-credentials', (req, res) => {
     }
 });
 
+
+// API lưu Workflow
+app.get('/save-workflow', (req, res) => {
+    const { trigger, action, notify } = req.query;
+    if (!trigger || !action) return res.json({ success: false, message: 'Thiếu dữ liệu' });
+    
+    // Lưu vào file để sau này xử lý
+    const wf = { trigger, action, notify, time: new Date() };
+    fs.writeFileSync(path.join(__dirname, 'workflows.json'), JSON.stringify([wf], null, 2));
+    
+    res.json({ success: true, message: 'Đã lưu workflow' });
+});
+
+
 // API tự động nâng cấp Agent từ xa
 app.get('/update-agent', (req, res) => {
     res.json({ success: true, message: 'Agent đang tự động nâng cấp... Sếp đợi 5 giây nhé!' });
