@@ -1629,7 +1629,6 @@
     }
     window.getUserBlocks = getUserBlocks;
     window.saveUserBlocks = saveUserBlocks;
-    window.renderPalette = function() { renderPalette(); };
     window.openBlockFactory = function(idx) {
         document.getElementById('blockFactoryOverlay').style.display = 'flex';
         openBlockFactory(idx);
@@ -4165,6 +4164,84 @@
         style.innerHTML = switchCss;
         document.head.appendChild(style);
     }
+
+
+    // ===== BLOCK FACTORY =====
+    let _bfEditingIdx = null;
+
+    function openBlockFactory(idx) {
+        _bfEditingIdx = idx;
+        const overlay = document.getElementById('blockFactoryOverlay');
+        overlay.style.display = 'flex';
+        
+        if (idx !== null && idx !== undefined) {
+            const blocks = getUserBlocks();
+            const b = blocks[idx];
+            if (b) {
+                document.getElementById('bfName').value = b.label || '';
+                document.getElementById('bfIcon').value = b.icon || '⚙️';
+                document.getElementById('bfColor').value = b.color || '#ec4899';
+                document.getElementById('bfDesc').value = b.desc || '';
+                document.getElementById('bfCode').value = b.code || '';
+            }
+        } else {
+            document.getElementById('bfName').value = '';
+            document.getElementById('bfIcon').value = '⚙️';
+            document.getElementById('bfColor').value = '#ec4899';
+            document.getElementById('bfDesc').value = '';
+            document.getElementById('bfCode').value = '// Dữ liệu đầu vào là mảng: items\n// Bạn phải return mảng items sau khi xử lý.\n\nreturn items.map(item => {\n    // Xử lý dữ liệu ở đây...\n    return item;\n});';
+        }
+    }
+
+    function closeBlockFactory() {
+        document.getElementById('blockFactoryOverlay').style.display = 'none';
+        _bfEditingIdx = null;
+    }
+
+    function saveBlockFactory() {
+        const name = document.getElementById('bfName').value.trim();
+        const code = document.getElementById('bfCode').value.trim();
+        if (!name) { alert('Vui lòng nhập tên viên gạch!'); return; }
+        if (!code) { alert('Vui lòng nhập mã xử lý!'); return; }
+        
+        const blocks = getUserBlocks();
+        const block = {
+            type: _bfEditingIdx !== null ? blocks[_bfEditingIdx].type : 'user_' + Date.now(),
+            category: 'user',
+            icon: document.getElementById('bfIcon').value.trim() || '⚙️',
+            label: name,
+            color: document.getElementById('bfColor').value || '#ec4899',
+            desc: document.getElementById('bfDesc').value.trim() || 'Viên gạch tùy chỉnh',
+            code: code
+        };
+        
+        if (_bfEditingIdx !== null && blocks[_bfEditingIdx]) {
+            blocks[_bfEditingIdx] = block;
+        } else {
+            blocks.push(block);
+        }
+        
+        saveUserBlocks(blocks);
+        renderPalette();
+        closeBlockFactory();
+        
+        // Toast notification
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed; bottom:30px; right:30px; background:linear-gradient(135deg,#ec4899,#a855f7); color:white; padding:14px 22px; border-radius:12px; font-size:14px; font-weight:600; z-index:99999; box-shadow:0 8px 32px rgba(236,72,153,0.4);';
+        toast.textContent = '✅ Đã lưu viên gạch: ' + name;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function deleteUserBlock(idx) {
+        const blocks = getUserBlocks();
+        const name = blocks[idx]?.label || 'viên gạch này';
+        if (!confirm('Bạn có chắc muốn xóa "' + name + '"?')) return;
+        blocks.splice(idx, 1);
+        saveUserBlocks(blocks);
+        renderPalette();
+    }
+
 </script>
 
 </div>
@@ -4326,82 +4403,7 @@ return items.map(item => {
         </div>
     </div>
 
-    <script>
-    let _bfEditingIdx = null;
-
-    function openBlockFactory(idx) {
-        _bfEditingIdx = idx;
-        const overlay = document.getElementById('blockFactoryOverlay');
-        overlay.style.display = 'flex';
-        
-        if (idx !== null && idx !== undefined) {
-            const blocks = window.getUserBlocks();
-            const b = blocks[idx];
-            if (b) {
-                document.getElementById('bfName').value = b.label || '';
-                document.getElementById('bfIcon').value = b.icon || '⚙️';
-                document.getElementById('bfColor').value = b.color || '#ec4899';
-                document.getElementById('bfDesc').value = b.desc || '';
-                document.getElementById('bfCode').value = b.code || '';
-            }
-        } else {
-            document.getElementById('bfName').value = '';
-            document.getElementById('bfIcon').value = '⚙️';
-            document.getElementById('bfColor').value = '#ec4899';
-            document.getElementById('bfDesc').value = '';
-            document.getElementById('bfCode').value = '// Dữ liệu đầu vào là mảng: items\n// Bạn phải return mảng items sau khi xử lý.\n\nreturn items.map(item => {\n    // Xử lý dữ liệu ở đây...\n    return item;\n});';
-        }
-    }
-
-    function closeBlockFactory() {
-        document.getElementById('blockFactoryOverlay').style.display = 'none';
-        _bfEditingIdx = null;
-    }
-
-    function saveBlockFactory() {
-        const name = document.getElementById('bfName').value.trim();
-        const code = document.getElementById('bfCode').value.trim();
-        if (!name) { alert('Vui lòng nhập tên viên gạch!'); return; }
-        if (!code) { alert('Vui lòng nhập mã xử lý!'); return; }
-        
-        const blocks = window.getUserBlocks();
-        const block = {
-            type: _bfEditingIdx !== null ? blocks[_bfEditingIdx].type : 'user_' + Date.now(),
-            category: 'user',
-            icon: document.getElementById('bfIcon').value.trim() || '⚙️',
-            label: name,
-            color: document.getElementById('bfColor').value || '#ec4899',
-            desc: document.getElementById('bfDesc').value.trim() || 'Viên gạch tùy chỉnh',
-            code: code
-        };
-        
-        if (_bfEditingIdx !== null && blocks[_bfEditingIdx]) {
-            blocks[_bfEditingIdx] = block;
-        } else {
-            blocks.push(block);
-        }
-        
-        window.saveUserBlocks(blocks);
-        window.renderPalette();
-        closeBlockFactory();
-        
-        // Toast notification
-        const toast = document.createElement('div');
-        toast.style.cssText = 'position:fixed; bottom:30px; right:30px; background:linear-gradient(135deg,#ec4899,#a855f7); color:white; padding:14px 22px; border-radius:12px; font-size:14px; font-weight:600; z-index:99999; box-shadow:0 8px 32px rgba(236,72,153,0.4);';
-        toast.textContent = '✅ Đã lưu viên gạch: ' + name;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    }
-
-    function deleteUserBlock(idx) {
-        const blocks = window.getUserBlocks();
-        const name = blocks[idx]?.label || 'viên gạch này';
-        if (!confirm('Bạn có chắc muốn xóa "' + name + '"?')) return;
-        blocks.splice(idx, 1);
-        window.saveUserBlocks(blocks);
-        window.renderPalette();
-    }
-    </script>
+    
 
 </body>
 </html>
