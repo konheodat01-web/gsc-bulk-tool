@@ -3507,36 +3507,61 @@
                 <button onclick="closeAutomationPanel()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer; padding:5px; margin-left:5px;">✕</button>
             </div>
         </div>
-        <div class="wf-builder-body">
-        <!-- LEFT PALETTE -->
-        <div class="wf-palette" id="wfPalette">
-            <div class="palette-section-title">🧩 Viên Gạch Nhỏ</div>
-            <div id="atomicPaletteList"></div>
-            <hr class="palette-divider">
-            <div class="palette-section-title">📦 Khối Lắp Sẵn</div>
-            <div id="compoundPaletteList"></div>
+        
+        <!-- WORKFLOW LIBRARY VIEW -->
+        <div class="wf-lib-wrap active" id="wfLibraryView">
+            <div class="wf-lib-header">
+                <div>
+                    <div class="wf-lib-title">Workflow Library</div>
+                    <div style="font-size:13px; color:#64748b; margin-top:5px;">Quản lý và thực thi các quy trình tự động</div>
+                </div>
+                <button class="wf-lib-btn-create" onclick="openWfCreateModal()"><span>➕</span> Tạo Quy Trình Mới</button>
+            </div>
+            <div class="wf-lib-grid" id="wfLibGrid">
+                <!-- Cards generated here -->
+            </div>
         </div>
 
-        <!-- CANVAS -->
-        <div class="wf-canvas-wrap" id="wfCanvasWrap">
-            <div id="wfCanvas">
-                <svg class="wf-svg" id="wfSvg"></svg>
-                <div class="wf-canvas-hint" id="wfHint">
-                    <span class="hint-icon">🎨</span>
-                    <strong>Kéo block từ bảng trái vào đây</strong><br>
-                    <span style="font-size:11px;color:#334155;">Nối các block bằng cách click ● (output) → ● (input)</span>
-                </div>
-            </div>
-            <!-- Saved Workflows -->
-            <div class="wf-saved-panel">
-                <div class="wf-saved-header">💾 Workflow Đã Lưu</div>
-                <div id="savedWfList"><div style="padding:12px 14px;font-size:11px;color:#475569;">Chưa có workflow nào</div></div>
-                <div style="padding:8px 14px;border-top:1px solid rgba(255,255,255,0.06);">
-                    <input id="wfNameInput" placeholder="Tên workflow mới..." style="width:100%;padding:5px 8px;background:rgba(0,0,0,0.3);border:1px solid rgba(124,58,237,0.3);border-radius:5px;color:#e2e8f0;font-size:11px;box-sizing:border-box;">
+        <!-- CREATE MODAL -->
+        <div class="wf-modal-overlay" id="wfCreateModal">
+            <div class="wf-modal">
+                <div class="wf-modal-title">Tạo Workflow Mới</div>
+                <input type="text" id="newWfName" class="wf-modal-input" placeholder="Tên workflow (vd: Tự động check lỗi website)..." autofocus>
+                <div class="wf-modal-actions">
+                    <button class="wf-modal-btn wf-modal-btn-cancel" onclick="closeWfCreateModal()">Hủy</button>
+                    <button class="wf-modal-btn wf-modal-btn-create" onclick="submitCreateWf()">Tiếp tục ➔</button>
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- BUILDER VIEW -->
+        <div class="wf-builder-body" id="wfBuilderView">
+            <!-- LEFT PALETTE -->
+            <div class="wf-palette" id="wfPalette">
+                <div class="palette-section-title">🧩 Viên Gạch Nhỏ</div>
+                <div id="atomicPaletteList"></div>
+                <hr class="palette-divider">
+                <div class="palette-section-title">📦 Khối Lắp Sẵn</div>
+                <div id="compoundPaletteList"></div>
+            </div>
+
+            <!-- CANVAS -->
+            <div class="wf-canvas-wrap" id="wfCanvasWrap">
+                <div id="wfCanvas">
+                    <svg class="wf-svg" id="wfSvg"></svg>
+                    <div class="wf-canvas-hint" id="wfHint">
+                        <span class="hint-icon">🎨</span>
+                        <strong>Kéo block từ bảng trái vào đây</strong><br>
+                        <span style="font-size:11px;color:#334155;">Nối các block bằng cách click ● (output) → ● (input)</span>
+                    </div>
+                </div>
+                <!-- Toolbar overlay on canvas -->
+                <div style="position:absolute; top:15px; left:15px; display:flex; gap:10px;">
+                    <input id="wfNameInput" placeholder="Tên workflow..." style="padding:6px 12px; background:rgba(0,0,0,0.5); border:1px solid rgba(124,58,237,0.3); border-radius:6px; color:#e2e8f0; font-size:12px; font-weight:600; width:250px;">
+                </div>
+            </div>
+        </div>
+
     </div>
 
 </body>
