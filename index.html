@@ -1227,7 +1227,29 @@
                 if (data.success) {
                     statusEl.innerHTML = '<span style="color:var(--success)">✅ ' + data.message + '</span>';
                     alert('Đã lưu chìa khóa thành công!');
-                } else {
+                
+        } else if (node.type === 'telegram') {
+            body.innerHTML = `
+                <div class="set-group">
+                    <label class="set-label">Mẫu báo cáo (Template):</label>
+                    <textarea id="setTeleTemplate" class="set-input" style="height: 150px;" placeholder="Ví dụ: \n⚠️ Cảnh báo sếp! Website {{url}} đang gặp lỗi {{status}}!\nKiểm tra ngay nhé sếp.">${data.template || ''}</textarea>
+                    <div style="font-size:10px; color:#64748b; margin-top:5px;">Dùng {{url}}, {{status}}, {{error}} để làm biến số.</div>
+                </div>
+            `;
+        } else if (node.type === 'http-status') {
+            body.innerHTML = `
+                <div class="set-group">
+                    <label class="set-label">Thời gian chờ (Timeout):</label>
+                    <input type="number" id="setStatusTimeout" class="set-input" value="${data.timeout || 10000}" placeholder="ms (vd: 10000 = 10 giây)">
+                </div>
+                <div class="set-group">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#e2e8f0; cursor:pointer;">
+                        <input type="checkbox" id="setCheckWhitePage" ${data.checkWhitePage !== false ? 'checked' : ''}> Check lỗi Trắng trang
+                    </label>
+                </div>
+            `;
+
+        } else {
                     statusEl.innerHTML = '<span style="color:var(--danger)">❌ ' + data.message + '</span>';
                 }
             } catch (error) {
@@ -1564,6 +1586,7 @@
     // ===== WORKFLOW BUILDER ENGINE =====
     // Workflow Builder Engine - all functions
     const ATOMIC_BLOCKS = [
+        { type: 'http-status', icon: '🔍', label: 'Check Trạng Thái', color: '#10b981', desc: 'Dò lỗi 404, 502, Time out, Trắng trang...' },
         { type: 'input',       icon: '📥', label: 'Nhập Dữ Liệu',     color: '#3b82f6', desc: 'Danh sách URL / domain đầu vào' },
         { type: 'gsc-auth',    icon: '🔗', label: 'Kết Nối Google',    color: '#4f46e5', desc: 'Xác thực tài khoản Google OAuth' },
         { type: 'gsc-verify',  icon: '✅', label: 'Xác Minh Site',     color: '#7c3aed', desc: 'Xác minh quyền sở hữu trong GSC' },
@@ -3337,6 +3360,149 @@
             }
         }
     
+    
+    // --- WORKFLOW EXECUTION ENGINE ---
+    async function runCurrentWorkflow() {
+        if (wfNodes.length === 0) { alert('Canvas đang trống!'); return; }
+        
+        const orderedIds = getExecutionOrder();
+        if (orderedIds.length === 0) { alert('Quy trình chưa được kết nối đúng cách!'); return; }
+
+        const btn = document.getElementById('wfBtnTest');
+        const oldText = btn.innerHTML;
+        btn.innerHTML = '⏳ Đang chạy...';
+        btn.disabled = true;
+
+        try {
+            // State storage for data passing between nodes
+            let flowData = []; // Array of objects { url, adminPath, user, pass, results... }
+
+            for (const nodeId of orderedIds) {
+                const node = wfNodes.find(n => n.id === nodeId);
+                if (!node) continue;
+
+                // Highlight node
+                const nodeEl = document.getElementById(nodeId);
+                if(nodeEl) nodeEl.style.boxShadow = '0 0 20px rgba(124,58,237,0.8)';
+                
+                // EXECUTE NODE LOGIC
+                if (node.type === 'input') {
+                    flowData = await execInputNode(node);
+                } else if (node.type === 'http-status') {
+                    flowData = await execHttpStatusNode(node, flowData);
+                } else if (node.type === 'telegram') {
+                    await execTelegramNode(node, flowData);
+                }
+                
+                // Un-highlight
+                if(nodeEl) nodeEl.style.boxShadow = '';
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            alert('✅ Quy trình đã hoàn thành!');
+        } catch (err) {
+            console.error('Workflow Execution Error:', err);
+            alert('❌ Lỗi quy trình: ' + err.message);
+        } finally {
+            btn.innerHTML = oldText;
+            btn.disabled = false;
+        }
+    }
+
+    async function execInputNode(node) {
+        const data = node.data || {};
+        let raw = '';
+        
+        if (data.mode === 'sheet' && data.sheetUrl) {
+            // Call existing sheet import logic
+            const sheetIdMatch = data.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (!sheetIdMatch) throw new Error('Link Google Sheet không hợp lệ');
+            const sheetId = sheetIdMatch[1];
+            const range = data.sheetRange || 'A2:E100';
+            const apiKey = GOOGLE_API_KEY; // Global variable
+            
+            const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`);
+            const json = await res.json();
+            if (!json.values) throw new Error('Không lấy được dữ liệu từ Sheet (Có thể chưa Share Public?)');
+            
+            return json.values.map(row => ({
+                url: (row[0] || '').trim(),
+                adminPath: (row[1] || '').trim(),
+                user: (row[2] || '').trim(),
+                pass: (row[3] || '').trim()
+            })).filter(r => r.url);
+        } else {
+            // Manual mode
+            raw = data.manualRaw || '';
+            const lines = raw.split('\n').filter(l => l.trim());
+            return lines.map(line => {
+                const parts = line.split('|').map(p => p.trim());
+                return {
+                    url: parts[0] || '',
+                    adminPath: parts[1] || '',
+                    user: parts[2] || '',
+                    pass: parts[3] || ''
+                };
+            }).filter(r => r.url);
+        }
+    }
+
+    async function execHttpStatusNode(node, inputData) {
+        if (!inputData || inputData.length === 0) return [];
+        const settings = node.data || {};
+        const timeout = settings.timeout || 10000;
+        
+        const results = [];
+        for (const item of inputData) {
+            let status = 'Checking...';
+            let errorMsg = '';
+            try {
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                
+                // Using a CORS proxy to check status from client side
+                const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(item.url);
+                const res = await fetch(proxyUrl, { signal: controller.signal });
+                clearTimeout(id);
+                
+                if (res.ok) {
+                    const json = await res.json();
+                    const httpCode = json.status?.http_code || 200;
+                    const content = json.contents || '';
+                    
+                    if (httpCode >= 400) status = `Lỗi ${httpCode}`;
+                    else if (settings.checkWhitePage !== false && content.trim().length < 50) status = 'Trắng trang';
+                    else status = '200 OK';
+                } else {
+                    status = `Lỗi ${res.status}`;
+                }
+            } catch (err) {
+                status = err.name === 'AbortError' ? 'Time out' : 'Lỗi kết nối';
+                errorMsg = err.message;
+            }
+            results.push({ ...item, status, error: errorMsg });
+        }
+        return results;
+    }
+
+    async function execTelegramNode(node, inputData) {
+        if (!inputData || inputData.length === 0) return;
+        const template = node.data?.template || 'Website {{url}} status: {{status}}';
+        
+        // Group results into one message to avoid spamming
+        let message = '<b>📊 BÁO CÁO WORKFLOW</b>\n\n';
+        inputData.forEach((item, i) => {
+            let rowMsg = template
+                .replace(/{{url}}/g, item.url)
+                .replace(/{{status}}/g, item.status)
+                .replace(/{{error}}/g, item.error || '');
+            message += (i+1) + '. ' + rowMsg + '\n';
+        });
+        
+        await sendToTelegram(message);
+    }
+
+
     // --- WORKFLOW FLOW OVERRIDES ---
     let currentEditingWfIndex = -1;
 
@@ -3577,6 +3743,13 @@
                     </div>
                 </div>
             `;
+        
+        } else if (node.type === 'telegram') {
+            node.data.template = document.getElementById('setTeleTemplate')?.value;
+        } else if (node.type === 'http-status') {
+            node.data.timeout = parseInt(document.getElementById('setStatusTimeout')?.value || 10000);
+            node.data.checkWhitePage = document.getElementById('setCheckWhitePage')?.checked;
+
         } else if (node.type === 'ai-content') {
              body.innerHTML = `
                 <div class="set-group">
