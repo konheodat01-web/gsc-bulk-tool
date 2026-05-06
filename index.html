@@ -1627,6 +1627,13 @@
     function saveUserBlocks(blocks) {
         localStorage.setItem('wf_user_blocks', JSON.stringify(blocks));
     }
+    window.getUserBlocks = getUserBlocks;
+    window.saveUserBlocks = saveUserBlocks;
+    window.renderPalette = function() { renderPalette(); };
+    window.openBlockFactory = function(idx) {
+        document.getElementById('blockFactoryOverlay').style.display = 'flex';
+        openBlockFactory(idx);
+    };
     function allBlocks() { return [...ATOMIC_BLOCKS, ...COMPOUND_BLOCKS, ...getUserBlocks()]; }
     
     function renderPalette() {
@@ -1926,17 +1933,7 @@
         updateAutomationBadge();
     }
     
-    function runCurrentWorkflow() {
-        if (wfNodes.length === 0) { alert('Canvas đang trống!'); return; }
-        const ordered = getExecutionOrder();
-        let msg = 'Thu tu thuc thi:\n\n';
-        ordered.forEach((id, i) => {
-            const n = wfNodes.find(x => x.id === id);
-            if (n) msg += (i+1) + '. ' + n.def.label + '\n';
-        });
-        msg += '\nChuc nang chay thuc te se duoc tich hop o buoc tiep theo!';
-        alert(msg);
-    }
+
     
     function getExecutionOrder() {
         const inDegree = {};
@@ -4338,7 +4335,7 @@ return items.map(item => {
         overlay.style.display = 'flex';
         
         if (idx !== null && idx !== undefined) {
-            const blocks = getUserBlocks();
+            const blocks = window.getUserBlocks();
             const b = blocks[idx];
             if (b) {
                 document.getElementById('bfName').value = b.label || '';
@@ -4367,7 +4364,7 @@ return items.map(item => {
         if (!name) { alert('Vui lòng nhập tên viên gạch!'); return; }
         if (!code) { alert('Vui lòng nhập mã xử lý!'); return; }
         
-        const blocks = getUserBlocks();
+        const blocks = window.getUserBlocks();
         const block = {
             type: _bfEditingIdx !== null ? blocks[_bfEditingIdx].type : 'user_' + Date.now(),
             category: 'user',
@@ -4384,8 +4381,8 @@ return items.map(item => {
             blocks.push(block);
         }
         
-        saveUserBlocks(blocks);
-        renderPalette();
+        window.saveUserBlocks(blocks);
+        window.renderPalette();
         closeBlockFactory();
         
         // Toast notification
@@ -4397,12 +4394,12 @@ return items.map(item => {
     }
 
     function deleteUserBlock(idx) {
-        const blocks = getUserBlocks();
+        const blocks = window.getUserBlocks();
         const name = blocks[idx]?.label || 'viên gạch này';
         if (!confirm('Bạn có chắc muốn xóa "' + name + '"?')) return;
         blocks.splice(idx, 1);
-        saveUserBlocks(blocks);
-        renderPalette();
+        window.saveUserBlocks(blocks);
+        window.renderPalette();
     }
     </script>
 
