@@ -1618,7 +1618,7 @@
                 
                 if (user && pass) {
                     loEl.innerHTML += '<br><span style="font-size:10px">⏳ Đang test...</span>';
-                    const loginStatus = await verifyLoginViaVps(dst || src, user, pass);
+                    const loginStatus = await verifyLoginViaVps(dstBase, user, pass);
                     loEl.innerHTML = loEl.innerHTML.replace('⏳ Đang test...', loginStatus);
                 }
             } else {
@@ -2585,7 +2585,8 @@
             if (user && pass) {
                 const adEl = document.getElementById(`ov_admin_${i}`);
                 adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">⏳ Đang check Pass...</span>';
-                const status = await verifyLoginViaVps(dst || src, user, pass);
+                const dstAdminBase = stripLocalePath(dst || src);
+                const status = await verifyLoginViaVps(dstAdminBase, user, pass);
                 adEl.innerHTML = status;
             } else if (user) {
                 const adEl = document.getElementById(`ov_admin_${i}`);
