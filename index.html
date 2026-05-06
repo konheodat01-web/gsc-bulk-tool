@@ -802,7 +802,7 @@
 
             statusEl.innerHTML = '🟡 Đang gửi lệnh nâng cấp tới VPS...';
             try {
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(`http://${ip}:3000/update-agent`)}`;
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(`http://${ip}:3000/update-agent`)}`;
                 const response = await fetch(proxyUrl);
                 const data = await response.json();
                 if (data.success) {
@@ -831,7 +831,7 @@
             try {
                 // Dùng proxy với phương thức GET để tránh lỗi Preflight/CORS của POST
                 const targetUrl = `http://${ip}:3000/update-config?telegramToken=${encodeURIComponent(token)}&chatId=${encodeURIComponent(chatId)}&sheetUrl=${encodeURIComponent(sheetUrl)}`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
                 
                 const response = await fetch(proxyUrl);
 
