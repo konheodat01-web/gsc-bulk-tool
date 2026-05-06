@@ -40,6 +40,18 @@ app.get('/update-agent', (req, res) => {
     });
 });
 
+// API kiểm tra Login lẻ (Bypass CORS bằng VPS)
+app.get('/check-login', async (req, res) => {
+    const { url, user, pass } = req.query;
+    if (!url || !user || !pass) return res.json({ success: false, message: 'Thiếu thông tin' });
+    try {
+        const result = await verifyLogin(url, user, pass);
+        res.json({ success: true, result });
+    } catch (e) {
+        res.json({ success: false, result: '❓ Lỗi' });
+    }
+});
+
 // API nhận cấu hình và chạy audit ngay
 app.get('/update-config', async (req, res) => {
     const { telegramToken, chatId, sheetUrl } = req.query;
