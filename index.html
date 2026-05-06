@@ -102,9 +102,7 @@
     
         /* Automation Control Center */
         #automationBtn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
+            position: relative;
             width: 60px;
             height: 60px;
             border-radius: 50%;
@@ -1329,6 +1327,10 @@
         if (lastTab && document.getElementById(lastTab)) {
             switchTab(lastTab);
         }
+        // Khôi phục trạng thái panel điều khiển nếu đang mở
+        if (sessionStorage.getItem('panelOpen') === '1') {
+            openAutomationPanel();
+        }
     });
 
     
@@ -1338,12 +1340,14 @@
         document.getElementById('autoOverlay').classList.add('open');
         document.body.style.overflow = 'hidden';
         renderWorkflowList();
+        sessionStorage.setItem('panelOpen', '1');
     }
 
     function closeAutomationPanel() {
         document.getElementById('automationPanel').classList.remove('open');
         document.getElementById('autoOverlay').classList.remove('open');
         document.body.style.overflow = '';
+        sessionStorage.removeItem('panelOpen');
     }
 
 async function saveWorkflow() {
@@ -1400,18 +1404,17 @@ async function saveWorkflow() {
     
     function updateAutomationBadge() {
         const stored = JSON.parse(localStorage.getItem('wf_list') || '[]');
-        const btn = document.getElementById('automationBtn');
-        if (!btn) return;
-        // Xóa badge cũ
+        // Gắn badge vào wrapper chứ không phải nút để không làm hỏng position:fixed
         const old = document.getElementById('wfBadge');
         if (old) old.remove();
         if (stored.length > 0) {
+            const wrapper = document.getElementById('automationBtnWrapper');
+            if (!wrapper) return;
             const badge = document.createElement('span');
             badge.id = 'wfBadge';
             badge.textContent = stored.length;
-            badge.style.cssText = 'position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:10px;font-weight:bold;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;';
-            btn.style.position = 'relative';
-            btn.appendChild(badge);
+            badge.style.cssText = 'position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:10px;font-weight:bold;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:1001;';
+            wrapper.appendChild(badge);
         }
     }
 
@@ -2894,10 +2897,12 @@ async function saveWorkflow() {
     <!-- Automation Overlay -->
     <div class="auto-overlay" id="autoOverlay" onclick="closeAutomationPanel()"></div>
 
-    <!-- Floating Button -->
-    <button id="automationBtn" onclick="openAutomationPanel()" title="Trung tâm Tự Động Hóa">
-        ⚙️
-    </button>
+    <!-- Floating Button Wrapper (position:fixed ở đây, badge absolute bên trong sẽ đúng) -->
+    <div id="automationBtnWrapper" style="position:fixed; bottom:30px; right:30px; z-index:998;">
+        <button id="automationBtn" onclick="openAutomationPanel()" title="Trung tâm Tự Động Hóa">
+            ⚙️
+        </button>
+    </div>
 
     <!-- Automation Sliding Panel -->
     <div id="automationPanel">
