@@ -40,6 +40,43 @@ app.get('/update-agent', (req, res) => {
     });
 });
 
+// Proxy đa năng qua VPS (Thay thế allorigins và codetabs)
+app.get('/proxy', async (req, res) => {
+    const { url, raw } = req.query;
+    if (!url) return res.status(400).send('Missing url');
+    
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    try {
+        const response = await axios.get(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+            timeout: 10000,
+            maxRedirects: 5,
+            validateStatus: () => true // Không ném lỗi để bắt được 404/500
+        });
+        
+        if (raw === 'true') {
+            if (response.headers['content-type']) res.setHeader('Content-Type', response.headers['content-type']);
+            return res.send(response.data);
+        }
+
+        // Trả về JSON giống allorigins
+        res.json({
+            contents: (typeof response.data === 'string' || Buffer.isBuffer(response.data)) ? response.data.toString('utf8') : '',
+            status: {
+                http_code: response.status,
+                url: response.request?.res?.responseUrl || url
+            }
+        });
+    } catch (e) {
+        if (raw === 'true') return res.status(500).send(e.message);
+        res.json({
+            contents: e.message,
+            status: { http_code: 500, url: url }
+        });
+    }
+});
+
 // API kiểm tra Login lẻ (Bypass CORS bằng VPS)
 app.get('/check-login', async (req, res) => {
     const { url, user, pass } = req.query;
