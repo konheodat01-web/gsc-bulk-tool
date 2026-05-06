@@ -402,6 +402,32 @@
         .wf-modal-btn-create { background: #7c3aed; color: white; }
         .wf-modal-btn-create:hover { background: #6d28d9; }
 
+        
+        /* ====== NODE SETTINGS SIDEBAR ====== */
+        .wf-settings-sidebar {
+            position: fixed; right: -400px; top: 0; width: 380px; height: 100vh;
+            background: #0f172a; border-left: 1px solid rgba(124,58,237,0.3);
+            z-index: 1200; transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+        }
+        .wf-settings-sidebar.open { right: 0; }
+        .wf-set-header { padding: 20px; background: rgba(124,58,237,0.1); border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .wf-set-title { font-size: 16px; font-weight: 700; color: #e2e8f0; display: flex; align-items: center; gap: 10px; }
+        .wf-set-body { flex: 1; overflow-y: auto; padding: 20px; }
+        .wf-set-footer { padding: 15px 20px; border-top: 1px solid rgba(255,255,255,0.05); display: flex; gap: 10px; }
+        
+        /* Settings Elements */
+        .set-group { margin-bottom: 20px; }
+        .set-label { font-size: 12px; color: #94a3b8; margin-bottom: 8px; display: block; font-weight: 600; }
+        .set-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; color: white; font-size: 13px; outline: none; box-sizing: border-box; }
+        .set-input:focus { border-color: #7c3aed; }
+        .set-tabs { display: flex; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 4px; margin-bottom: 15px; }
+        .set-tab { flex: 1; padding: 6px; text-align: center; font-size: 12px; color: #94a3b8; cursor: pointer; border-radius: 6px; transition: 0.2s; }
+        .set-tab.active { background: #7c3aed; color: white; }
+        
+        .btn-save-settings { flex: 1; background: #7c3aed; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .btn-save-settings:hover { background: #6d28d9; }
+
         </style>
 </head>
 <body>
@@ -3481,6 +3507,142 @@
         alert('🚀 Đang chạy ngầm Quy trình: ' + wf.name + '\n\n(Logic chạy thực tế sẽ nối vào các API tương ứng ở VPS)');
     }
 
+
+    let currentEditingNodeId = null;
+
+    // Modify renderNode to add double click
+    const originalRenderNode = renderNode;
+    renderNode = function(nodeId) {
+        originalRenderNode(nodeId);
+        const el = document.getElementById(nodeId);
+        if(el) {
+            el.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                openNodeSettings(nodeId);
+            });
+            // Add a small hint or visual cue that it's clickable
+            el.title = "Double-click để cài đặt";
+        }
+    };
+
+    function openNodeSettings(nodeId) {
+        const node = wfNodes.find(n => n.id === nodeId);
+        if (!node) return;
+        currentEditingNodeId = nodeId;
+        
+        document.getElementById('wfSettingsSidebar').classList.add('open');
+        document.getElementById('wfSetLabel').textContent = node.def.label;
+        document.getElementById('wfSetIcon').textContent = node.def.icon;
+        
+        renderSettingsBody(node);
+    }
+
+    function closeNodeSettings() {
+        document.getElementById('wfSettingsSidebar').classList.remove('open');
+        currentEditingNodeId = null;
+    }
+
+    function renderSettingsBody(node) {
+        const body = document.getElementById('wfSetBody');
+        const data = node.data || {};
+        
+        if (node.type === 'input') {
+            const mode = data.mode || 'manual';
+            body.innerHTML = `
+                <div class="set-tabs">
+                    <div class="set-tab ${mode === 'manual' ? 'active' : ''}" onclick="switchInputMode('manual')">⌨️ Nhập tay</div>
+                    <div class="set-tab ${mode === 'sheet' ? 'active' : ''}" onclick="switchInputMode('sheet')">📊 Google Sheets</div>
+                </div>
+                
+                <div id="inputModeManual" style="display: ${mode === 'manual' ? 'block' : 'none'}">
+                    <div class="set-group">
+                        <label class="set-label">Danh sách Website:</label>
+                        <textarea id="setManualData" class="set-input" style="height: 250px; font-family: monospace; font-size: 11px;" placeholder="url | admin_path | user | pass\nvd:\nhttps://site.com | /wp-admin | admin | pass123">${data.manualRaw || ''}</textarea>
+                        <div style="font-size:10px; color:#64748b; margin-top:5px;">Mỗi website 1 dòng. Dùng dấu | để ngăn cách các cột.</div>
+                    </div>
+                </div>
+                
+                <div id="inputModeSheet" style="display: ${mode === 'sheet' ? 'block' : 'none'}">
+                    <div class="set-group">
+                        <label class="set-label">URL Google Sheet:</label>
+                        <input type="text" id="setSheetUrl" class="set-input" placeholder="https://docs.google.com/spreadsheets/d/..." value="${data.sheetUrl || ''}">
+                    </div>
+                    <div class="set-group">
+                        <label class="set-label">Vùng dữ liệu (vd: A2:D100):</label>
+                        <input type="text" id="setSheetRange" class="set-input" placeholder="A2:E200" value="${data.sheetRange || 'A2:E200'}">
+                    </div>
+                    <div style="font-size:11px; color:#94a3b8; background:rgba(255,255,255,0.03); padding:10px; border-radius:6px; border-left:3px solid #7c3aed;">
+                        <b>Lưu ý:</b> Các cột nên theo thứ tự: <br>
+                        1. URL | 2. Admin Path | 3. User | 4. Pass
+                    </div>
+                </div>
+            `;
+        } else if (node.type === 'ai-content') {
+             body.innerHTML = `
+                <div class="set-group">
+                    <label class="set-label">Model AI:</label>
+                    <select id="setAiModel" class="set-input">
+                        <option value="gpt-4o" ${data.model==='gpt-4o'?'selected':''}>GPT-4o (Khuyên dùng)</option>
+                        <option value="gpt-3.5-turbo" ${data.model==='gpt-3.5-turbo'?'selected':''}>GPT-3.5 Turbo</option>
+                        <option value="claude-3-sonnet" ${data.model==='claude-3-sonnet'?'selected':''}>Claude 3 Sonnet</option>
+                    </select>
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Prompt (Câu lệnh):</label>
+                    <textarea id="setAiPrompt" class="set-input" style="height: 150px;">${data.prompt || 'Viết một bài giới thiệu ngắn về website này...'}</textarea>
+                </div>
+             `;
+        } else {
+            body.innerHTML = '<div style="text-align:center; padding:40px 0; color:#64748b;">Node này hiện chưa có thông số tùy chỉnh.</div>';
+        }
+    }
+
+    function switchInputMode(mode) {
+        document.querySelectorAll('.set-tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('inputModeManual').style.display = mode === 'manual' ? 'block' : 'none';
+        document.getElementById('inputModeSheet').style.display = mode === 'sheet' ? 'block' : 'none';
+        // temporary store in node data if we can
+        if (currentEditingNodeId) {
+            const node = wfNodes.find(n => n.id === currentEditingNodeId);
+            if(node) {
+                if(!node.data) node.data = {};
+                node.data.mode = mode;
+            }
+        }
+    }
+
+    function saveNodeSettings() {
+        if (!currentEditingNodeId) return;
+        const node = wfNodes.find(n => n.id === currentEditingNodeId);
+        if (!node) return;
+        
+        if (!node.data) node.data = {};
+        
+        if (node.type === 'input') {
+            node.data.manualRaw = document.getElementById('setManualData')?.value;
+            node.data.sheetUrl = document.getElementById('setSheetUrl')?.value;
+            node.data.sheetRange = document.getElementById('setSheetRange')?.value;
+            // mode is already set by switchInputMode
+        } else if (node.type === 'ai-content') {
+            node.data.model = document.getElementById('setAiModel')?.value;
+            node.data.prompt = document.getElementById('setAiPrompt')?.value;
+        }
+        
+        saveCanvasToSession();
+        
+        // Visual feedback
+        const btn = document.querySelector('.btn-save-settings');
+        const oldText = btn.textContent;
+        btn.textContent = "✅ Đã Lưu!";
+        btn.style.background = "#10b981";
+        setTimeout(() => {
+            btn.textContent = oldText;
+            btn.style.background = "";
+            closeNodeSettings();
+        }, 600);
+    }
+
 </script>
 
 </div>
@@ -3562,6 +3724,21 @@
             </div>
         </div>
 
+    </div>
+
+
+    <!-- NODE SETTINGS SIDEBAR -->
+    <div class="wf-settings-sidebar" id="wfSettingsSidebar">
+        <div class="wf-set-header">
+            <div class="wf-set-title" id="wfSetTitle"><span id="wfSetIcon">⚙️</span> <span id="wfSetLabel">Cài đặt Node</span></div>
+            <button onclick="closeNodeSettings()" style="background:none; border:none; color:#94a3b8; font-size:20px; cursor:pointer;">✕</button>
+        </div>
+        <div class="wf-set-body" id="wfSetBody">
+            <!-- Dynamic settings content -->
+        </div>
+        <div class="wf-set-footer">
+            <button class="btn-save-settings" onclick="saveNodeSettings()">Lưu Cài Đặt</button>
+        </div>
     </div>
 
 </body>
