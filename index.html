@@ -1618,7 +1618,7 @@
                 
                 if (user && pass) {
                     loEl.innerHTML += '<br><span style="font-size:10px">⏳ Đang test...</span>';
-                    const loginStatus = await verifyLoginViaVps(dstBase, user, pass);
+                    const loginStatus = await verifyLoginViaVps(dstBase, foundPath || adminPath, user, pass);
                     loEl.innerHTML = loEl.innerHTML.replace('⏳ Đang test...', loginStatus);
                 }
             } else {
@@ -1714,13 +1714,13 @@
         win.document.write(`<form id="f" method="POST" action="${lUrl}"><input type="hidden" name="log" value="${user}"><input type="hidden" name="pwd" value="${pass}"><input type="hidden" name="wp-submit" value="Log In"><input type="hidden" name="redirect_to" value="${url}wp-admin/"></form><script>document.getElementById('f').submit();<\/script>`);
     }
 
-    async function verifyLoginViaVps(url, user, pass) {
+    async function verifyLoginViaVps(url, adminPath, user, pass) {
         const ip = document.getElementById('vpsIp').value.trim();
         if (!ip) return '<span style="color:var(--text-muted);font-size:10px;">⚠️ Cần IP VPS</span>';
         try {
             const ctrl = new AbortController();
             setTimeout(() => ctrl.abort(), 12000);
-            const vpsLoginUrl = 'http://' + ip + ':3000/check-login?url=' + encodeURIComponent(url) + '&user=' + encodeURIComponent(user) + '&pass=' + encodeURIComponent(pass);
+            const vpsLoginUrl = 'http://' + ip + ':3000/check-login?url=' + encodeURIComponent(url) + '&adminPath=' + encodeURIComponent(adminPath || '') + '&user=' + encodeURIComponent(user) + '&pass=' + encodeURIComponent(pass);
             const loginProxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(vpsLoginUrl);
             const res = await fetch(loginProxyUrl, { signal: ctrl.signal });
             const data = await res.json();
@@ -2586,7 +2586,7 @@
                 const adEl = document.getElementById(`ov_admin_${i}`);
                 adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">⏳ Đang check Pass...</span>';
                 const dstAdminBase = stripLocalePath(dst || src);
-                const status = await verifyLoginViaVps(dstAdminBase, user, pass);
+                const status = await verifyLoginViaVps(dstAdminBase, adminPath, user, pass);
                 adEl.innerHTML = status;
             } else if (user) {
                 const adEl = document.getElementById(`ov_admin_${i}`);

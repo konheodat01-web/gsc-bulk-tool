@@ -79,10 +79,10 @@ app.get('/proxy', async (req, res) => {
 
 // API kiểm tra Login lẻ (Bypass CORS bằng VPS)
 app.get('/check-login', async (req, res) => {
-    const { url, user, pass } = req.query;
+    const { url, adminPath, user, pass } = req.query;
     if (!url || !user || !pass) return res.json({ success: false, message: 'Thiếu thông tin' });
     try {
-        const result = await verifyLogin(url, user, pass);
+        const result = await verifyLogin(url, adminPath, user, pass);
         res.json({ success: true, result });
     } catch (e) {
         res.json({ success: false, result: '❓ Lỗi' });
@@ -173,15 +173,57 @@ async function auditSite(row) {
     return status;
 }
 
-async function verifyLogin(url, user, pass) {
-    const xmlrpcUrl = url.replace(/\\/$/, '') + '/xmlrpc.php';
-    const body = \`<?xml version="1.0"?><methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>\${user}</string></value></param><param><value><string>\${pass}</string></value></param></params></methodCall>\`;
+async function verifyLogin(url, adminPath, user, pass) {
+    const baseUrl = url.replace(/\/$/, '');
+    
+    // 1. Thử qua XML-RPC trước (nhanh nhất)
+    const xmlrpcUrl = baseUrl + '/xmlrpc.php';
+    const xmlBody = \`<?xml version="1.0"?><methodCall><methodName>wp.getUsersBlogs</methodName><params><param><value><string>\${user}</string></value></param><param><value><string>\${pass}</string></value></param></params></methodCall>\`;
+    
     try {
-        const res = await axios.post(xmlrpcUrl, body, { timeout: 7000, headers: {'Content-Type': 'text/xml'} });
+        const res = await axios.post(xmlrpcUrl, xmlBody, { timeout: 7000, headers: {'Content-Type': 'text/xml'} });
         if (res.data.includes('<struct>')) return '🔑 OK';
         if (res.data.includes('Incorrect')) return '🚫 Sai Pass';
-        return '🔒 Chặn';
-    } catch (e) { return '❓ Lỗi'; }
+    } catch (e) { /* Bỏ qua lỗi, chạy tiếp cách 2 */ }
+
+    // 2. Thử Login trực tiếp qua Form POST (Dành cho web chặn XML-RPC)
+    try {
+        const p = adminPath || 'wp-admin';
+        const loginUrl = baseUrl + '/' + (p === 'wp-admin' ? 'wp-login.php' : p);
+        
+        const params = new URLSearchParams();
+        params.append('log', user);
+        params.append('pwd', pass);
+        params.append('wp-submit', 'Log In');
+
+        const formRes = await axios.post(loginUrl, params.toString(), {
+            timeout: 10000,
+            headers: { 
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            },
+            maxRedirects: 0,
+            validateStatus: () => true
+        });
+
+        const setCookies = formRes.headers['set-cookie'] || [];
+        const cookiesStr = setCookies.join(' ');
+        
+        if (cookiesStr.includes('wordpress_logged_in_')) return '🔑 OK';
+        
+        const html = typeof formRes.data === 'string' ? formRes.data : '';
+        if (html.includes('login_error') || html.includes('Incorrect') || html.includes('Sai mật khẩu')) {
+            return '🚫 Sai Pass';
+        }
+        
+        if (formRes.status >= 300 && formRes.status < 400 && formRes.headers.location && formRes.headers.location.includes('wp-admin')) {
+            return '🔑 OK';
+        }
+        
+        return '🔒 Chặn Form';
+    } catch(err) {
+        return '❓ Lỗi Kết Nối';
+    }
 }
 
 setInterval(runFullAudit, 6 * 60 * 60 * 1000);
