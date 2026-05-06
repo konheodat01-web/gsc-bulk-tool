@@ -797,6 +797,18 @@
 
     
     // === VPS PROXY HELPERS ===
+
+    function stripLocalePath(url) {
+        // Bỏ các path locale kiểu /vi-vn/, /en-us/, /vi/, /en/ ở ĐẦU path. 
+        // Vd: https://domain.com/vi-vn/wp-admin -> https://domain.com/wp-admin
+        try {
+            const u = new URL(url);
+            // Thay thế ngay đầu pathname: /vi-vn/ -> /
+            u.pathname = u.pathname.replace(/^\/([a-z]{2}(-[a-z]{2,3})?)\//i, '/');
+            return u.href; 
+        } catch(e) { return url; }
+    }
+
     function getVpsProxyUrl(url, raw = false) {
         const ip = document.getElementById('vpsIp')?.value.trim();
         if (ip) {
@@ -1345,6 +1357,8 @@
             const adminPath = dp[1] || 'wp-admin';
             const user = dp[2] || '';
             const pass = dp[3] || '';
+            // Tự động bỏ đuôi locale (vi-vn, en-us...) khi check admin
+            const dstBase = stripLocalePath(dst);
 
             const srcShort = src.replace(/^https?:\/\//,'').replace(/\/$/,'');
             const dstShort = dst.replace(/^https?:\/\//,'').replace(/\/$/,'');
@@ -1574,7 +1588,7 @@
             try {
                 const ctrl = new AbortController();
                 const tid = setTimeout(() => ctrl.abort(), 7000);
-                loginHtml = await vpsProxyRaw(dst + adminPath, ctrl.signal);
+                loginHtml = await vpsProxyRaw(dstBase + adminPath, ctrl.signal);
                 clearTimeout(tid);
                 if (loginHtml) {
                     if (loginHtml.includes('wp-login') || loginHtml.includes('user_login') || loginHtml.includes('loginform')) {
@@ -1586,7 +1600,7 @@
             // Nếu path sếp nhập sai → tự dò
             if (!foundPath) {
                 adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">🔍 Tự dò path...</span>';
-                foundPath = await detectWpAdmin(dst);
+                foundPath = await detectWpAdmin(dstBase);
             }
 
             if (foundPath) {
@@ -2568,7 +2582,8 @@
             } else if (user) {
                 const adEl = document.getElementById(`ov_admin_${i}`);
                 let h = '';
-                try { h = await vpsProxyRaw(dst + adminPath); } catch(e) {}
+                const dstAdminBase = stripLocalePath(dst || src);
+                try { h = await vpsProxyRaw(dstAdminBase + adminPath); } catch(e) {}
                 if (h) {
                     if (h.includes('wp-login') || h.includes('user_login') || h.includes('user_pass')) adEl.innerHTML = '<span class="status-badge status-success" style="font-size:10px;">✅ Admin Live</span>';
                     else adEl.innerHTML = '<span style="color:var(--warning); font-size:10px;">⚠️ Đổi Path?</span>';
