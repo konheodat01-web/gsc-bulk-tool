@@ -1578,6 +1578,7 @@
         { type: 'trigger-webhook',category: 'trigger', icon: '🪝', label: 'Webhook Trigger', color: '#f59e0b', desc: 'Kích hoạt từ app khác' },
         
         // Cốt lõi & Logic
+        { type: 'custom-code', category: 'core', icon: '💻', label: 'Chạy Code JS',     color: '#64748b', desc: 'Xử lý dữ liệu bằng mã Javascript tùy chỉnh' },
         { type: 'input',       category: 'core', icon: '📥', label: 'Nhập Dữ Liệu',     color: '#3b82f6', desc: 'Danh sách URL / domain đầu vào' },
         { type: 'condition',   category: 'core', icon: '⑂',  label: 'Điều Kiện / Lọc',  color: '#f97316', desc: 'Rẽ nhánh: Đúng → A, Sai → B' },
         { type: 'loop',        category: 'core', icon: '🔁', label: 'Vòng Lặp',         color: '#ec4899', desc: 'Chạy lặp qua từng phần tử' },
@@ -3406,6 +3407,8 @@
                     flowData = await execInputNode(node);
                 } else if (node.type === 'http-status') {
                     flowData = await execHttpStatusNode(node, flowData);
+                } else if (node.type === 'custom-code') {
+                    flowData = await execCustomCodeNode(node, flowData);
                 } else if (node.type === 'telegram') {
                     await execTelegramNode(node, flowData);
                 }
@@ -3555,6 +3558,34 @@
             await new Promise(r => setTimeout(r, 2000));
         }
         return results;
+    }
+
+    
+    async function execCustomCodeNode(node, inputData) {
+        if (!inputData) return [];
+        const data = node.data || {};
+        const codeStr = data.code || 'return items;';
+        
+        try {
+            // Create a function from the user code string.
+            // Wrap in an async function so they can use await if needed.
+            const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+            const customFunc = new AsyncFunction('items', codeStr);
+            
+            // Execute the code with a deep clone of inputData to avoid reference bleeding unless intended
+            const clonedInput = JSON.parse(JSON.stringify(inputData));
+            const result = await customFunc(clonedInput);
+            
+            if (!Array.isArray(result)) {
+                console.warn('Custom Code Node did not return an array. Returning original input.');
+                return inputData;
+            }
+            return result;
+        } catch (err) {
+            console.error('Custom Code Node Error:', err);
+            // Optionally append error to items
+            return inputData.map(item => ({...item, error: 'Lỗi Code JS: ' + err.message}));
+        }
     }
 
     async function execTelegramNode(node, inputData) {
@@ -3906,7 +3937,15 @@
             `;
         } else if (node.type === 'ai-vision-search') {
                     flowData = await execAiVisionSearchNode(node, flowData);
-                } else if (node.type === 'ai-content') {
+                } else if (node.type === 'custom-code') {
+            paramsHtml = `
+                <div class="set-group">
+                    <label class="set-label">Mã Javascript Tùy Chỉnh:</label>
+                    <textarea id="setCustomCode" class="set-input" style="height: 250px; font-family: monospace; font-size: 12px; background: #0f172a; color: #38bdf8;" spellcheck="false">${data.code || '// Mảng dữ liệu đầu vào là biến: items\n// Bạn phải return mảng items sau khi xử lý.\n\nreturn items.map(item => {\n    // Viết code xử lý ở đây...\n    // Ví dụ: item.newField = "Hello " + item.url;\n    return item;\n});'}</textarea>
+                    <div style="font-size:10px; color:#64748b; margin-top:5px;">Code chạy độc lập trên trình duyệt. Hãy cẩn thận khi dùng vòng lặp vô hạn.</div>
+                </div>
+            `;
+        } else if (node.type === 'ai-content') {
              paramsHtml = `
                 <div class="set-group">
                     <label class="set-label">Model AI:</label>
@@ -4049,6 +4088,8 @@
         } else if (node.type === 'ai-vision-search') {
             node.data.apiKey = document.getElementById('setVisionApiKey')?.value;
             node.data.prompt = document.getElementById('setVisionPrompt')?.value;
+        } else if (node.type === 'custom-code') {
+            node.data.code = document.getElementById('setCustomCode')?.value;
         } else if (node.type === 'ai-content') {
             node.data.model = document.getElementById('setAiModel')?.value;
             node.data.prompt = document.getElementById('setAiPrompt')?.value;
