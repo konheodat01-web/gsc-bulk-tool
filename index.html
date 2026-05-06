@@ -1228,13 +1228,2552 @@
                     statusEl.innerHTML = '<span style="color:var(--success)">✅ ' + data.message + '</span>';
                     alert('Đã lưu chìa khóa thành công!');
                 
+        } else if (node.type === 'telegram') {
+            body.innerHTML = `
+                <div class="set-group">
+                    <label class="set-label">Bot Token (Để trống nếu dùng Bot tổng):</label>
+                    <input type="text" id="setTeleToken" class="set-input" value="${data.token || ''}" placeholder="123456:ABC-DEF...">
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Chat ID (Để trống nếu dùng Chat ID tổng):</label>
+                    <input type="text" id="setTeleChatId" class="set-input" value="${data.chatId || ''}" placeholder="vd: -100123456789">
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Mẫu báo cáo (Template):</label>
+                    <textarea id="setTeleTemplate" class="set-input" style="height: 120px;" placeholder="Ví dụ: \n⚠️ Website {{url}} đang gặp lỗi {{status}}!">${data.template || ''}</textarea>
+                    <div style="font-size:10px; color:#64748b; margin-top:5px;">Dùng {{url}}, {{status}}, {{error}} để làm biến số.</div>
+                </div>
+            `;
+        } else if (node.type === 'http-status') {
+            body.innerHTML = `
+                <div class="set-group">
+                    <label class="set-label">Thời gian chờ (Timeout):</label>
+                    <input type="number" id="setStatusTimeout" class="set-input" value="${data.timeout || 10000}" placeholder="ms (vd: 10000 = 10 giây)">
+                </div>
+                <div class="set-group">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#e2e8f0; cursor:pointer;">
+                        <input type="checkbox" id="setCheckWhitePage" ${data.checkWhitePage !== false ? 'checked' : ''}> Check lỗi Trắng trang
+                    </label>
+                </div>
+            `;
+
+        } else {
+                    statusEl.innerHTML = '<span style="color:var(--danger)">❌ ' + data.message + '</span>';
+                }
+            } catch (error) {
+                statusEl.innerHTML = '<span style="color:var(--danger)">❌ Lỗi gửi chìa khóa.</span>';
+            }
+        }
+
+        async function upgradeAgent() {
+            const ip = document.getElementById('vpsIp').value.trim();
+            const statusEl = document.getElementById('vpsStatus');
+            if (!ip) { alert('Vui lòng nhập IP VPS!'); return; }
+
+            if (!confirm('Sếp có chắc muốn nâng cấp Agent từ xa không?')) return;
+
+            statusEl.innerHTML = '🟡 Đang gửi lệnh nâng cấp tới VPS...';
+            try {
+                const data = await callVps(ip, '/update-agent');
+                if (data.success) {
+                    statusEl.innerHTML = '<span style="color:var(--success)">✅ ' + data.message + '</span>';
+                } else {
+                    statusEl.innerHTML = '<span style="color:var(--warning)">⚠️ ' + (data.message || 'Không rõ trạng thái') + '</span>';
+                }
+            } catch (error) {
+                statusEl.innerHTML = '<span style="color:var(--danger)">❌ Lỗi: VPS chưa chạy hoặc sai IP.</span>';
+            }
+        }
+
+        async function syncToVps() {
+            const ip = document.getElementById('vpsIp').value.trim();
+            const token = document.getElementById('teleToken').value.trim();
+            const chatId = document.getElementById('teleChatId').value.trim();
+            const sheetUrl = document.getElementById('globalSheetUrl').value.trim();
+            const statusEl = document.getElementById('vpsStatus');
+            const btn = document.getElementById('syncVpsBtn');
+
+            if (!ip) { alert('Vui lòng nhập IP VPS!'); return; }
+            if (!token || !chatId || !sheetUrl) { alert('Vui lòng điền đủ Token, Chat ID và Sheet URL trước!'); return; }
+
+            btn.disabled = true;
+            btn.innerText = '⏳ Đang đồng bộ...';
+            statusEl.innerHTML = '🟡 Đang kết nối tới VPS...';
+
+            try {
+                const data = await callVps(ip, `/update-config?telegramToken=${encodeURIComponent(token)}&chatId=${encodeURIComponent(chatId)}&sheetUrl=${encodeURIComponent(sheetUrl)}`);
+                if (data.success) {
+                    statusEl.innerHTML = '<span style="color:var(--success)">✅ Đồng bộ thành công! Agent đang khởi động lại...</span>';
+                } else {
+                    statusEl.innerHTML = '<span style="color:var(--danger)">❌ Thất bại: ' + data.message + '</span>';
+                }
+            } catch (error) {
+                console.error(error);
+                statusEl.innerHTML = '<span style="color:var(--danger)">❌ Lỗi kết nối! Hãy đảm bảo VPS đã chạy lệnh update_logic.sh và mở cổng 3000.</span>';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = '📤 Đồng bộ cấu hình lên VPS';
+            }
+        }
+
+    async function saveTeleSettings() {
+        const token = document.getElementById('teleToken').value;
+        const chatId = document.getElementById('teleChatId').value;
+        const sheetUrl = document.getElementById('globalSheetUrl').value;
+        const clientId = document.getElementById('googleClientId').value;
+        const vpsIp = document.getElementById('vpsIp').value;
         
+        localStorage.setItem('tele_token', token);
+        localStorage.setItem('tele_chat_id', chatId);
+        localStorage.setItem('global_sheet_url', sheetUrl);
+        localStorage.setItem('google_client_id', clientId);
+        localStorage.setItem('vps_ip', vpsIp);
+        GOOGLE_CLIENT_ID = clientId; // Cập nhật biến toàn cục ngay lập tức
+        
+        try {
+            const emails = typeof gscAccounts !== 'undefined' ? gscAccounts.map(a => a.email) : [];
+            await fetch(TELE_JSON_URL, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data: { tele_token: token, tele_chat_id: chatId, global_sheet_url: sheetUrl, google_client_id: clientId, gsc_emails: emails } })
+            });
+        } catch(e) { console.error("Lỗi đồng bộ cấu hình (Save)", e); }
+
+        const st = document.getElementById('teleStatus');
+        st.style.display = 'block';
+        setTimeout(() => st.style.display = 'none', 3000);
+    }
+
+    async function loadTeleSettings() {
+        document.getElementById('teleToken').value = localStorage.getItem('tele_token') || '';
+        document.getElementById('teleChatId').value = localStorage.getItem('tele_chat_id') || '';
+        document.getElementById('globalSheetUrl').value = localStorage.getItem('global_sheet_url') || '';
+        document.getElementById('googleClientId').value = localStorage.getItem('google_client_id') || GOOGLE_CLIENT_ID;
+        document.getElementById('vpsIp').value = localStorage.getItem('vps_ip') || '';
+        
+        try {
+            const res = await fetch(TELE_JSON_URL + "?t=" + Date.now());
+            if(!res.ok) return;
+            const resData = await res.json();
+            const data = resData.data;
+            
+            if(data) {
+                if(data.tele_token) { localStorage.setItem('tele_token', data.tele_token); document.getElementById('teleToken').value = data.tele_token; }
+                if(data.tele_chat_id) { localStorage.setItem('tele_chat_id', data.tele_chat_id); document.getElementById('teleChatId').value = data.tele_chat_id; }
+                if(data.global_sheet_url) { localStorage.setItem('global_sheet_url', data.global_sheet_url); document.getElementById('globalSheetUrl').value = data.global_sheet_url; }
+                if(data.google_client_id) { 
+                    localStorage.setItem('google_client_id', data.google_client_id); 
+                    document.getElementById('googleClientId').value = data.google_client_id; 
+                    GOOGLE_CLIENT_ID = data.google_client_id;
+                }
+
+                if(data.gsc_emails && Array.isArray(data.gsc_emails) && typeof gscAccounts !== 'undefined') {
+                    data.gsc_emails.forEach(email => {
+                        if(!gscAccounts.find(a=>a.email === email)) gscAccounts.push({ email: email, token: null, expiresAt: 0 });
+                    });
+                    if(gscAccounts.length > 0 && activeAccountEmails.length === 0) activeAccountEmails = [gscAccounts[0].email];
+                    renderAccounts();
+                    localStorage.setItem('gsc_emails', JSON.stringify(data.gsc_emails));
+                }
+            }
+        } catch(e) { console.error("Lỗi đồng bộ cấu hình (Load)", e); }
+    }
+    async function sendToTelegram(msg) {
+        const t = localStorage.getItem('tele_token'), c = localStorage.getItem('tele_chat_id');
+        if(!t || !c) return;
+        try {
+            const res = await fetch(`https://api.telegram.org/bot${t}/sendMessage`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: c, text: msg, parse_mode: 'HTML', disable_web_page_preview: true })
+            });
+            return res.ok;
+        } catch(e) { return false; }
+    }
+    async function testTele() {
+        const ok = await sendToTelegram('<b>🔔 Test thành công!</b>\nTool GSC đã kết nối được với Telegram của sếp.');
+        if(ok) alert("✅ Bot đã gửi tin nhắn test thành công! Sếp kiểm tra Telegram nhé.");
+        else alert("❌ Lỗi! Sếp kiểm tra lại Token hoặc Chat ID (phải là dãy số) xem đúng chưa nhé.");
+    }
+    let gscAccounts = []; // { email, token, expiresAt }
+    let activeAccountEmails = [];
+
+    function saveAccountsToLocal() {
+        const emails = gscAccounts.map(a => a.email);
+        localStorage.setItem('gsc_emails', JSON.stringify(emails));
+        
+        // Đồng bộ lên Cloud
+        const token = document.getElementById('teleToken').value;
+        const chatId = document.getElementById('teleChatId').value;
+        fetch(TELE_JSON_URL, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: { tele_token: token, tele_chat_id: chatId, gsc_emails: emails } })
+        }).catch(e => console.error(e));
+    }
+
+    function loadAccountsFromLocal() {
+        try {
+            const emails = JSON.parse(localStorage.getItem('gsc_emails') || '[]');
+            emails.forEach(email => {
+                if(!gscAccounts.find(a=>a.email === email)) {
+                    gscAccounts.push({ email: email, token: null, expiresAt: 0 });
+                }
+            });
+            if(gscAccounts.length > 0 && activeAccountEmails.length === 0) activeAccountEmails = [gscAccounts[0].email];
+            renderAccounts();
+        } catch(e) {}
+    }
+
+    function renderAccounts() {
+        const list = document.getElementById('accountList');
+        if (gscAccounts.length === 0) {
+            list.innerHTML = '<div style="font-size:12px; color:var(--text-muted); font-style:italic;">Chưa có tài khoản nào. Vui lòng thêm tài khoản.</div>';
+            document.getElementById('btnStart').disabled = true;
+            return;
+        }
+        
+        let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
+        let allTokensValid = true;
+        let hasSelected = false;
+
+        gscAccounts.forEach(acc => {
+            const isActive = activeAccountEmails.includes(acc.email);
+            const isExpired = !acc.token || Date.now() > acc.expiresAt;
+            if (isActive) {
+                hasSelected = true;
+                if (isExpired) allTokensValid = false;
+            }
+            html += `
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border:1px solid ${isActive?'var(--primary)':'var(--border)'}; border-radius:6px; background:${isActive?'rgba(59,130,246,0.05)':'transparent'};">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="checkbox" ${isActive?'checked':''} onchange="toggleAccount('${acc.email}')" style="cursor:pointer; width:16px; height:16px; accent-color:var(--primary);">
+                        <span style="font-weight:600; font-size:13px; color:${isActive?'var(--primary)':'var(--text)'};">${acc.email}</span>
+                        ${isExpired ? '<span style="font-size:10px; color:var(--danger); padding:2px 6px; background:rgba(231,76,60,0.1); border-radius:4px; font-weight:600;">Hết phiên</span>' : '<span style="font-size:10px; color:var(--success); padding:2px 6px; background:rgba(46,204,113,0.1); border-radius:4px; font-weight:600;">Đang kết nối</span>'}
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn-mini" onclick="refreshAccount('${acc.email}')" style="background:var(--bg-card); color:var(--text); border:1px solid var(--border);" title="Lấy lại quyền truy cập (không cần nhập lại pass)">🔄 Refresh</button>
+                        <button class="btn-mini" onclick="removeAccount('${acc.email}')" style="background:var(--danger); color:#fff; border:none;" title="Xóa tài khoản này">❌ Xóa</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        list.innerHTML = html;
+        
+        if (hasSelected && allTokensValid) {
+            document.getElementById('btnStart').disabled = false;
+        } else {
+            document.getElementById('btnStart').disabled = true;
+        }
+    }
+
+    function toggleAccount(email) {
+        if(activeAccountEmails.includes(email)) {
+            activeAccountEmails = activeAccountEmails.filter(e => e !== email);
+        } else {
+            activeAccountEmails.push(email);
+        }
+        renderAccounts();
+    }
+
+    function removeAccount(email) {
+        gscAccounts = gscAccounts.filter(a => a.email !== email);
+        activeAccountEmails = activeAccountEmails.filter(e => e !== email);
+        if (gscAccounts.length > 0 && activeAccountEmails.length === 0) activeAccountEmails.push(gscAccounts[0].email);
+        saveAccountsToLocal();
+        renderAccounts();
+    }
+
+    function addGoogleAccount() {
+        const client = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/siteverification https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets.readonly',
+            callback: async (res) => { 
+                if (res.access_token) { 
+                    try {
+                        const uRes = await fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', { headers: { 'Authorization': `Bearer ${res.access_token}` } });
+                        const uData = await uRes.json();
+                        if(uData.email) {
+                            const existing = gscAccounts.find(a => a.email === uData.email);
+                            if (existing) {
+                                existing.token = res.access_token;
+                                existing.expiresAt = Date.now() + 3500000;
+                                await fetchAccountSites(existing);
+                            } else {
+                                const newAcc = { email: uData.email, token: res.access_token, expiresAt: Date.now() + 3500000, sites: [] };
+                                gscAccounts.push(newAcc);
+                                await fetchAccountSites(newAcc);
+                            }
+                            if(!activeAccountEmails.includes(uData.email)) activeAccountEmails.push(uData.email);
+                            saveAccountsToLocal();
+                            renderAccounts();
+                        }
+                    } catch(e) { alert("Lỗi khi lấy thông tin Email hoặc Danh sách website. Vui lòng thử lại."); }
+                } 
+            }
+        });
+        client.requestAccessToken({prompt: 'select_account'});
+    }
+
+    async function fetchAccountSites(acc) {
+        try {
+            const res = await fetch('https://www.googleapis.com/webmasters/v3/sites', { headers: { 'Authorization': `Bearer ${acc.token}` } });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.siteEntry) {
+                acc.sites = data.siteEntry.map(e => ({ siteUrl: e.siteUrl, permissionLevel: e.permissionLevel }));
+            } else {
+                acc.sites = [];
+            }
+            saveAccountsToLocal();
+        } catch(e) { console.error("Lỗi fetch sites cho " + acc.email, e); }
+    }
+
+    function refreshAccount(email) {
+        const client = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/siteverification https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets.readonly',
+            callback: async (res) => { 
+                if (res.access_token) { 
+                    const existing = gscAccounts.find(a => a.email === email);
+                    if (existing) {
+                        existing.token = res.access_token;
+                        existing.expiresAt = Date.now() + 3500000;
+                        await fetchAccountSites(existing);
+                        renderAccounts();
+                    }
+                } 
+            }
+        });
+        // Use login_hint to silently re-auth if the user is already logged into this email in Chrome
+        client.requestAccessToken({login_hint: email, prompt: ''});
+    }
+
+    window.addEventListener('load', () => {
+        loadTeleSettings();
+        loadAccountsFromLocal();
+        // Hiển thị badge workflow đã lưu
+        updateAutomationBadge();
+        // Khôi phục panel nếu đang mở
+        if (sessionStorage.getItem('panelOpen') === '1') openAutomationPanel();
+        // Khôi phục tab đang làm việc (F5 trở về tab cũ)
+        const lastTab = sessionStorage.getItem('lastTab');
+        if (lastTab && document.getElementById(lastTab)) {
+            switchTab(lastTab);
+        }
+        // Khôi phục trạng thái panel điều khiển nếu đang mở
+        if (sessionStorage.getItem('panelOpen') === '1') {
+            openAutomationPanel();
+        }
+    });
+
+    
+    
+    function openAutomationPanel() {
+        document.getElementById('automationPanel').classList.add('open');
+        document.getElementById('autoOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        sessionStorage.setItem('panelOpen', '1');
+        // Init builder the first time
+        if (!window._wfBuilderInited) {
+            window._wfBuilderInited = true;
+            initWorkflowBuilder();
+        } else {
+            renderSavedWfList();
+        }
+    }
+
+    function closeAutomationPanel() {
+        document.getElementById('automationPanel').classList.remove('open');
+        document.getElementById('autoOverlay').classList.remove('open');
+        document.body.style.overflow = '';
+        sessionStorage.removeItem('panelOpen');
+    }
+
+
+    // ===== WORKFLOW BUILDER ENGINE =====
+    // Workflow Builder Engine - all functions
+    const ATOMIC_BLOCKS = [
+        { type: 'http-status', icon: '🔍', label: 'Check Trạng Thái', color: '#10b981', desc: 'Dò lỗi 404, 502, Time out, Trắng trang...' },
+        { type: 'input',       icon: '📥', label: 'Nhập Dữ Liệu',     color: '#3b82f6', desc: 'Danh sách URL / domain đầu vào' },
+        { type: 'gsc-auth',    icon: '🔗', label: 'Kết Nối Google',    color: '#4f46e5', desc: 'Xác thực tài khoản Google OAuth' },
+        { type: 'gsc-verify',  icon: '✅', label: 'Xác Minh Site',     color: '#7c3aed', desc: 'Xác minh quyền sở hữu trong GSC' },
+        { type: 'gsc-sitemap', icon: '🗺️', label: 'Nạp Sitemap',      color: '#8b5cf6', desc: 'Submit sitemap lên Google Search' },
+        { type: 'check-301',   icon: '🔀', label: 'Check 301',         color: '#f59e0b', desc: 'Kiểm tra redirect 301 có đúng không' },
+        { type: 'check-login', icon: '🔑', label: 'Check WP Login',    color: '#ef4444', desc: 'Kiểm tra đăng nhập WordPress' },
+        { type: 'check-bot',   icon: '🤖', label: 'Check Bot Access',  color: '#10b981', desc: 'Kiểm tra bot được phép truy cập' },
+        { type: 'fetch-gsc',   icon: '📊', label: 'Lấy Data GSC',      color: '#06b6d4', desc: 'Lấy dữ liệu click / impression' },
+        { type: 'condition',   icon: '⑂',  label: 'Điều Kiện / Lọc',  color: '#f97316', desc: 'Rẽ nhánh: Đúng → A, Sai → B' },
+        { type: 'ai-content',  icon: '✍️', label: 'AI Viết Bài',      color: '#a855f7', desc: 'Tạo nội dung SEO bằng AI' },
+        { type: 'telegram',    icon: '📩', label: 'Báo Cáo Telegram',  color: '#0088cc', desc: 'Gửi kết quả qua Telegram bot' },
+    ];
+    
+    const COMPOUND_BLOCKS = [
+        { type: 'tool-gsc',      icon: '📦', label: 'GSC Full',       color: '#1e40af', desc: 'Auth + Verify + Sitemap đầy đủ' },
+        { type: 'tool-301',      icon: '📦', label: 'Check 301 & WP', color: '#92400e', desc: '301 + WP Login check toàn hệ thống' },
+        { type: 'tool-bot',      icon: '📦', label: 'Check Bot Full', color: '#065f46', desc: 'Bot check toàn hệ thống' },
+        { type: 'tool-overview', icon: '📦', label: 'System Audit',   color: '#3730a3', desc: 'Quét tổng quan toàn bộ hệ thống' },
+    ];
+    
+    let wfNodes = [];
+    let wfEdges = [];
+    let wfNodeCount = 0;
+    let draggingPalette = null;
+    let draggingNode = null;
+    let connectingFrom = null;
+    let tempLine = null;
+    
+    function initWorkflowBuilder() {
+        renderPalette();
+        initCanvasDrop();
+        renderSavedWfList();
+        restoreCanvasFromSession();
+    }
+    
+    function allBlocks() { return [...ATOMIC_BLOCKS, ...COMPOUND_BLOCKS]; }
+    
+    function renderPalette() {
+        const atomicEl = document.getElementById('atomicPaletteList');
+        const compoundEl = document.getElementById('compoundPaletteList');
+        if (!atomicEl || !compoundEl) return;
+        atomicEl.innerHTML = ATOMIC_BLOCKS.map(b =>
+            `<div class="palette-item" draggable="true" data-btype="${b.type}" data-bcat="atomic" title="${b.desc}">
+                <span class="pi-icon">${b.icon}</span>
+                <div class="pi-text"><div class="pi-label">${b.label}</div><div class="pi-desc">${b.desc.substring(0,32)}...</div></div>
+            </div>`
+        ).join('');
+        compoundEl.innerHTML = COMPOUND_BLOCKS.map(b =>
+            `<div class="palette-item" draggable="true" data-btype="${b.type}" data-bcat="compound" title="${b.desc}" style="border-color:rgba(245,158,11,0.25);background:rgba(245,158,11,0.06);">
+                <span class="pi-icon">${b.icon}</span>
+                <div class="pi-text"><div class="pi-label" style="color:#fbbf24;">${b.label}</div><div class="pi-desc">${b.desc.substring(0,32)}...</div></div>
+            </div>`
+        ).join('');
+        // Attach drag events to palette items
+        document.querySelectorAll('#atomicPaletteList .palette-item, #compoundPaletteList .palette-item').forEach(el => {
+            el.addEventListener('dragstart', e => {
+                draggingPalette = { type: el.dataset.btype, cat: el.dataset.bcat };
+                e.dataTransfer.effectAllowed = 'copy';
+            });
+        });
+    }
+    
+    function initCanvasDrop() {
+        const wrap = document.getElementById('wfCanvasWrap');
+        if (!wrap) return;
+        wrap.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            wrap.classList.add('drag-over');
+        });
+        wrap.addEventListener('dragleave', e => {
+            if (!wrap.contains(e.relatedTarget)) wrap.classList.remove('drag-over');
+        });
+        wrap.addEventListener('drop', e => {
+            e.preventDefault();
+            wrap.classList.remove('drag-over');
+            if (!draggingPalette) return;
+            const canvas = document.getElementById('wfCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.max(10, e.clientX - rect.left - 85);
+            const y = Math.max(10, e.clientY - rect.top  - 40);
+            addNode(draggingPalette.type, draggingPalette.cat, x, y);
+            draggingPalette = null;
+            saveCanvasToSession();
+        });
+        wrap.addEventListener('mousemove', e => {
+            if (!connectingFrom || !tempLine) return;
+            const rect = wrap.getBoundingClientRect();
+            const fromNode = wfNodes.find(n => n.id === connectingFrom.nodeId);
+            if (!fromNode) return;
+            tempLine.setAttribute('d', bezierPath(fromNode.x + 170, fromNode.y + 40, e.clientX - rect.left, e.clientY - rect.top));
+        });
+        wrap.addEventListener('click', e => {
+            if (connectingFrom && !e.target.closest('.port-in')) {
+                connectingFrom = null;
+                if (tempLine) { tempLine.remove(); tempLine = null; }
+            }
+        });
+    }
+    
+    function addNode(type, cat, x, y) {
+        const def = allBlocks().find(b => b.type === type);
+        if (!def) return;
+        const id = 'node_' + (++wfNodeCount);
+        wfNodes.push({ id, type, cat, x, y, def });
+        renderNode(id);
+        hideHint();
+    }
+    
+    function renderNode(nodeId) {
+        const node = wfNodes.find(n => n.id === nodeId);
+        if (!node) return;
+        const canvas = document.getElementById('wfCanvas');
+        const isCompound = node.cat === 'compound';
+        const el = document.createElement('div');
+        el.className = 'wf-node' + (isCompound ? ' compound' : '');
+        el.id = nodeId;
+        el.style.cssText = `left:${node.x}px;top:${node.y}px;`;
+        const inPort  = node.type !== 'input'    ? `<div class="wf-port port-in"  data-nodeid="${nodeId}" data-port="in"></div>`  : '<div></div>';
+        const outPort = node.type !== 'telegram' ? `<div class="wf-port port-out" data-nodeid="${nodeId}" data-port="out"></div>` : '<div></div>';
+        el.innerHTML = `
+            <div class="wf-node-header" style="background:${node.def.color}22;">
+                <span class="wf-node-icon">${node.def.icon}</span>
+                <span class="wf-node-title">${node.def.label}</span>
+                ${isCompound ? '<span style="font-size:9px;background:rgba(245,158,11,0.25);color:#fbbf24;padding:2px 6px;border-radius:999px;margin-left:auto;">TOOL</span>' : ''}
+                <button class="wf-node-del" data-delid="${nodeId}" title="Xóa">✕</button>
+            </div>
+            <div class="wf-node-body">${node.def.desc}</div>
+            <div class="wf-ports">${inPort}${outPort}</div>`;
+        el.addEventListener('mousedown', e => {
+            if (e.target.closest('.wf-port') || e.target.closest('.wf-node-del')) return;
+            e.preventDefault();
+            draggingNode = { id: nodeId, startX: node.x, startY: node.y, mx: e.clientX, my: e.clientY };
+            document.addEventListener('mousemove', onNodeDrag);
+            document.addEventListener('mouseup', onNodeDragEnd);
+        });
+        el.querySelector('.wf-node-del').addEventListener('click', () => deleteNode(nodeId));
+        el.querySelectorAll('.wf-port').forEach(p => p.addEventListener('click', e => onPortClick(e, nodeId, p.dataset.port)));
+        canvas.appendChild(el);
+    }
+    
+    function onNodeDrag(e) {
+        if (!draggingNode) return;
+        const node = wfNodes.find(n => n.id === draggingNode.id);
+        if (!node) return;
+        node.x = Math.max(0, draggingNode.startX + e.clientX - draggingNode.mx);
+        node.y = Math.max(0, draggingNode.startY + e.clientY - draggingNode.my);
+        const el = document.getElementById(draggingNode.id);
+        if (el) { el.style.left = node.x + 'px'; el.style.top = node.y + 'px'; }
+        renderConnections();
+    }
+    
+    function onNodeDragEnd() {
+        draggingNode = null;
+        document.removeEventListener('mousemove', onNodeDrag);
+        document.removeEventListener('mouseup', onNodeDragEnd);
+        saveCanvasToSession();
+    }
+    
+    function deleteNode(id) {
+        wfNodes = wfNodes.filter(n => n.id !== id);
+        wfEdges = wfEdges.filter(e => e.from !== id && e.to !== id);
+        const el = document.getElementById(id);
+        if (el) el.remove();
+        renderConnections();
+        if (wfNodes.length === 0) showHint();
+        saveCanvasToSession();
+    }
+    
+    function onPortClick(e, nodeId, portType) {
+        e.stopPropagation();
+        if (portType === 'out') {
+            connectingFrom = { nodeId };
+            const svg = document.getElementById('wfSvg');
+            if (tempLine) tempLine.remove();
+            tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            tempLine.classList.add('wf-connection-line', 'temp');
+            svg.appendChild(tempLine);
+        } else if (portType === 'in' && connectingFrom) {
+            if (connectingFrom.nodeId !== nodeId) {
+                if (!wfEdges.find(ex => ex.from === connectingFrom.nodeId && ex.to === nodeId)) {
+                    wfEdges.push({ from: connectingFrom.nodeId, to: nodeId });
+                    renderConnections();
+                    saveCanvasToSession();
+                }
+            }
+            connectingFrom = null;
+            if (tempLine) { tempLine.remove(); tempLine = null; }
+        }
+    }
+    
+    function renderConnections() {
+        const svg = document.getElementById('wfSvg');
+        if (!svg) return;
+        svg.querySelectorAll('.wf-connection-line:not(.temp)').forEach(l => l.remove());
+        wfEdges.forEach(edge => {
+            const f = wfNodes.find(n => n.id === edge.from);
+            const t = wfNodes.find(n => n.id === edge.to);
+            if (!f || !t) return;
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.classList.add('wf-connection-line');
+            path.setAttribute('d', bezierPath(f.x + 170, f.y + 40, t.x, t.y + 40));
+            svg.insertBefore(path, svg.firstChild);
+        });
+    }
+    
+    function bezierPath(x1, y1, x2, y2) {
+        const dx = Math.abs(x2 - x1) * 0.5;
+        return `M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;
+    }
+    
+    function hideHint() { const h = document.getElementById('wfHint'); if(h) h.style.opacity = '0'; }
+    function showHint()  { const h = document.getElementById('wfHint'); if(h) h.style.opacity = '1'; }
+    
+    function clearCanvas() {
+        if (wfNodes.length > 0 && !confirm('Xóa toàn bộ canvas?')) return;
+        wfNodes = []; wfEdges = []; wfNodeCount = 0; connectingFrom = null;
+        if (tempLine) { tempLine.remove(); tempLine = null; }
+        document.querySelectorAll('#wfCanvas .wf-node').forEach(el => el.remove());
+        const svg = document.getElementById('wfSvg');
+        if (svg) svg.innerHTML = '';
+        showHint();
+        saveCanvasToSession();
+    }
+    
+    function saveCurrentWorkflow() {
+        const nameEl = document.getElementById('wfNameInput');
+        const name = (nameEl ? nameEl.value.trim() : '') || ('Workflow ' + new Date().toLocaleTimeString('vi-VN'));
+        if (wfNodes.length === 0) { alert('Canvas đang trống! Thêm ít nhất 1 block trước.'); return; }
+        const wf = { id: Date.now(), name, nodes: wfNodes.map(n=>({id:n.id,type:n.type,cat:n.cat,x:n.x,y:n.y})), edges: wfEdges, savedAt: new Date().toISOString() };
+        let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        list.unshift(wf);
+        if (list.length > 20) list = list.slice(0, 20);
+        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        renderSavedWfList();
+        updateAutomationBadge();
+        if (nameEl) nameEl.value = '';
+        alert('Đã lưu: ' + name);
+    }
+    
+    function renderSavedWfList() {
+        const el = document.getElementById('savedWfList');
+        if (!el) return;
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        if (!list.length) { el.innerHTML = '<div style="padding:12px 14px;font-size:11px;color:#475569;">Chưa có workflow nào</div>'; return; }
+        el.innerHTML = list.map((wf, i) =>
+            `<div class="wf-saved-item">
+                <span onclick="loadWorkflow(${i})" style="flex:1;cursor:pointer;" title="Load">${wf.name}</span>
+                <div class="wf-si-actions">
+                    <button class="wf-si-btn" onclick="loadWorkflow(${i})">📂</button>
+                    <button class="wf-si-btn" onclick="deleteWorkflowByIdx(${i})" style="color:#f87171;">🗑️</button>
+                </div>
+            </div>`
+        ).join('');
+    }
+    
+    function loadWorkflow(idx) {
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        const wf = list[idx];
+        if (!wf) return;
+        clearCanvas();
+        wf.nodes.forEach(n => {
+            const def = allBlocks().find(b => b.type === n.type);
+            if (!def) return;
+            wfNodes.push({ ...n, def });
+            wfNodeCount = Math.max(wfNodeCount, parseInt(n.id.split('_')[1]) || 0);
+            renderNode(n.id);
+        });
+        wfEdges = wf.edges || [];
+        renderConnections();
+        if (wfNodes.length > 0) hideHint();
+        const nameEl = document.getElementById('wfNameInput');
+        if (nameEl) nameEl.value = wf.name;
+        saveCanvasToSession();
+    }
+    
+    function deleteWorkflowByIdx(idx) {
+        let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        list.splice(idx, 1);
+        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        renderSavedWfList();
+        updateAutomationBadge();
+    }
+    
+    function runCurrentWorkflow() {
+        if (wfNodes.length === 0) { alert('Canvas đang trống!'); return; }
+        const ordered = getExecutionOrder();
+        let msg = 'Thu tu thuc thi:\n\n';
+        ordered.forEach((id, i) => {
+            const n = wfNodes.find(x => x.id === id);
+            if (n) msg += (i+1) + '. ' + n.def.label + '\n';
+        });
+        msg += '\nChuc nang chay thuc te se duoc tich hop o buoc tiep theo!';
+        alert(msg);
+    }
+    
+    function getExecutionOrder() {
+        const inDegree = {};
+        wfNodes.forEach(n => inDegree[n.id] = 0);
+        wfEdges.forEach(e => { inDegree[e.to] = (inDegree[e.to] || 0) + 1; });
+        const queue = wfNodes.filter(n => !inDegree[n.id]).map(n => n.id);
+        const result = [];
+        while (queue.length) {
+            const cur = queue.shift();
+            result.push(cur);
+            wfEdges.filter(e => e.from === cur).forEach(e => { if (--inDegree[e.to] === 0) queue.push(e.to); });
+        }
+        return result;
+    }
+    
+    function saveCanvasToSession() {
+        sessionStorage.setItem('wf_canvas', JSON.stringify({
+            nodes: wfNodes.map(n => ({ id:n.id, type:n.type, cat:n.cat, x:n.x, y:n.y })),
+            edges: wfEdges, count: wfNodeCount
+        }));
+    }
+    
+    function restoreCanvasFromSession() {
+        try {
+            const raw = sessionStorage.getItem('wf_canvas');
+            if (!raw) return;
+            const { nodes, edges, count } = JSON.parse(raw);
+            wfNodeCount = count || 0;
+            wfEdges = edges || [];
+            (nodes || []).forEach(n => {
+                const def = allBlocks().find(b => b.type === n.type);
+                if (!def) return;
+                wfNodes.push({ ...n, def });
+                renderNode(n.id);
+            });
+            renderConnections();
+            if (wfNodes.length > 0) hideHint();
+        } catch(e) { console.warn('Canvas restore failed', e); }
+    }
+    
+    function updateAutomationBadge() {
+        const stored = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        const old = document.getElementById('wfBadge');
+        if (old) old.remove();
+        if (stored.length > 0) {
+            const wrapper = document.getElementById('automationBtnWrapper');
+            if (!wrapper) return;
+            const badge = document.createElement('span');
+            badge.id = 'wfBadge';
+            badge.textContent = stored.length;
+            badge.style.cssText = 'position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:10px;font-weight:bold;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:1001;';
+            wrapper.appendChild(badge);
+        }
+    }
+    
+
+    function switchTab(id) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelector(`[onclick="switchTab('${id}')"]`).classList.add('active');
+        // Ghi nhớ tab đang mở
+        sessionStorage.setItem('lastTab', id);
+    }
+
+    // --- TAB 1 LOGIC ---
+    async function startProcess() {
+        if(activeAccountEmails.length === 0) return alert("Vui lòng chọn ít nhất 1 tài khoản GSC!");
+        const lines = document.getElementById('domainList').value.split('\n').filter(l => l.trim());
+        const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';
+        
+        document.querySelector('#gscTable thead').innerHTML = `<tr><th width="20%">Website URL</th><th width="20%">Tài khoản</th><th width="12%">Trạng thái</th><th width="25%">Mã HTML</th><th width="10%">Xác minh</th><th width="13%">Sitemaps</th></tr>`;
+        let rowId = 0;
+
+        for (let email of activeAccountEmails) {
+            const acc = gscAccounts.find(a => a.email === email);
+            if(!acc || !acc.token || Date.now() > acc.expiresAt) continue;
+            const token = acc.token;
+            
+            let existingMap = new Map();
+            try {
+                const res = await fetch('https://www.googleapis.com/webmasters/v3/sites', { headers: { 'Authorization': `Bearer ${token}` } });
+                const data = await res.json();
+                if (data.siteEntry) data.siteEntry.forEach(e => { let u = e.siteUrl; if(!u.endsWith('/')) u+='/'; existingMap.set(u.toLowerCase(), e.permissionLevel); });
+            } catch(e) {}
+
+            for (let i = 0; i < lines.length; i++) {
+                let url = lines[i].trim(); if(!url.startsWith('http')) url='https://'+url; if(!url.endsWith('/')) url+='/';
+                const currentId = rowId++;
+                const tr = document.createElement('tr'); 
+                tr.dataset.siteUrl = url;
+                tr.dataset.email = email;
+                tr.innerHTML = `<td>${url}</td><td><span style="font-size:11px; color:var(--primary); font-weight:bold;">${email}</span></td><td id="st_${currentId}">...</td><td id="mt_${currentId}">-</td><td id="vr_${currentId}">-</td><td class="sitemap-cell">-</td>`;
+                tbody.appendChild(tr);
+                
+                const perm = existingMap.get(url.toLowerCase());
+                try {
+                    if (perm) {
+                        document.getElementById(`st_${currentId}`).innerHTML = `<span class="status-badge status-info">✅ Đã có (${perm==='siteOwner'?'Owner':'User'})</span>`;
+                        if (perm==='siteOwner') { 
+                            document.getElementById(`mt_${currentId}`).innerText='-'; 
+                            document.getElementById(`vr_${currentId}`).innerHTML='<span class="status-badge status-success">Xong</span>'; 
+                            const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
+                            submitSitemapsForUrl(url, tr.querySelector('.sitemap-cell'), smNames, token);
+                        }
+                        else await fetchMeta(url, currentId, token, email);
+                    } else {
+                        await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+                        document.getElementById(`st_${currentId}`).innerHTML = '<span class="status-badge status-success">Đã Add</span>';
+                        await fetchMeta(url, currentId, token, email);
+                    }
+                } catch(e) { document.getElementById(`st_${currentId}`).innerText='Lỗi'; }
+                await new Promise(r => setTimeout(r, 200));
+            }
+        }
+        await sendToTelegram(`<b>✅ HOÀN TẤT ADD GSC</b>\nĐã xử lý <b>${lines.length}</b> website cho <b>${activeAccountEmails.length}</b> tài khoản.`);
+    }
+
+    async function fetchMeta(url, id, token, email) {
+        const res = await fetch(`https://www.googleapis.com/siteVerification/v1/token`, {
+            method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ verificationMethod: 'META', site: { identifier: url, type: 'SITE' } })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById(`mt_${id}`).innerHTML = `<div class="code-box"><span class="code-text">${data.token.replace(/</g,'&lt;')}</span><button class="btn-mini" onclick="navigator.clipboard.writeText('${data.token.replace(/'/g,"\\'")}')">Copy</button></div>`;
+            document.getElementById(`vr_${id}`).innerHTML = `<button class="btn-mini" onclick="verifySite('${url}', ${id}, '${email}')">Xác minh</button>`;
+        }
+    }
+
+    async function verifySite(url, id, email) {
+        const acc = gscAccounts.find(a => a.email === email);
+        if(!acc || !acc.token) return;
+        const token = acc.token;
+        const vrEl = document.getElementById(`vr_${id}`);
+        vrEl.innerHTML = '⏳...';
+        try {
+            const res = await fetch(`https://www.googleapis.com/siteVerification/v1/webResource?verificationMethod=META`, {
+                method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ site: { identifier: url, type: 'SITE' } })
+            });
+            if (res.ok) { 
+                await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+                vrEl.innerHTML = '<span class="status-badge status-success">✅ OK</span>'; 
+                document.getElementById(`mt_${id}`).innerText = 'Xác minh xong'; 
+                
+                const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
+                const cell = vrEl.parentNode.querySelector('.sitemap-cell');
+                if(cell) submitSitemapsForUrl(url, cell, smNames, token);
+            } else { 
+                vrEl.innerHTML = `<button class="btn-mini" style="background:var(--danger); color:white; border:none;" onclick="verifySite('${url}', ${id}, '${email}')">❌ Lỗi - Thử lại</button>`;
+            }
+        } catch(e) {
+            vrEl.innerHTML = `<button class="btn-mini" style="background:var(--danger); color:white; border:none;" onclick="verifySite('${url}', ${id}, '${email}')">❌ Lỗi - Thử lại</button>`;
+        }
+    }
+
+    async function submitSitemapsForUrl(url, cell, smNames, token) {
+        if (!smNames || smNames.length === 0) return;
+        cell.innerHTML = '⏳...';
+        try {
+            let res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${token}` } });
+            
+            if (res.status === 403) {
+                await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+                await new Promise(r => setTimeout(r, 1500)); 
+                res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${token}` } });
+            }
+
+            if (!res.ok) throw new Error("Chưa xác minh hoặc lỗi API");
+            const data = await res.json();
+            const existed = (data.sitemap || []).map(s=>s.path);
+            let html = [];
+            for (let name of smNames) {
+                const full = url + name;
+                if (existed.some(p=>p.includes(name))) html.push(`<div style="color:var(--success)">✅ ${name}</div>`);
+                else {
+                    const sRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps/${encodeURIComponent(full)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+                    html.push(sRes.ok? `<div style="color:var(--primary)">🆕 ${name}</div>` : `❌ ${name}`);
+                }
+            }
+            cell.innerHTML = html.join('');
+        } catch(e) { cell.innerText='Lỗi'; }
+    }
+
+    async function checkAndSubmitSitemaps() {
+        const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
+        const rows = document.querySelectorAll('#resultBody tr');
+        for (let row of rows) {
+            const url = row.dataset.siteUrl; 
+            const email = row.dataset.email;
+            if(!url || !email) continue;
+            const acc = gscAccounts.find(a => a.email === email);
+            if(!acc || !acc.token) continue;
+            
+            const cell = row.querySelector('.sitemap-cell');
+            submitSitemapsForUrl(url, cell, smNames, acc.token);
+        }
+    }
+
+    async function retryFailedVerifications() {
+        const buttons = document.querySelectorAll('#resultBody button');
+        let count = 0;
+        for (let btn of buttons) {
+            if (btn.innerText.includes('Lỗi - Thử lại')) {
+                btn.click();
+                count++;
+                await new Promise(r => setTimeout(r, 300)); 
+            }
+        }
+        if(count === 0) alert("Không tìm thấy mục nào bị lỗi xác minh.");
+    }
+
+    // --- TAB 2 LOGIC ---
+    async function startCheck() {
+        const srcLines = document.getElementById('srcList').value.split('\n').filter(l => l.trim());
+        if (!srcLines.length) return alert('Nhập ít nhất 1 URL Web Gốc sếp ơi!');
+        const dstLines = document.getElementById('dstList').value.split('\n');
+        const checkAdmin = document.getElementById('chkAdmin').checked;
+        const tbody = document.getElementById('checkResultBody');
+        tbody.innerHTML = '';
+
+        for (let i = 0; i < srcLines.length; i++) {
+            let src = srcLines[i].trim();
+            if (!src.startsWith('http')) src = 'https://' + src;
+            if (!src.endsWith('/')) src += '/';
+
+            const dp = (dstLines[i] || '').trim().split(/\s+/);
+            let dst = dp[0] || src;
+            if (!dst.startsWith('http')) dst = 'https://' + dst;
+            if (!dst.endsWith('/')) dst += '/';
+            const adminPath = dp[1] || 'wp-admin';
+            const user = dp[2] || '';
+            const pass = dp[3] || '';
+            // Tự động bỏ đuôi locale (vi-vn, en-us...) khi check admin
+            const dstBase = stripLocalePath(dst);
+
+            const srcShort = src.replace(/^https?:\/\//,'').replace(/\/$/,'');
+            const dstShort = dst.replace(/^https?:\/\//,'').replace(/\/$/,'');
+
+            const tr = document.createElement('tr');
+            tr.id = `crow_${i}`;
+            tr.dataset.src = src;
+            tr.dataset.dst = dst;
+            tr.dataset.adminPath = adminPath;
+            tr.dataset.user = user;
+            tr.dataset.pass = pass;
+            tr.innerHTML = `
+                <td style="font-size:11px; word-break:break-all; color:var(--text-muted)">${srcShort}</td>
+                <td style="font-size:11px; word-break:break-all;"><a href="${dst}" target="_blank" style="color:var(--primary)">${dstShort}</a></td>
+                <td id="cSt_${i}"><span style="color:var(--warning)">⏳...</span></td>
+                <td id="cCo_${i}">-</td>
+                <td id="cMa_${i}">-</td>
+                <td id="cBr_${i}">-</td>
+                <td id="cAd_${i}">${checkAdmin ? '...' : '-'}</td>
+                <td id="cLo_${i}">-</td>
+                <td><button class="btn-mini" onclick="recheckRow2(${i})">🔄</button></td>
+            `;
+            tbody.appendChild(tr);
+
+            await checkOneRow(i, src, dst, adminPath, user, pass, checkAdmin);
+            await new Promise(r => setTimeout(r, 400));
+        }
+    }
+
+    // Chuẩn hóa hostname: tự động convert IDN/Unicode sang Punycode để so sánh đúng
+    // Ví dụ: ドンペリ塾.jpn.com → xn--gdk8a8b8az033b.jpn.com
+    function normalizeHostname(url) {
+        try {
+            let u = url.trim();
+            if (!u.startsWith('http')) u = 'https://' + u;
+            return new URL(u).hostname.toLowerCase(); // browser tự Punycode hóa IDN
+        } catch(e) {
+            return url.toLowerCase().replace(/^https?:\/\//,'').replace(/[/?#].*/,'');
+        }
+    }
+
+    // Hiển thị URL: nếu là Punycode thì cũng thêm dạng gốc (decode)
+    function displayUrl(url) {
+        if (!url) return '';
+        try {
+            const u = new URL(url.startsWith('http') ? url : 'https://' + url);
+            const punyHost = u.hostname;
+            // Decode Punycode label về Unicode
+            const unicodeHost = punyHost.split('.').map(label => {
+                if (!label.startsWith('xn--')) return label;
+                try {
+                    return new URL('https://' + label + '.com').hostname.replace('.com','');
+                } catch(e) { return label; }
+            }).join('.');
+            return unicodeHost !== punyHost
+                ? `${unicodeHost} <span style="color:#64748b;font-size:10px">(${punyHost})</span>`
+                : url;
+        } catch(e) { return url; }
+    }
+
+    // Danh sách path wp-admin thử tự động
+    const WP_ADMIN_PATHS = ['web_auth','kqbd_web_auth','kbd_web_auth','login','login_seo_top1_luon','seo-key-top-1','web_auth_pota','wp_hanaseo','wp-admin','wp_jisooseo'];
+
+    // Lấy HTML + HTTP status code + redirect URL thực sự qua allorigins
+    async function fetchStatus(url) {
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 9000);
+            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {signal: ctrl.signal});
+            clearTimeout(tid);
+            if (res.ok) {
+                const data = await res.json();
+                const code = (data.status && data.status.http_code) ? data.status.http_code : 200;
+                const redirectUrl = (data.status && data.status.url) ? data.status.url : '';
+                return { html: data.contents || '', code, redirectUrl };
+            }
+        } catch(e) {}
+        // Fallback codetabs
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 8000);
+            const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, {signal: ctrl.signal});
+            clearTimeout(tid);
+            if (res.ok) return { html: await res.text(), code: 200, redirectUrl: '' };
+            return { html: '', code: res.status, redirectUrl: '' };
+        } catch(e) {}
+        return { html: null, code: 0, redirectUrl: '' };
+    }
+
+    // Tự động dò đúng path wp-admin
+    async function detectWpAdmin(dst) {
+        const dstBase = stripLocalePath(dst);
+        for (let path of WP_ADMIN_PATHS) {
+            try {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 6000);
+                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + path)}`, {signal: ctrl.signal});
+                clearTimeout(tid);
+                if (res.ok) {
+                    const h = await res.text();
+                    if (h && (h.includes('wp-login') || h.includes('user_login') || h.includes('loginform'))) return path;
+                }
+            } catch(e) {}
+        }
+        return null;
+    }
+
+    async function checkOneRow(i, src, dst, adminPath, user, pass, checkAdmin) {
+        const dstBase = stripLocalePath(dst || src);
+        const stEl = document.getElementById(`cSt_${i}`);
+        const coEl = document.getElementById(`cCo_${i}`);
+        const maEl = document.getElementById(`cMa_${i}`);
+        const brEl = document.getElementById(`cBr_${i}`);
+        const adEl = document.getElementById(`cAd_${i}`);
+        const loEl = document.getElementById(`cLo_${i}`);
+
+        stEl.innerHTML = '<span style="color:var(--warning)">⏳ Đang quét...</span>';
+
+        // Bước 1: Lấy HTML + HTTP status code thực sự
+        const { html, code, redirectUrl } = await fetchStatus(src);
+
+        if (!html && code === 0) {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Timeout</span>';
+            coEl.innerText = 'ERR'; maEl.innerText = '-'; adEl.innerText = '-';
+            return;
+        }
+
+        // Hiển thị HTTP status
+        coEl.innerText = code || '?';
+        if (code === 404) {
+            stEl.innerHTML = '<span class="status-badge status-error">🔴 404 Không tìm thấy</span>';
+            maEl.innerText = '-'; adEl.innerText = '-';
+            return;
+        } else if (code >= 500) {
+            stEl.innerHTML = `<span class="status-badge status-error">❌ Lỗi Server ${code}</span>`;
+            maEl.innerText = '-'; adEl.innerText = '-';
+            return;
+        } else if (code >= 400) {
+            stEl.innerHTML = `<span class="status-badge status-error">❌ Lỗi ${code} (Timeout/Từ chối)</span>`;
+            maEl.innerText = '-'; adEl.innerText = '-';
+            return;
+        } else if (!html || html.length < 50) {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Không đọc được</span>';
+            coEl.innerText = code || 'ERR'; maEl.innerText = '-'; adEl.innerText = '-';
+            return;
+        } else {
+            stEl.innerHTML = '<span class="status-badge status-success">✅ Live</span>';
+        }
+
+        // Bước 2: Xác định URL đích sau redirect
+        // Ƭu tiên: redirectUrl từ allorigins (URL thực sau HTTP redirect)
+        // Fallback: đọc canonical / og:url / meta-refresh từ HTML
+        let finalUrl = '';
+        const srcHostNorm = normalizeHostname(src);
+        const rdrHostNorm = redirectUrl ? normalizeHostname(redirectUrl) : '';
+        const didRedirect = redirectUrl && rdrHostNorm && rdrHostNorm !== srcHostNorm;
+
+        const dstHostNorm = normalizeHostname(dst);
+
+        if (didRedirect) {
+            // allorigins đã follow HTTP redirect — dùng luôn URL đích
+            finalUrl = redirectUrl;
+        } else {
+            // Không có redirect HTTP — đọc canonical / og:url / meta-refresh
+            const doc = new DOMParser().parseFromString(html || '', 'text/html');
+            finalUrl = doc.querySelector('link[rel="canonical"]')?.getAttribute('href') ||
+                       doc.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
+            if (!finalUrl) {
+                const content = doc.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
+                const mR = content.match(/url=([^;\s]+)/i);
+                if (mR) finalUrl = mR[1].trim().replace(/["']/g, '');
+            }
+            
+            // Fallback mạnh cho proxy codetabs (không trả về redirectUrl)
+            // Nếu web đích (bị hack) không có thẻ canonical/og:url,
+            // nhưng proxy trả về HTML CỦA ĐÍCH chứa đầy domain đích -> KHHP
+            if ((!finalUrl || normalizeHostname(finalUrl) === srcHostNorm) && dstHostNorm && html && html.includes(dstHostNorm)) {
+                finalUrl = dst;
+            }
+
+            if (!finalUrl) finalUrl = src;
+        }
+
+        const finalHostNorm = normalizeHostname(finalUrl);
+        // So khớp sau khi cả hai đã Punycode-hóa (hỗ trợ domain tiếng Nhật/Trung)
+        const isMatch = finalHostNorm === dstHostNorm
+                     || finalHostNorm.endsWith('.' + dstHostNorm)
+                     || dstHostNorm.endsWith('.' + finalHostNorm);
+
+                // Hiển thị URL đích (kèm dạng Unicode nếu là Punycode)
+        const displayFinalUrl = finalUrl !== src ? finalUrl : '';
+        maEl.innerHTML = isMatch
+            ? `<span style="color:var(--success)">✅ KHHP</span><br><span style="font-size:10px; color:var(--text-muted)">${displayUrl(finalUrl)}</span>`
+            : `<span style="color:var(--danger)">🚨 LHCH</span><br><span style="font-size:10px; color:var(--text-muted); word-break:break-all">${displayUrl(finalUrl)}</span>`;
+
+        // Bước: Check Brand Gốc ở Footer
+        if (html) {
+            brEl.innerHTML = '<span style="color:var(--warning); font-size:11px">⏳ Dò...</span>';
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            let footerText = '';
+            const footers = doc.querySelectorAll('footer, [class*="footer"], [id*="footer"], [class*="copyright"], [id*="copyright"]');
+            footers.forEach(f => footerText += f.textContent + ' ');
+            if(!footerText) {
+                const bodyText = doc.body ? doc.body.textContent : '';
+                footerText = bodyText.slice(-3000);
+            }
+            
+            let coreBrand = srcHostNorm.split('.')[0];
+            if (coreBrand === 'www') coreBrand = srcHostNorm.split('.')[1] || '';
+            const cleanCore = coreBrand.replace(/-/g, '');
+            
+            if (coreBrand && (footerText.toLowerCase().includes(coreBrand.toLowerCase()) || footerText.toLowerCase().includes(cleanCore.toLowerCase()))) {
+                brEl.innerHTML = `<span style="color:var(--success); font-size:11px; font-weight:bold;">✅ ĐÚNG (${coreBrand})</span>`;
+            } else {
+                brEl.innerHTML = `<span style="color:var(--danger); font-size:11px; font-weight:bold;">🚨 LỆCH BRAND</span>`;
+            }
+        } else {
+            brEl.innerText = '-';
+        }
+
+        // Bước 3: Check Admin + Auto-detect path WP
+        // Đọc checkbox TRỰC TIẾP lúc này — nếu sếp bỏ tích giữa chừng sẽ dừng ngay
+        const shouldCheckAdmin = document.getElementById('chkAdmin').checked;
+        if (shouldCheckAdmin) {
+            adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">⏳ Dò admin...</span>';
+            let foundPath = null;
+            let loginHtml = '';
+            // Thử path do sếp nhập trước
+            try {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 7000);
+                loginHtml = await vpsProxyRaw(dstBase + adminPath, ctrl.signal);
+                clearTimeout(tid);
+                if (loginHtml) {
+                    if (loginHtml.includes('wp-login') || loginHtml.includes('user_login') || loginHtml.includes('loginform')) {
+                        foundPath = adminPath;
+                    }
+                }
+            } catch(e) {}
+
+            // Nếu path sếp nhập sai → tự dò
+            if (!foundPath) {
+                adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">🔍 Tự dò path...</span>';
+                foundPath = await detectWpAdmin(dstBase);
+            }
+
+            if (foundPath) {
+                adEl.innerHTML = `<span style="color:var(--success); font-size:12px">✅ /${foundPath}</span>`;
+                if (user) loEl.innerHTML = `<button class="btn-mini" onclick="autoLogin('${dst}','${foundPath}','${user}','${pass}')">🔑 Login</button>`;
+                else loEl.innerText = '-';
+                
+                if (user && pass) {
+                    loEl.innerHTML += '<br><span style="font-size:10px">⏳ Đang test...</span>';
+                    const loginStatus = await verifyLoginViaVps(dstBase, foundPath || adminPath, user, pass);
+                    loEl.innerHTML = loEl.innerHTML.replace('⏳ Đang test...', loginStatus);
+                }
+            } else {
+                adEl.innerHTML = '<span style="color:var(--danger); font-size:11px">❌ Không tìm thấy</span>';
+                loEl.innerText = '-';
+            }
+        }
+    }
+
+    async function recheckRow2(i) {
+        const tr = document.getElementById(`crow_${i}`);
+        if (!tr) return;
+        const checkAdmin = document.getElementById('chkAdmin').checked;
+        await checkOneRow(i, tr.dataset.src, tr.dataset.dst, tr.dataset.adminPath, tr.dataset.user, tr.dataset.pass, checkAdmin);
+    }
+
+    async function startCheck301Only() {
+        const btn = document.getElementById('btnCheck301Only');
+        const srcLines = document.getElementById('srcList').value.split('\n').filter(l => l.trim());
+        if (srcLines.length === 0) return alert("Nhập ít nhất 1 URL gốc ở cột Web Gốc sếp ơi!");
+        
+        btn.innerText = "⏳ Đang quét...";
+        btn.disabled = true;
+        
+        const outputContainer = document.getElementById('check301OutputContainer');
+        const outputArea = document.getElementById('check301Output');
+        outputContainer.style.display = 'block';
+        outputArea.value = '';
+        
+        let results = [];
+
+        for (let i = 0; i < srcLines.length; i++) {
+            let o = srcLines[i].trim();
+            if(!o.startsWith('http')) o='https://'+o;
+            
+            try {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 10000);
+                
+                // Dùng codetabs proxy vì nó ổn định hơn allorigins
+                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(o)}`, { signal: ctrl.signal });
+                clearTimeout(tid);
+                
+                if (res.ok) {
+                    const html = await res.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    
+                    let finalUrl = '';
+                    // 1. Tìm canonical
+                    finalUrl = doc.querySelector('link[rel="canonical"]')?.getAttribute('href') || '';
+                    // 2. Tìm og:url
+                    if (!finalUrl) {
+                        finalUrl = doc.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
+                    }
+                    // 3. Tìm meta refresh
+                    if (!finalUrl) {
+                        const content = doc.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
+                        const m = content.match(/url=([^;\s]+)/i);
+                        if (m) finalUrl = m[1].trim().replace(/["']/g, '');
+                    }
+                    
+                    if (finalUrl) {
+                        results.push(finalUrl);
+                    } else {
+                        // Nếu không tìm thấy thẻ nào, có thể web không 301 hoặc không có meta
+                        results.push(o); 
+                    }
+                } else {
+                    results.push(`[Lỗi truy cập ${res.status}] ${o}`);
+                }
+            } catch(e) {
+                results.push(`[Lỗi Mạng/Timeout] ${o}`);
+            }
+            
+            outputArea.value = results.join('\n'); // Cập nhật realtime
+            await new Promise(r => setTimeout(r, 600)); // Nghỉ lâu hơn tí để tránh bị proxy block
+        }
+        
+        // Gửi báo cáo Telegram
+        if (results.length > 0) {
+            let teleMsg = `<b>📊 BÁO CÁO CHECK 301</b>\n\n`;
+            results.forEach((r, idx) => { teleMsg += `${idx + 1}. ${r}\n`; });
+            await sendToTelegram(teleMsg);
+        }
+
+        btn.innerText = "🔄 Chỉ Check 301 (Xuất List)";
+        btn.disabled = false;
+    }
+
+    function autoLogin(url, path, user, pass) {
+        const win = window.open('', '_blank');
+        const lUrl = url + (path === 'wp-admin' ? 'wp-login.php' : path);
+        win.document.write(`<form id="f" method="POST" action="${lUrl}"><input type="hidden" name="log" value="${user}"><input type="hidden" name="pwd" value="${pass}"><input type="hidden" name="wp-submit" value="Log In"><input type="hidden" name="redirect_to" value="${url}wp-admin/"></form><script>document.getElementById('f').submit();<\/script>`);
+    }
+
+    async function verifyLoginViaVps(url, adminPath, user, pass) {
+        const ip = document.getElementById('vpsIp').value.trim();
+        if (!ip) return '<span style="color:var(--text-muted);font-size:10px;">⚠️ Cần IP VPS</span>';
+        try {
+            const ctrl = new AbortController();
+            setTimeout(() => ctrl.abort(), 12000);
+            const vpsLoginUrl = 'http://' + ip + ':3000/check-login?url=' + encodeURIComponent(url) + '&adminPath=' + encodeURIComponent(adminPath || '') + '&user=' + encodeURIComponent(user) + '&pass=' + encodeURIComponent(pass);
+            const loginProxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(vpsLoginUrl);
+            const res = await fetch(loginProxyUrl, { signal: ctrl.signal });
+            const data = await res.json();
+            if (data.success) {
+                if (data.result.includes('OK')) return '<span class="status-badge status-success" style="font-size:10px;">🔑 Login OK</span>';
+                if (data.result.includes('Sai Pass')) return '<span class="status-badge status-error" style="font-size:10px;">🚫 Sai Pass</span>';
+                return `<span style="color:var(--warning);font-size:10px;">${data.result}</span>`;
+            }
+            return '<span style="color:var(--text-muted);font-size:10px;">❓ Lỗi VPS</span>';
+        } catch(e) {
+            return '<span style="color:var(--danger);font-size:10px;">❌ Timeout</span>';
+        }
+    }
+
+    // --- TAB 3 LOGIC ---
+    async function fetchHtml(url) {
+        const proxies = [
+            u => getVpsProxyUrl(u, true) || `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+            u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+        ];
+        for (let makeUrl of proxies) {
+            try {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 8000);
+                const res = await fetch(makeUrl(url), { signal: ctrl.signal });
+                clearTimeout(tid);
+                // Bỏ qua 403/429 từ proxy (bị chặn) — thử proxy tiếp theo
+                if (res.ok) {
+                    const text = await res.text();
+                    if (text && text.length > 100) return text;
+                }
+            } catch(e) { /* thử proxy tiếp theo */ }
+        }
+        return null;
+    }
+
+    async function startOutboundAudit() {
+        const rawLines = document.getElementById('auditUrlList').value.split('\n').map(l => l.trim()).filter(l => l);
+        if (rawLines.length === 0) return alert("Nhập ít nhất 1 URL sếp ơi!");
+        const tbody = document.getElementById('auditResultBody');
+        tbody.innerHTML = '';
+        let linkCounter = 0;
+
+        for (let rawUrl of rawLines) {
+            let url = rawUrl; 
+            if (!url.startsWith('http')) url = 'https://' + url;
+            if (!url.endsWith('/')) url += '/';
+            const host = new URL(url).hostname.replace('www.', '');
+
+            const headerTr = document.createElement('tr');
+            headerTr.innerHTML = `<td colspan="6" style="background:rgba(59,130,246,0.15); color:var(--primary); font-weight:700; font-size:12px; padding:8px 15px;">🌐 Đang quét: ${url}</td>`;
+            tbody.appendChild(headerTr);
+
+            const html = await fetchHtml(url);
+            if (!html) {
+                headerTr.innerHTML = `<td colspan="6" style="color:var(--danger); padding:8px 15px;">❌ Không lấy được nội dung: ${url}</td>`;
+                continue;
+            }
+
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+
+            // Hàm lọc link ngoài (không cùng host) hoặc link nội bộ đặc biệt (/mlink/)
+            function isExternal(href) {
+                try {
+                    const h = new URL(href, url).href;
+                    const uObj = new URL(h);
+                    const linkHost = uObj.hostname.replace('www.', '');
+                    const isInternal = linkHost.includes(host);
+
+                    // 1. Nếu là link nội bộ nhưng đi qua /mlink/ -> Tính là Outbound (Affiliate Cloaking)
+                    if (isInternal && uObj.pathname.startsWith('/mlink/')) return true;
+
+                    // 2. Nếu là link ngoài thực sự
+                    return h.startsWith('http') && !isInternal && linkHost.length > 3;
+                } catch(e) { return false; }
+            }
+            function resolveUrl(href) {
+                try { return new URL(href, url).href; } catch(e) { return ''; }
+            }
+
+            const foundLinks = new Set();
+
+            // 1. Thẻ <a href> thông thường
+            doc.querySelectorAll('a[href]').forEach(a => {
+                const h = resolveUrl(a.getAttribute('href'));
+                if (h && isExternal(h)) foundLinks.add(h);
+            });
+
+            // 2. onclick="location.href='...'" hoặc window.location
+            doc.querySelectorAll('[onclick]').forEach(el => {
+                const onclick = el.getAttribute('onclick') || '';
+                const matches = onclick.match(/(?:location\.href|window\.location)\s*=\s*['"]([^'"]+)['"]/g) || [];
+                matches.forEach(m => {
+                    const u = m.match(/['"]([^'"]+)['"]/)?.[1];
+                    if (u) { const h = resolveUrl(u); if (h && isExternal(h)) foundLinks.add(h); }
+                });
+                // Bắt cả dạng open('url')
+                const opens = onclick.match(/(?:window\.open|open)\(\s*['"]([^'"]+)['"]/g) || [];
+                opens.forEach(m => {
+                    const u = m.match(/['"]([^'"]+)['"]/)?.[1];
+                    if (u) { const h = resolveUrl(u); if (h && isExternal(h)) foundLinks.add(h); }
+                });
+            });
+
+            // 3. data-href, data-url, data-link, data-redirect trên bất kỳ thẻ nào
+            doc.querySelectorAll('[data-href],[data-url],[data-link],[data-redirect],[data-target]').forEach(el => {
+                ['data-href','data-url','data-link','data-redirect','data-target'].forEach(attr => {
+                    const v = el.getAttribute(attr);
+                    if (v) { const h = resolveUrl(v); if (h && isExternal(h)) foundLinks.add(h); }
+                });
+            });
+
+            // 4. Quét nội dung <script> tìm URL ngoại (dạng https://... trong chuỗi)
+            doc.querySelectorAll('script:not([src])').forEach(s => {
+                const txt = s.textContent || '';
+                // Bắt URL trong chuỗi JS
+                const urlMatches = txt.match(/['"`](https?:\/\/[^\s'"`<>]{8,})[`'"]/g) || [];
+                urlMatches.forEach(m => {
+                    const u = m.replace(/^['"`]|['"`]$/g, '');
+                    if (isExternal(u)) foundLinks.add(u);
+                });
+            });
+
+            // 5. <noscript> fallback links
+            doc.querySelectorAll('noscript a[href]').forEach(a => {
+                const h = resolveUrl(a.getAttribute('href'));
+                if (h && isExternal(h)) foundLinks.add(h);
+            });
+
+            const links = [...foundLinks];
+
+            if (links.length === 0) {
+                const emptyTr = document.createElement('tr');
+                emptyTr.innerHTML = `<td colspan="6" style="color:var(--text-muted); font-size:12px; padding-left:25px;">Không tìm thấy outbound link nào.</td>`;
+                tbody.appendChild(emptyTr);
+                continue;
+            }
+
+            const rowPromises = [];
+            for (let link of links) {
+                const i = linkCounter++;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-size:11px; color:var(--text-muted);">${host}</td>
+                    <td style="font-size:11px; word-break:break-all;"><a href="${link}" target="_blank" style="color:var(--primary)">${link}</a></td>
+                    <td id="audRdr_${i}" style="font-size:11px; word-break:break-all;"><span style="color:var(--text-muted)">...</span></td>
+                    <td style="font-size:11px;">${new URL(link).hostname}</td>
+                    <td id="audSt_${i}"><span style="color:var(--warning)">⏳ Chờ...</span></td>
+                    <td id="audCo_${i}">-</td>
+                    <td><button class="btn-mini" onclick="checkOneOutbound('${link}', ${i})">🔄</button></td>
+                `;
+                tbody.appendChild(tr);
+                // Thu thập promises — chạy song song
+                rowPromises.push(checkOneOutbound(link, i));
+            }
+            // Chờ tất cả link của site này check xong trước khi chuyển site tiếp theo
+            await Promise.all(rowPromises);
+            await new Promise(r => setTimeout(r, 300));
+        }
+
+        // Tất cả đã xong — bây giờ mới gửi Telegram
+        const teleMsg = `<b>🔗 BÁO CÁO OUTBOUND AUDIT</b>\n\n` +
+                        `✅ Đã quét xong: <b>${rawLines.length}</b> website.\n` +
+                        `🔗 Tổng link trỏ ra tìm thấy: <b>${linkCounter}</b> link.\n` +
+                        `⏰ Thời gian: ${new Date().toLocaleString()}\n\n` +
+                        `<i>Sếp vào web xem chi tiết từng link sống/chết nhé!</i>`;
+        await sendToTelegram(teleMsg);
+    }
+
+    async function checkOneOutbound(link, i) {
+        const stEl = document.getElementById(`audSt_${i}`);
+        const coEl = document.getElementById(`audCo_${i}`);
+        const rdrEl = document.getElementById(`audRdr_${i}`);
+        stEl.innerHTML = '<span style="color:var(--warning)">⏳ Quét...</span>';
+
+        // Bước 1: Check sống/chết
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 8000);
+            const check = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`, { signal: ctrl.signal });
+            clearTimeout(tid);
+            stEl.innerHTML = check.ok ? '<span class="status-badge status-success">✅ SỐNG</span>' : '<span class="status-badge status-error">❌ LỖI</span>';
+            coEl.innerText = check.status;
+            
+            if (check.ok) {
+                const html = await check.text();
+                const doc2 = new DOMParser().parseFromString(html, 'text/html');
+                let finalUrl = doc2.querySelector('link[rel="canonical"]')?.getAttribute('href') || 
+                               doc2.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
+                
+                if (!finalUrl) {
+                    const content = doc2.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
+                    const m = content.match(/url=([^;\s]+)/i);
+                    if (m) finalUrl = m[1].trim().replace(/["']/g, '');
+                }
+
+                if (finalUrl) {
+                    try {
+                        const fHost = new URL(finalUrl).hostname.replace('www.', '');
+                        const oHost = new URL(link).hostname.replace('www.', '');
+                        if (fHost !== oHost) {
+                            rdrEl.innerHTML = `<a href="${finalUrl}" target="_blank" style="color:var(--warning); font-size:10px; word-break:break-all;">➡️ ${finalUrl}</a>`;
+                        } else {
+                            rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không redirect</span>';
+                        }
+                    } catch(e) { rdrEl.innerText = '-'; }
+                } else {
+                    rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">-</span>';
+                }
+            }
+        } catch(e) {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Timeout</span>';
+            coEl.innerText = 'ERR';
+        }
+    }
+
+    // --- MLINK CHECK ---
+    async function startMlinkCheck() {
+        const rawLines = document.getElementById('auditUrlList').value.split('\n').map(l => l.trim()).filter(l => l);
+        if (rawLines.length === 0) return alert('Nhập ít nhất 1 URL sếp ơi!');
+
+        const container = document.getElementById('mlinkResultContainer');
+        const tbody = document.getElementById('mlinkResultBody');
+        container.style.display = 'block';
+        tbody.innerHTML = '';
+        document.getElementById('mlinkOkCount').innerText = '0';
+        document.getElementById('mlinkErrCount').innerText = '0';
+
+        for (let rawUrl of rawLines) {
+            let url = rawUrl;
+            if (!url.startsWith('http')) url = 'https://' + url;
+            if (!url.endsWith('/')) url += '/';
+            const rowId = 'ml_' + btoa(rawUrl).replace(/[^a-z0-9]/gi,'').slice(0,12);
+            
+            const tr = document.createElement('tr');
+            tr.id = `row_${rowId}`;
+            tr.innerHTML = `
+                <td style="word-break:break-all;"><a href="${url}" target="_blank" style="color:var(--primary);">${url}</a></td>
+                <td id="st_${rowId}"><span style="color:var(--text-muted)">Đang quét...</span></td>
+                <td id="links_${rowId}" style="font-size:11px;">...</td>
+                <td><button class="btn-mini" onclick="recheckOneMlink('${url}', '${rowId}')">🔄 Check lại</button></td>
+            `;
+            tbody.appendChild(tr);
+
+            await checkOneMlink(url, rowId);
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        // Sau khi xong hết thì gửi Tele báo cáo tổng
+        updateMlinkSummaryAndTele();
+    }
+
+    async function checkOneMlink(url, rowId) {
+        const stEl = document.getElementById(`st_${rowId}`);
+        const linksEl = document.getElementById(`links_${rowId}`);
+        stEl.innerHTML = '<span style="color:var(--warning)">⏳ Đang quét...</span>';
+        
+        const host = new URL(url).hostname.replace('www.', '');
+        const html = await fetchHtml(url);
+        
+        if (!html) {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Lỗi truy cập</span>';
+            linksEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">Proxy không thể kết nối tới Website.</span>';
+            return false;
+        }
+
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const mlinkUrls = new Set();
+
+        doc.querySelectorAll('a[href]').forEach(a => {
+            try {
+                const h = new URL(a.getAttribute('href'), url).href;
+                const uObj = new URL(h);
+                if (uObj.hostname.replace('www.','').includes(host) && uObj.pathname.startsWith('/mlink/')) mlinkUrls.add(h);
+            } catch(e) {}
+        });
+
+        doc.querySelectorAll('[data-href],[data-url],[data-link],[onclick]').forEach(el => {
+            ['data-href','data-url','data-link'].forEach(attr => {
+                const v = el.getAttribute(attr);
+                if (v) { try { const h = new URL(v, url).href; const u2 = new URL(h); if (u2.hostname.replace('www.','').includes(host) && u2.pathname.startsWith('/mlink/')) mlinkUrls.add(h); } catch(e){} }
+            });
+            const oc = el.getAttribute('onclick') || '';
+            const ms = oc.match(/['"](\/?mlink\/[^'"]+)['"]/g) || [];
+            ms.forEach(m => { const v = m.replace(/^['"]|['"]$/g, ''); try { mlinkUrls.add(new URL(v, url).href); } catch(e){} });
+        });
+
+        const uniqueMlinks = [...mlinkUrls];
+        if (uniqueMlinks.length > 0) {
+            stEl.innerHTML = `<span class="status-badge status-success">✅ OK (${uniqueMlinks.length})</span>`;
+            linksEl.innerHTML = uniqueMlinks.map(l => `<a href="${l}" target="_blank" style="color:#a78bfa; display:block; margin-bottom:2px; word-break:break-all;">${l}</a>`).join('');
+            return true;
+        } else {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Thiếu mlink</span>';
+            linksEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không tìm thấy link cloaking /mlink/ nào trong mã nguồn.</span>';
+            return false;
+        }
+    }
+
+    async function recheckOneMlink(url, rowId) {
+        await checkOneMlink(url, rowId);
+        updateMlinkSummaryAndTele(true);
+    }
+
+    function updateMlinkSummaryAndTele(isUpdateOnly = false) {
+        const rows = document.querySelectorAll('#mlinkResultBody tr');
+        let ok = 0, err = 0;
+        let teleLines = [];
+
+        rows.forEach(tr => {
+            const stText = tr.querySelector('td:nth-child(2)').innerText;
+            const url = tr.querySelector('td:nth-child(1) a').innerText;
+            if (stText.includes('OK')) { ok++; teleLines.push(`✅ ${url}`); }
+            else if (stText.includes('Thiếu') || stText.includes('Lỗi')) { err++; teleLines.push(`❌ ${url}`); }
+        });
+
+        document.getElementById('mlinkOkCount').innerText = ok;
+        document.getElementById('mlinkErrCount').innerText = err;
+
+        if (!isUpdateOnly) {
+            let teleMsg = `<b>🔗 BÁO CÁO CHECK /mlink/ CLOAKING</b>\n\n✅ Có: <b>${ok}</b> | ❌ Thiếu: <b>${err}</b>\n\n` + teleLines.join('\n');
+            sendToTelegram(teleMsg);
+        }
+    }
+
+    // --- TAB 4 LOGIC ---
+    async function startCheckBot() {
+        const btn = document.getElementById('btnCheckBot');
+        const lines = document.getElementById('checkBotList').value.split('\n').filter(l => l.trim());
+        if(lines.length === 0) return alert("Nhập danh sách website sếp ơi!");
+        
+        btn.innerText = "⏳ Đang quét...";
+        btn.disabled = true;
+        
+        const outContainer = document.getElementById('checkBotOutputContainer');
+        const outArea = document.getElementById('checkBotOutput');
+        outContainer.style.display = 'block';
+        outArea.value = '';
+        
+        let results = [];
+        let errorCount = 0;
+        let blockedCount = 0;
+        let openCount = 0;
+
+        for (let rawUrl of lines) {
+            let url = rawUrl.trim();
+            if (!url.startsWith('http')) url = 'https://' + url;
+            try {
+                let parsed = new URL(url);
+                url = parsed.origin; // Chỉ check trang chủ
+            } catch(e) {}
+            
+            let statusText = "🟢 MỞ BOT (Tốt)"; 
+            let isBlocked = false;
+            
+            try {
+                // 1. Check robots.txt
+                const robotRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url + '/robots.txt')}`);
+                if (robotRes.ok) {
+                    const txt = await robotRes.text();
+                    if (/(disallow:\s*\/\s*$)|(disallow:\s*\/$)/im.test(txt)) {
+                        statusText = "🔴 ĐÓNG BOT (chặn trong robots.txt)";
+                        isBlocked = true;
+                    }
+                }
+                
+                // 2. Check Meta Tag
+                if (!isBlocked) {
+                    const htmlRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+                    if (htmlRes.ok) {
+                        const html = await htmlRes.text();
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const metaRobots = doc.querySelector('meta[name="robots"], meta[name="googlebot"]');
+                        if (metaRobots && (metaRobots.getAttribute('content') || '').toLowerCase().includes('noindex')) {
+                            statusText = "🔴 ĐÓNG BOT (chặn bởi meta noindex)";
+                            isBlocked = true;
+                        }
+                    } else {
+                        statusText = `🟡 Không vào được web (HTTP ${htmlRes.status})`;
+                        errorCount++;
+                        isBlocked = null;
+                    }
+                }
+            } catch(e) {
+                statusText = "❌ Lỗi mạng/Timeout";
+                errorCount++;
+                isBlocked = null;
+            }
+            
+            if (isBlocked === true) blockedCount++;
+            else if (isBlocked === false) openCount++;
+
+            results.push(`[${statusText}] ${url}`);
+            outArea.value = results.join('\n');
+            await new Promise(r => setTimeout(r, 600));
+        }
+        
+        btn.innerText = "🤖 Bắt đầu Check Mở Bot";
+        btn.disabled = false;
+        
+        let teleMsg = `<b>🤖 BÁO CÁO CHECK MỞ BOT</b>\n`;
+        teleMsg += `Tổng: ${lines.length} | 🟢 Mở: ${openCount} | 🔴 Đóng: ${blockedCount} | ❌ Lỗi: ${errorCount}\n\n`;
+        results.forEach(r => { teleMsg += `${r}\n`; });
+        await sendToTelegram(teleMsg);
+    }
+</script>
+
+    <script src="auditor.js"></script>
+    <script>
+        async function startCheckHomepage() {
+            const rawUrls = document.getElementById('homepageUrlInput').value.split('\n').map(u => u.trim()).filter(u => u);
+            if(rawUrls.length === 0) return alert('Nhập danh sách URL!');
+            const btn = document.getElementById('btnCheckHomepage');
+            btn.disabled = true; btn.innerText = 'Đang quét...';
+            document.getElementById('homepageTable').style.display = 'table';
+            const tbody = document.getElementById('homepageBody'); tbody.innerHTML = '';
+            document.getElementById('homepageOutputContainer').style.display = 'none';
+            let report = []; let pC = 0, sC = 0, eC = 0;
+            for(let i=0; i<rawUrls.length; i++) {
+                let url = rawUrls[i]; if (!url.startsWith('http')) url = 'https://' + url;
+                let tr = document.createElement('tr');
+                tr.innerHTML = '<td><a href="' + url + '" target="_blank" style="color:var(--primary);text-decoration:none">' + url + '</a></td><td id="hp_status_' + i + '"><span class="badge badge-warning">Đang check...</span></td><td id="hp_code_' + i + '">-</td>';
+                tbody.appendChild(tr);
+                let type = 'Lỗi';
+                try {
+                    let html = ''; let statusText = 'Lỗi truy cập'; let httpCode = '-';
+                    try {
+                        const ctrl = new AbortController();
+                        const tid = setTimeout(() => ctrl.abort(), 8000);
+                        const res1 = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url), {signal: ctrl.signal});
+                        clearTimeout(tid);
+                        if (res1.ok) {
+                            const data = await res1.json().catch(()=>({}));
+                            html = data.contents || '';
+                            httpCode = data.status?.http_code || 200;
+                        } else { throw new Error('CORS'); }
+                    } catch(e1) {
+                        try {
+                            const ctrl2 = new AbortController();
+                            const tid2 = setTimeout(() => ctrl2.abort(), 8000);
+                            const res2 = await fetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url), {signal: ctrl2.signal});
+                            clearTimeout(tid2);
+                            if (res2.ok) {
+                                html = await res2.text();
+                                httpCode = 200;
+                            } else { httpCode = res2.status; }
+                        } catch(e2) { statusText = 'Lỗi mạng'; }
+                    }
+
+                    if (html) {
+                        document.getElementById('hp_code_'+i).innerText = httpCode;
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const bc = doc.body ? doc.body.className : '';
+                        const isWP = html.includes('wp-content') || html.includes('wp-includes');
+                        
+                        if (bc.match(/\b(blog|home-blog|posts-page)\b/)) {
+                            type = 'Bài viết mới nhất (Posts)';
+                            document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-info">Bài viết mới nhất</span>';
+                            pC++;
+                        } else if (bc.match(/\b(page|page-template|page-template-default|home-page|page-id-\d+)\b/)) {
+                            type = 'Trang tĩnh (Static)';
+                            document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
+                            sC++;
+                        } else {
+                            if (html.includes('class="entry-content"') && !html.includes('class="blog"')) {
+                                type = 'Trang tĩnh (Static)';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
+                                sC++;
+                            } else if (html.match(/class="[^"]*type-post[^"]*"/)) {
+                                type = 'Bài viết mới nhất (Posts)';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-info">Bài viết mới nhất</span>';
+                                pC++;
+                            } else if (html.match(/class="[^"]*type-page[^"]*"/)) {
+                                type = 'Trang tĩnh (Static)';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
+                                sC++;
+                            } else {
+                                type = 'Không xác định';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge" style="background:#64748b;color:white">Không xác định</span>';
+                            }
+                        }
+                    } else { 
+                        document.getElementById('hp_status_'+i).innerHTML = `<span class="status-badge status-error">${statusText}</span>`; 
+                        document.getElementById('hp_code_'+i).innerText = httpCode;
+                        eC++; 
+                    }
+                } catch(e) { document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-error">Lỗi hệ thống</span>'; eC++; }
+                report.push('[' + type + '] ' + url);
+                await new Promise(r => setTimeout(r, 800));
+            }
+            btn.innerText = '🚀 Bắt đầu Quét'; btn.disabled = false;
+            document.getElementById('homepageOutputContainer').style.display = 'block';
+            document.getElementById('homepageOutput').value = report.join('\n');
+            let m = '<b>🏠 BÁO CÁO HOMEPAGE STATUS</b>\n';
+            m += 'Tổng: ' + rawUrls.length + ' | 📝 Posts: ' + pC + ' | 📄 Static: ' + sC + ' | ❌ Lỗi: ' + eC + '\n\n' + report.join('\n');
+            await sendToTelegram(m);
+        }
+    </script>
+    
+
+    <script>
+        let currentGscMode = 'week';
+        
+        function setGscMode(mode) {
+            currentGscMode = mode;
+            document.getElementById('btnModeDay').style.cssText = 'font-size:12px; padding:6px 15px;';
+            document.getElementById('btnModeWeek').style.cssText = 'font-size:12px; padding:6px 15px;';
+            document.getElementById('btnModeMonth').style.cssText = 'font-size:12px; padding:6px 15px;';
+            
+            const activeCss = 'font-size:12px; padding:6px 15px; background:var(--primary); color:white; border-color:var(--primary);';
+            if(mode === 'day') document.getElementById('btnModeDay').style.cssText = activeCss;
+            if(mode === 'week') document.getElementById('btnModeWeek').style.cssText = activeCss;
+            if(mode === 'month') document.getElementById('btnModeMonth').style.cssText = activeCss;
+        }
+
+        function formatDateGSC(d) {
+            let month = '' + (d.getMonth() + 1), day = '' + d.getDate(), year = d.getFullYear();
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+            return [year, month, day].join('-');
+        }
+
+        async function fetchGscMetrics(siteUrl, token, startDate, endDate) {
+            const body = { startDate: startDate, endDate: endDate };
+            try {
+                const res = await fetch(`https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) { if(res.status===403) return {error: 403}; return null; }
+                const data = await res.json();
+                if (data.rows && data.rows.length > 0) {
+                    return data.rows[0]; // Without dimensions, it returns 1 row with total sums
+                }
+                return { clicks: 0, impressions: 0, ctr: 0, position: 0 };
+            } catch(e) { return null; }
+        }
+
+        async function startGscInsights() {
+            if (typeof gscAccounts === 'undefined' || gscAccounts.length === 0) {
+                return alert('Vui lòng qua Bước 1 thêm tài khoản Google trước!');
+            }
+            
+            let siteMap = new Map();
+            for (let acc of gscAccounts) {
+                if (!activeAccountEmails.includes(acc.email)) continue;
+                if (!acc.token || Date.now() > acc.expiresAt) continue;
+                
+                if (!acc.sites || acc.sites.length === 0) {
+                    await fetchAccountSites(acc);
+                }
+
+                if (acc.sites && acc.sites.length > 0) {
+                    acc.sites.forEach(s => {
+                        if (!siteMap.has(s.siteUrl)) {
+                            siteMap.set(s.siteUrl, { url: s.siteUrl, allTokens: [] });
+                        }
+                        siteMap.get(s.siteUrl).allTokens.push({ token: acc.token, email: acc.email });
+                    });
+                }
+            }
+            
+            let allSites = Array.from(siteMap.values());
+            const domainListStr = document.getElementById('gscInsightsUrls').value.trim();
+            const filterDomains = domainListStr ? domainListStr.split('\n').map(d => d.trim().toLowerCase()).filter(d => d) : [];
+            
+            if (filterDomains.length > 0) {
+                allSites = allSites.filter(s => {
+                    const cleanUrl = s.url.replace('https://', '').replace('sc-domain:', '').replace(/\/$/, '').toLowerCase();
+                    return filterDomains.some(fd => cleanUrl.includes(fd) || fd.includes(cleanUrl));
+                });
+            }
+
+            if (allSites.length === 0) {
+                document.getElementById('insightsLoading').style.display = 'none';
+                document.getElementById('btnRunInsights').disabled = false;
+                return alert('Không tìm thấy website nào khớp với danh sách check. Vui lòng kiểm tra lại Tab 1 hoặc bật Search Console API!');
+            }
+
+            document.getElementById('insightsTable').style.display = 'table';
+            const tbody = document.getElementById('insightsBody');
+            tbody.innerHTML = '';
+            document.getElementById('insightsLoading').style.display = 'block';
+            document.getElementById('btnRunInsights').disabled = true;
+
+            // ... (dates calculation remains same) ...
+            let today = new Date();
+            let latestDate = new Date(today.getTime() - (3 * 24 * 60 * 60 * 1000));
+            let dayCount = currentGscMode === 'day' ? 1 : (currentGscMode === 'week' ? 7 : 30);
+            
+            let aEnd = new Date(latestDate);
+            let aStart = new Date(latestDate.getTime() - ((dayCount - 1) * 24 * 60 * 60 * 1000));
+            let bEnd = new Date(aStart.getTime() - (1 * 24 * 60 * 60 * 1000));
+            let bStart = new Date(bEnd.getTime() - ((dayCount - 1) * 24 * 60 * 60 * 1000));
+
+            let strAStart = formatDateGSC(aStart); let strAEnd = formatDateGSC(aEnd);
+            let strBStart = formatDateGSC(bStart); let strBEnd = formatDateGSC(bEnd);
+
+            for (let i = 0; i < allSites.length; i++) {
+                let site = allSites[i];
+                let firstEmail = site.allTokens[0].email;
+                let tr = document.createElement('tr');
+                tr.innerHTML = `<td style="font-size:12px;">${site.url.replace('https://', '').replace('sc-domain:', '')} <br><span id="ins_e_${i}" style="font-size:10px; color:var(--text-muted);">${firstEmail}</span></td>
+                    <td id="ins_c_${i}">⏳</td><td id="ins_i_${i}">⏳</td><td id="ins_p_${i}">⏳</td><td id="ins_s_${i}">⏳</td>`;
+                tbody.appendChild(tr);
+
+                let dataA = null; let dataB = null; let usedEmail = firstEmail;
+                let foundData = false;
+                
+                for (let tk of site.allTokens) {
+                    dataA = await fetchGscMetrics(site.url, tk.token, strAStart, strAEnd);
+                    // Nếu lỗi 403 (không có quyền) hoặc lỗi kết nối, thử tài khoản tiếp theo
+                    if (!dataA || dataA.error === 403 || dataA.error === 401) continue; 
+                    
+                    dataB = await fetchGscMetrics(site.url, tk.token, strBStart, strBEnd);
+                    if (!dataB || dataB.error === 403 || dataB.error === 401) continue;
+
+                    usedEmail = tk.email;
+                    foundData = true;
+                    break;
+                }
+                document.getElementById(`ins_e_${i}`).innerText = usedEmail;
+
+                if (foundData && dataA && dataB && !dataA.error && !dataB.error) {
+                    let clicksA = dataA.clicks || 0; let clicksB = dataB.clicks || 0;
+                    let impA = dataA.impressions || 0; let impB = dataB.impressions || 0;
+                    let posA = dataA.position || 0; let posB = dataB.position || 0;
+
+                    let clickDelta = clicksA - clicksB;
+                    let clickPct = clicksB === 0 ? (clicksA > 0 ? 100 : 0) : ((clickDelta / clicksB) * 100);
+                    let clickColor = clickDelta > 0 ? 'var(--success)' : (clickDelta < 0 ? 'var(--danger)' : 'var(--text-muted)');
+                    let clickArrow = clickDelta > 0 ? '↑' : (clickDelta < 0 ? '↓' : '-');
+
+                    let cDisplay = currentGscMode === 'day' ? clickDelta : clickPct.toFixed(1) + '%';
+                    
+                    document.getElementById(`ins_c_${i}`).innerHTML = `${clicksA} <br><span style="color:${clickColor}; font-size:11px; font-weight:bold;">${clickArrow} ${Math.abs(cDisplay)}${currentGscMode==='day'?'':'%'}</span>`;
+                    
+                    let impDelta = impA - impB;
+                    let impPct = impB === 0 ? (impA > 0 ? 100 : 0) : ((impDelta / impB) * 100);
+                    let impColor = impDelta > 0 ? 'var(--success)' : (impDelta < 0 ? 'var(--danger)' : 'var(--text-muted)');
+                    document.getElementById(`ins_i_${i}`).innerHTML = `${impA.toLocaleString()} <br><span style="color:${impColor}; font-size:11px;">${impDelta > 0 ? '↑' : (impDelta < 0 ? '↓' : '')} ${Math.abs(impPct).toFixed(1)}%</span>`;
+
+                    let posDelta = posB - posA; // Lower position is better
+                    let posColor = posDelta > 0 ? 'var(--success)' : (posDelta < 0 ? 'var(--danger)' : 'var(--text-muted)');
+                    document.getElementById(`ins_p_${i}`).innerHTML = `${posA > 0 ? posA.toFixed(1) : '-'} <br><span style="color:${posColor}; font-size:11px;">${posDelta > 0 ? '↑' : (posDelta < 0 ? '↓' : '')} ${Math.abs(posDelta).toFixed(1)}</span>`;
+
+                    let statusBadge = '<span class="badge badge-warning">Đi ngang</span>';
+                    if (clickPct >= 5) statusBadge = '<span class="badge badge-success">Đang Lên</span>';
+                    if (clickPct <= -5) statusBadge = '<span class="badge badge-danger">Sụt Giảm</span>';
+                    document.getElementById(`ins_s_${i}`).innerHTML = statusBadge;
+                } else {
+                    document.getElementById(`ins_c_${i}`).innerHTML = '<span style="color:var(--danger)">Lỗi/No Data</span>';
+                    document.getElementById(`ins_i_${i}`).innerText = '-';
+                    document.getElementById(`ins_p_${i}`).innerText = '-';
+                    document.getElementById(`ins_s_${i}`).innerText = '-';
+                }
+                await new Promise(r => setTimeout(r, 200)); // Rate limit
+            }
+
+            document.getElementById('insightsLoading').style.display = 'none';
+            document.getElementById('btnRunInsights').disabled = false;
+        }
+        async function startSystemOverview() {
+            const rawLines = document.getElementById('overviewUrlInput').value.split('\n').filter(l => l.trim());
+            if (rawLines.length === 0) return alert('Sếp chưa nạp dữ liệu! Hãy bấm "Nạp Data từ Sheet" hoặc dán danh sách vào trước nhé.');
+            
+            const tbody = document.getElementById('overviewBody');
+            tbody.innerHTML = '';
+            document.getElementById('overviewLoading').style.display = 'block';
+            document.getElementById('btnRunOverview').disabled = true;
+
+            // Reset Stats
+            let total = rawLines.length, live = 0, dead = 0, wrong301 = 0, noGsc = 0;
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statLive').innerText = '0';
+            document.getElementById('statDead').innerText = '0';
+            document.getElementById('statWrong301').innerText = '0';
+            document.getElementById('statNoGsc').innerText = '0';
+
+            let masterSiteMap = new Map();
+            for (let acc of gscAccounts) {
+                if (!activeAccountEmails.includes(acc.email)) continue;
+                if (!acc.token || Date.now() > acc.expiresAt) continue;
+                if (!acc.sites || acc.sites.length === 0) await fetchAccountSites(acc);
+                if (acc.sites) {
+                    acc.sites.forEach(s => {
+                        const clean = s.siteUrl.replace('https://', '').replace('sc-domain:', '').replace(/\/$/, '').toLowerCase();
+                        if (!masterSiteMap.has(clean)) masterSiteMap.set(clean, []);
+                        masterSiteMap.get(clean).push({ email: acc.email, token: acc.token, originalUrl: s.siteUrl });
+                    });
+                }
+            }
+
+            let latestDate = new Date(new Date().getTime() - (3 * 24 * 60 * 60 * 1000));
+            let strAEnd = formatDateGSC(latestDate);
+            let strAStart = formatDateGSC(new Date(latestDate.getTime() - (6 * 24 * 60 * 60 * 1000)));
+
+            const failedSites = [];
+
+            for (let i = 0; i < rawLines.length; i++) {
+                const parts = rawLines[i].trim().split(/\s+/);
+                let src = parts[0]; if(!src.startsWith('http')) src = 'https://' + src;
+                let dst = parts[1] || src; if(!dst.startsWith('http')) dst = 'https://' + dst;
+                const adminPath = parts[2] || 'wp-admin';
+                const user = parts[3] || '';
+                const pass = parts[4] || '';
+
+                const srcClean = src.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+                const dstClean = dst.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+
+                const tr = document.createElement('tr');
+                tr.id = `ov_row_${i}`;
+                tr.dataset.src = src; tr.dataset.dst = dst; tr.dataset.adminPath = adminPath; tr.dataset.user = user; tr.dataset.pass = pass;
+                tr.innerHTML = `
+                    <td style="font-size:12px;"><b>${srcClean}</b></td>
+                    <td id="ov_gsc_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_http_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_301_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_brand_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_admin_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_ins_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td><button class="btn-mini" onclick="recheckOverviewRow(${i})">🔄</button></td>
+                `;
+                tbody.appendChild(tr);
+
+                await checkOverviewRow(i, src, dst, adminPath, user, pass, strAStart, strAEnd, masterSiteMap);
+                await new Promise(r => setTimeout(r, 300));
+            }
+
+            document.getElementById('overviewLoading').style.display = 'none';
+            document.getElementById('btnRunOverview').disabled = false;
+
+            let teleMsg = `<b>📊 BÁO CÁO GIÁM SÁT HỆ THỐNG</b>\n\n` +
+                          `✅ Tổng: <b>${total}</b> | Live: <b>${document.getElementById('statLive').innerText}</b> | Chết: <b>${document.getElementById('statDead').innerText}</b>\n` +
+                          `⚠️ Sai 301: <b>${document.getElementById('statWrong301').innerText}</b> | Thiếu GSC: <b>${document.getElementById('statNoGsc').innerText}</b>\n\n`;
+            
+            if (failedSites.length > 0) {
+                teleMsg += `<b>🚨 CÁC WEB CẦN KIỂM TRA NGAY:</b>\n` + failedSites.slice(0, 15).join('\n');
+                if (failedSites.length > 15) teleMsg += `\n... và ${failedSites.length - 15} web khác.`;
+            } else {
+                teleMsg += `🎉 Chúc mừng sếp! Mọi thứ đều đang vận hành hoàn hảo.`;
+            }
+            await sendToTelegram(teleMsg);
+        }
+
+        async function recheckOverviewRow(i) {
+            const tr = document.getElementById(`ov_row_${i}`);
+            if (!tr) return;
+            
+            let masterSiteMap = new Map();
+            for (let acc of gscAccounts) {
+                if (!activeAccountEmails.includes(acc.email) || !acc.token || Date.now() > acc.expiresAt) continue;
+                if (acc.sites) {
+                    acc.sites.forEach(s => {
+                        const clean = s.siteUrl.replace('https://', '').replace('sc-domain:', '').replace(/\/$/, '').toLowerCase();
+                        if (!masterSiteMap.has(clean)) masterSiteMap.set(clean, []);
+                        masterSiteMap.get(clean).push({ email: acc.email, token: acc.token, originalUrl: s.siteUrl });
+                    });
+                }
+            }
+
+            let latestDate = new Date(new Date().getTime() - (3 * 24 * 60 * 60 * 1000));
+            let strAEnd = formatDateGSC(latestDate);
+            let strAStart = formatDateGSC(new Date(latestDate.getTime() - (6 * 24 * 60 * 60 * 1000)));
+
+            document.getElementById(`ov_http_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+            document.getElementById(`ov_301_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+            document.getElementById(`ov_brand_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+            document.getElementById(`ov_admin_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+
+            await checkOverviewRow(i, tr.dataset.src, tr.dataset.dst, tr.dataset.adminPath, tr.dataset.user, tr.dataset.pass, strAStart, strAEnd, masterSiteMap);
+        }
+
+        async function checkOverviewRow(i, src, dst, adminPath, user, pass, strAStart, strAEnd, masterSiteMap) {
+            const srcClean = src.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+            const dstClean = dst.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+
+            const owners = masterSiteMap.get(srcClean) || [];
+            const gscEl = document.getElementById(`ov_gsc_${i}`);
+            if (owners.length > 0) {
+                gscEl.innerHTML = owners.map(o => `<div style="font-size:10px; color:var(--primary)">${o.email}</div>`).join('');
+            } else {
+                gscEl.innerHTML = '<span class="status-badge" style="background:#4b5563">🔴 Chưa có</span>';
+            }
+
+            // --- HTTP & Content Check ---
+            const { html, code, redirectUrl } = await fetchStatus(src);
+            const httpEl = document.getElementById(`ov_http_${i}`);
+            const rdrEl = document.getElementById(`ov_301_${i}`);
+            
+            let label = ''; let labelClass = 'status-error';
+            if (code === 0) label = 'Không phản hồi';
+            else if (code === 1016) label = 'Lỗi 1016 (CF)';
+            else if (code === 404) label = 'Lỗi 404';
+            else if (code === 403) label = 'Lỗi 403';
+            else if (code >= 500) label = 'Lỗi Server (' + code + ')';
+            else if (html && (html.includes('Error establishing a database connection') || html.includes('Internal Server Error'))) label = 'Lỗi WP/DB';
+            else if (html && html.length < 200 && !redirectUrl) label = 'Trắng trang';
+            else if (code === 200 || code === 301 || code === 302) {
+                label = 'Tốt'; labelClass = 'status-success';
+            } else {
+                label = 'Lỗi ' + code;
+            }
+
+            httpEl.innerHTML = `<span class="status-badge ${labelClass}">${label}</span>`;
+
+            // --- 301 & Brand Check ---
+            const finalHost = redirectUrl ? normalizeHostname(redirectUrl) : (html ? normalizeHostname(src) : '');
+            const isMatch = finalHost === normalizeHostname(dst) || finalHost.includes(normalizeHostname(dst));
+            const brandEl = document.getElementById(`ov_brand_${i}`);
+            
+            if (srcClean !== dstClean) {
+                if (isMatch) rdrEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ KHHP (301 OK)</span>';
+                else {
+                    rdrEl.innerHTML = `<span style="color:var(--danger); font-size:11px;">🚨 Sai domain gốc</span><br><span style="font-size:9px; color:var(--text-muted)">-> ${finalHost || '???'}</span>`;
+                }
+            } else {
+                rdrEl.innerText = '-';
+            }
+
+            // Check Brand Gốc (Footer)
+            if (html) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                let footerText = '';
+                const footers = doc.querySelectorAll('footer, [class*="footer"], [id*="footer"], [class*="copyright"], [id*="copyright"]');
+                footers.forEach(f => footerText += f.textContent + ' ');
+                if(!footerText) footerText = doc.body ? doc.body.textContent.slice(-2000) : '';
+                
+                let coreBrand = srcClean.split('.')[0].replace(/-/g, '');
+                if (coreBrand === 'www') coreBrand = srcClean.split('.')[1].replace(/-/g, '');
+                
+                const srcNumMatch = coreBrand.match(/\\d+$/);
+                const srcNum = srcNumMatch ? srcNumMatch[0] : '';
+                const srcAlpha = coreBrand.replace(/\\d+$/, '');
+                
+                let brandMatch = false;
+
+                if (footerText.toLowerCase().includes(coreBrand.toLowerCase())) {
+                    brandMatch = true;
+                } else if (srcAlpha.length >= 3) {
+                    const regex = new RegExp(srcAlpha + '(\\\\d*)', 'gi');
+                    let match;
+                    while ((match = regex.exec(footerText)) !== null) {
+                        const foundNum = match[1];
+                        if (foundNum === '' || foundNum === srcNum) {
+                            brandMatch = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (brandMatch) {
+                    brandEl.innerHTML = `<span style="color:var(--success); font-size:11px; font-weight:bold;">✅ ĐÚNG</span>`;
+                } else {
+                    brandEl.innerHTML = `<span style="color:var(--danger); font-size:11px; font-weight:bold;">🚨 LỆCH</span>`;
+                }
+            } else {
+                brandEl.innerText = '-';
+            }
+
+            if (user && pass) {
+                const adEl = document.getElementById(`ov_admin_${i}`);
+                adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">⏳ Đang check Pass...</span>';
+                const dstAdminBase = stripLocalePath(dst || src);
+                const status = await verifyLoginViaVps(dstAdminBase, adminPath, user, pass);
+                adEl.innerHTML = status;
+            } else if (user) {
+                const adEl = document.getElementById(`ov_admin_${i}`);
+                let h = '';
+                const dstAdminBase = stripLocalePath(dst || src);
+                try { h = await vpsProxyRaw(dstAdminBase + adminPath); } catch(e) {}
+                if (h) {
+                    if (h.includes('wp-login') || h.includes('user_login') || h.includes('user_pass')) adEl.innerHTML = '<span class="status-badge status-success" style="font-size:10px;">✅ Admin Live</span>';
+                    else adEl.innerHTML = '<span style="color:var(--warning); font-size:10px;">⚠️ Đổi Path?</span>';
+                } else adEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">❌ Lỗi WP</span>';
+            }
+
+            if (owners.length > 0) {
+                const insEl = document.getElementById(`ov_ins_${i}`);
+                const data = await fetchGscMetrics(owners[0].originalUrl, owners[0].token, strAStart, strAEnd);
+                if (data && !data.error) insEl.innerHTML = `<span style="color:var(--primary); font-weight:bold;">${data.clicks}</span> <span style="font-size:9px; color:var(--text-muted)">clicks</span>`;
+                else insEl.innerText = '-';
+            }
+        }
+    
+    
+    // --- WORKFLOW EXECUTION ENGINE ---
+    async function runCurrentWorkflow() {
+        if (wfNodes.length === 0) { alert('Canvas đang trống!'); return; }
+        
+        const orderedIds = getExecutionOrder();
+        if (orderedIds.length === 0) { alert('Quy trình chưa được kết nối đúng cách!'); return; }
+
+        const btn = document.getElementById('wfBtnTest');
+        const oldText = btn.innerHTML;
+        btn.innerHTML = '⏳ Đang chạy...';
+        btn.disabled = true;
+
+        try {
+            // State storage for data passing between nodes
+            let flowData = []; // Array of objects { url, adminPath, user, pass, results... }
+
+            for (const nodeId of orderedIds) {
+                const node = wfNodes.find(n => n.id === nodeId);
+                if (!node) continue;
+
+                // Highlight node
+                const nodeEl = document.getElementById(nodeId);
+                if(nodeEl) nodeEl.style.boxShadow = '0 0 20px rgba(124,58,237,0.8)';
+                
+                // EXECUTE NODE LOGIC
+                if (node.type === 'input') {
+                    flowData = await execInputNode(node);
+                } else if (node.type === 'http-status') {
+                    flowData = await execHttpStatusNode(node, flowData);
+                } else if (node.type === 'telegram') {
+                    await execTelegramNode(node, flowData);
+                }
+                
+                // Un-highlight
+                if(nodeEl) nodeEl.style.boxShadow = '';
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            alert('✅ Quy trình đã hoàn thành!');
+        } catch (err) {
+            console.error('Workflow Execution Error:', err);
+            alert('❌ Lỗi quy trình: ' + err.message);
+        } finally {
+            btn.innerHTML = oldText;
+            btn.disabled = false;
+        }
+    }
+
+    async function execInputNode(node) {
+        const data = node.data || {};
+        let raw = '';
+        
+        if (data.mode === 'sheet' && data.sheetUrl) {
+            // Call existing sheet import logic
+            const sheetIdMatch = data.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (!sheetIdMatch) throw new Error('Link Google Sheet không hợp lệ');
+            const sheetId = sheetIdMatch[1];
+            const range = data.sheetRange || 'A2:E100';
+            const apiKey = GOOGLE_API_KEY; // Global variable
+            
+            const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`);
+            const json = await res.json();
+            if (!json.values) throw new Error('Không lấy được dữ liệu từ Sheet (Có thể chưa Share Public?)');
+            
+            return json.values.map(row => ({
+                url: (row[0] || '').trim(),
+                adminPath: (row[1] || '').trim(),
+                user: (row[2] || '').trim(),
+                pass: (row[3] || '').trim()
+            })).filter(r => r.url);
+        } else {
+            // Manual mode
+            raw = data.manualRaw || '';
+            const lines = raw.split('\n').filter(l => l.trim());
+            return lines.map(line => {
+                const parts = line.split('|').map(p => p.trim());
+                return {
+                    url: parts[0] || '',
+                    adminPath: parts[1] || '',
+                    user: parts[2] || '',
+                    pass: parts[3] || ''
+                };
+            }).filter(r => r.url);
+        }
+    }
+
+    async function execHttpStatusNode(node, inputData) {
+        if (!inputData || inputData.length === 0) return [];
+        const settings = node.data || {};
+        const timeout = settings.timeout || 10000;
+        
+        const results = [];
+        for (const item of inputData) {
+            let status = 'Checking...';
+            let errorMsg = '';
+            try {
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                
+                // Using a CORS proxy to check status from client side
+                const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(item.url);
+                const res = await fetch(proxyUrl, { signal: controller.signal });
+                clearTimeout(id);
+                
+                if (res.ok) {
+                    const json = await res.json();
+                    const httpCode = json.status?.http_code || 200;
+                    const content = json.contents || '';
+                    
+                    if (httpCode >= 400) status = `Lỗi ${httpCode}`;
+                    else if (settings.checkWhitePage !== false && content.trim().length < 50) status = 'Trắng trang';
+                    else status = '200 OK';
+                } else {
+                    status = `Lỗi ${res.status}`;
+                }
+            } catch (err) {
+                status = err.name === 'AbortError' ? 'Time out' : 'Lỗi kết nối';
+                errorMsg = err.message;
+            }
+            results.push({ ...item, status, error: errorMsg });
+        }
+        return results;
+    }
+
+    async function execTelegramNode(node, inputData) {
+        if (!inputData || inputData.length === 0) return;
+        const data = node.data || {};
+        const template = data.template || 'Website {{url}} status: {{status}}';
+        
+        // Priority: Node settings > Global settings
+        const token = data.token || localStorage.getItem('tele_token');
+        const chatId = data.chatId || localStorage.getItem('tele_chat_id');
+        
+        if (!token || !chatId) {
+            console.warn('Telegram Node: Missing Token or ChatID');
+            return;
+        }
+
+        let message = '<b>📊 BÁO CÁO WORKFLOW</b>\n\n';
+        inputData.forEach((item, i) => {
+            let rowMsg = template
+                .replace(/{{url}}/g, item.url)
+                .replace(/{{status}}/g, item.status)
+                .replace(/{{error}}/g, item.error || '');
+            message += (i+1) + '. ' + rowMsg + '\n';
+        });
+        
+        // Custom send fetch to use node-specific token/chatId
+        try {
+            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML', disable_web_page_preview: true })
+            });
+        } catch(e) {
+            console.error('Telegram Node Error:', e);
+        }
+    }
+
+
+    // --- WORKFLOW FLOW OVERRIDES ---
+    let currentEditingWfIndex = -1;
+
+    function openAutomationPanel() {
+        document.getElementById('automationPanel').classList.add('open');
+        document.getElementById('autoOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        sessionStorage.setItem('panelOpen', '1');
+        
+        // Show library by default
+        document.getElementById('wfLibraryView').classList.add('active');
+        document.getElementById('wfBuilderView').classList.remove('active');
+        toggleToolbarVisibility(false);
+        
+        if (!window._wfInited) {
+            window._wfInited = true;
+            initWorkflowBuilder();
+        }
+        renderWfLibrary();
+    }
+
+    function toggleToolbarVisibility(isBuilder) {
+        const btns = ['wfBtnBack', 'wfBtnClear', 'wfBtnTest', 'wfBtnSave'];
+        btns.forEach(id => {
+            const b = document.getElementById(id);
+            if(b) b.style.display = isBuilder ? 'inline-block' : 'none';
+        });
+    }
+
+    function renderWfLibrary() {
+        const grid = document.getElementById('wfLibGrid');
+        if (!grid) return;
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        if (list.length === 0) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color:#64748b; background:rgba(255,255,255,0.02); border-radius:12px; border:2px dashed rgba(255,255,255,0.05); font-size:14px;">Chưa có quy trình nào. Hãy bấm <b>Tạo Quy Trình Mới</b> ở góc trên!</div>';
+            return;
+        }
+        grid.innerHTML = list.map((wf, idx) => `
+            <div class="wf-lib-card" onclick="editWorkflow(${idx})">
+                <div class="wf-lib-card-title">${wf.name}</div>
+                <div class="wf-lib-card-meta">
+                    ${wf.nodes ? wf.nodes.length : 0} Nodes • Đã lưu: ${new Date(wf.savedAt || Date.now()).toLocaleDateString('vi-VN')}
+                </div>
+                <div class="wf-lib-card-actions" onclick="event.stopPropagation()">
+                    <button class="wf-lib-card-btn wf-lib-btn-edit" onclick="editWorkflow(${idx})">🛠️ Sửa Nội Thất</button>
+                    <button class="wf-lib-card-btn wf-lib-btn-run" onclick="runWorkflowLib(${idx})">▶️ Chạy</button>
+                    <button class="wf-lib-card-btn wf-lib-btn-del" onclick="deleteWorkflowLib(${idx})" title="Xóa">🗑️</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function openWfCreateModal() {
+        document.getElementById('wfCreateModal').style.display = 'flex';
+        document.getElementById('newWfName').value = '';
+        setTimeout(() => document.getElementById('newWfName').focus(), 100);
+    }
+    
+    function closeWfCreateModal() {
+        document.getElementById('wfCreateModal').style.display = 'none';
+    }
+
+    // Capture enter key
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('newWfName')?.addEventListener('keyup', (e) => {
+            if(e.key === 'Enter') submitCreateWf();
+        });
+    });
+
+    function submitCreateWf() {
+        const name = document.getElementById('newWfName').value.trim() || 'Quy trình chưa đặt tên';
+        closeWfCreateModal();
+        clearCanvasRaw();
+        if(document.getElementById('wfNameInput')) document.getElementById('wfNameInput').value = name;
+        currentEditingWfIndex = -1; // Create new mode
+        showBuilder();
+    }
+
+    function editWorkflow(idx) {
+        currentEditingWfIndex = idx;
+        loadWorkflowRaw(idx);
+        showBuilder();
+    }
+
+    function showBuilder() {
+        document.getElementById('wfLibraryView').classList.remove('active');
+        document.getElementById('wfBuilderView').classList.add('active');
+        toggleToolbarVisibility(true);
+    }
+
+    function backToLibrary() {
+        document.getElementById('wfLibraryView').classList.add('active');
+        document.getElementById('wfBuilderView').classList.remove('active');
+        toggleToolbarVisibility(false);
+        renderWfLibrary();
+    }
+
+    function clearCanvasRaw() {
+        wfNodes = []; wfEdges = []; wfNodeCount = 0; connectingFrom = null;
+        if (tempLine) { tempLine.remove(); tempLine = null; }
+        document.querySelectorAll('#wfCanvas .wf-node').forEach(el => el.remove());
+        const svg = document.getElementById('wfSvg');
+        if (svg) svg.innerHTML = '';
+        showHint();
+    }
+
+    function saveCurrentWorkflow() {
+        const nameEl = document.getElementById('wfNameInput');
+        const name = (nameEl ? nameEl.value.trim() : '') || 'Quy trình chưa đặt tên';
+        
+        const wf = { id: Date.now(), name, nodes: wfNodes.map(n=>({id:n.id,type:n.type,cat:n.cat,x:n.x,y:n.y})), edges: wfEdges, savedAt: new Date().toISOString() };
+        let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        
+        if (currentEditingWfIndex >= 0 && currentEditingWfIndex < list.length) {
+            wf.id = list[currentEditingWfIndex].id;
+            list[currentEditingWfIndex] = wf;
+        } else {
+            list.unshift(wf);
+            currentEditingWfIndex = 0;
+        }
+        
+        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        updateAutomationBadge();
+        
+        const btn = document.getElementById('wfBtnSave');
+        if(btn) {
+            const old = btn.innerHTML;
+            btn.innerHTML = '✅ Đã Lưu!';
+            setTimeout(() => { btn.innerHTML = old; backToLibrary(); }, 800);
+        } else {
+            backToLibrary();
+        }
+    }
+
+    function loadWorkflowRaw(idx) {
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        const wf = list[idx];
+        if (!wf) return;
+        clearCanvasRaw();
+        wf.nodes.forEach(n => {
+            const def = allBlocks().find(b => b.type === n.type);
+            if (!def) return;
+            wfNodes.push({ ...n, def });
+            wfNodeCount = Math.max(wfNodeCount, parseInt(n.id.split('_')[1]) || 0);
+            renderNode(n.id);
+        });
+        wfEdges = wf.edges || [];
+        renderConnections();
+        if (wfNodes.length > 0) hideHint();
+        const nameEl = document.getElementById('wfNameInput');
+        if (nameEl) nameEl.value = wf.name;
+    }
+
+    function deleteWorkflowLib(idx) {
+        if (!confirm('Bạn có chắc chắn muốn xóa quy trình này?')) return;
+        let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        list.splice(idx, 1);
+        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        renderWfLibrary();
+        updateAutomationBadge();
+    }
+
+    function runWorkflowLib(idx) {
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        const wf = list[idx];
+        if (!wf) return;
+        if (!wf.nodes || wf.nodes.length === 0) { alert('Quy trình này trống!'); return; }
+        alert('🚀 Đang chạy ngầm Quy trình: ' + wf.name + '\n\n(Logic chạy thực tế sẽ nối vào các API tương ứng ở VPS)');
+    }
+
+
+    let currentEditingNodeId = null;
+
+    // Modify renderNode to add double click
+    const originalRenderNode = renderNode;
+    renderNode = function(nodeId) {
+        originalRenderNode(nodeId);
+        const el = document.getElementById(nodeId);
+        if(el) {
+            el.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                openNodeSettings(nodeId);
+            });
+            // Add a small hint or visual cue that it's clickable
+            el.title = "Double-click để cài đặt";
+        }
+    };
+
+    function openNodeSettings(nodeId) {
+        const node = wfNodes.find(n => n.id === nodeId);
+        if (!node) return;
+        currentEditingNodeId = nodeId;
+        
+        document.getElementById('wfSettingsSidebar').classList.add('open');
+        document.getElementById('wfSetLabel').textContent = node.def.label;
+        document.getElementById('wfSetIcon').textContent = node.def.icon;
+        
+        renderSettingsBody(node);
+    }
+
+    function closeNodeSettings() {
+        document.getElementById('wfSettingsSidebar').classList.remove('open');
+        currentEditingNodeId = null;
+    }
+
+    function renderSettingsBody(node) {
+        const body = document.getElementById('wfSetBody');
+        const data = node.data || {};
+        
+        if (node.type === 'input') {
+            const mode = data.mode || 'manual';
+            body.innerHTML = `
+                <div class="set-tabs">
+                    <div class="set-tab ${mode === 'manual' ? 'active' : ''}" onclick="switchInputMode('manual')">⌨️ Nhập tay</div>
+                    <div class="set-tab ${mode === 'sheet' ? 'active' : ''}" onclick="switchInputMode('sheet')">📊 Google Sheets</div>
+                </div>
+                
+                <div id="inputModeManual" style="display: ${mode === 'manual' ? 'block' : 'none'}">
+                    <div class="set-group">
+                        <label class="set-label">Danh sách Website:</label>
+                        <textarea id="setManualData" class="set-input" style="height: 250px; font-family: monospace; font-size: 11px;" placeholder="url | admin_path | user | pass\nvd:\nhttps://site.com | /wp-admin | admin | pass123">${data.manualRaw || ''}</textarea>
+                        <div style="font-size:10px; color:#64748b; margin-top:5px;">Mỗi website 1 dòng. Dùng dấu | để ngăn cách các cột.</div>
+                    </div>
+                </div>
+                
+                <div id="inputModeSheet" style="display: ${mode === 'sheet' ? 'block' : 'none'}">
+                    <div class="set-group">
+                        <label class="set-label">URL Google Sheet:</label>
+                        <input type="text" id="setSheetUrl" class="set-input" placeholder="https://docs.google.com/spreadsheets/d/..." value="${data.sheetUrl || ''}">
+                    </div>
+                    <div class="set-group">
+                        <label class="set-label">Vùng dữ liệu (vd: A2:D100):</label>
+                        <input type="text" id="setSheetRange" class="set-input" placeholder="A2:E200" value="${data.sheetRange || 'A2:E200'}">
+                    </div>
+                    <div style="font-size:11px; color:#94a3b8; background:rgba(255,255,255,0.03); padding:10px; border-radius:6px; border-left:3px solid #7c3aed;">
+                        <b>Lưu ý:</b> Các cột nên theo thứ tự: <br>
+                        1. URL | 2. Admin Path | 3. User | 4. Pass
+                    </div>
+                </div>
+            `;
         
         } else if (node.type === 'telegram') {
             node.data.token = document.getElementById('setTeleToken')?.value;
             node.data.chatId = document.getElementById('setTeleChatId')?.value;
             node.data.template = document.getElementById('setTeleTemplate')?.value;
-
         } else if (node.type === 'http-status') {
             node.data.timeout = parseInt(document.getElementById('setStatusTimeout')?.value || 10000);
             node.data.checkWhitePage = document.getElementById('setCheckWhitePage')?.checked;
