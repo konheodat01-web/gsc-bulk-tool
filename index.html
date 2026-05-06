@@ -1583,6 +1583,7 @@
         { type: 'loop',        category: 'core', icon: '🔁', label: 'Vòng Lặp',         color: '#ec4899', desc: 'Chạy lặp qua từng phần tử' },
         
         // Ứng dụng
+        { type: 'ai-vision-search', category: 'app', icon: '👁️', label: 'Nghiên cứu Đối thủ', color: '#ec4899', desc: 'AI tìm và phân tích hình ảnh đối thủ' },
         { type: 'telegram',    category: 'app', icon: '📩', label: 'Báo Cáo Telegram',  color: '#0088cc', desc: 'Gửi kết quả qua Telegram bot' },
         { type: 'ai-content',  category: 'app', icon: '✍️', label: 'AI Viết Bài',      color: '#a855f7', desc: 'Tạo nội dung SEO bằng AI' },
         { type: 'gsc-auth',    category: 'app', icon: '🔗', label: 'Kết Nối Google',    color: '#4f46e5', desc: 'Xác thực tài khoản Google OAuth' },
@@ -3500,6 +3501,62 @@
         return results;
     }
 
+    
+    async function execAiVisionSearchNode(node, inputData) {
+        if (!inputData || inputData.length === 0) return [];
+        const data = node.data || {};
+        const apiKey = data.apiKey;
+        if (!apiKey) {
+            console.warn('AI Vision Node: Missing API Key');
+            return inputData.map(item => ({...item, error: 'Thiếu API Key'}));
+        }
+
+        const promptTemplate = data.prompt || '';
+        const results = [];
+        
+        for (const item of inputData) {
+            const keyword = item.url || item.keyword || 'SEO'; // assuming input has keyword in url field for now
+            const finalPrompt = promptTemplate.replace(/{{keyword}}/g, keyword);
+            let aiResult = '';
+            let errorMsg = '';
+            
+            try {
+                // Here we simulate the Gemini Search & Vision call.
+                // In reality, Gemini API requires 'googleSearchRetrieval' tool.
+                const reqBody = {
+                    contents: [{ role: "user", parts: [{ text: finalPrompt }] }],
+                    tools: [{ googleSearch: {} }] // Enable Google Search grounding
+                };
+                
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reqBody)
+                });
+                
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.candidates && json.candidates[0].content) {
+                        aiResult = json.candidates[0].content.parts[0].text;
+                    } else {
+                        aiResult = 'Không nhận được kết quả từ AI';
+                    }
+                } else {
+                    const err = await res.json();
+                    errorMsg = err.error?.message || `Lỗi API: ${res.status}`;
+                }
+            } catch (err) {
+                errorMsg = err.message;
+            }
+            
+            results.push({ ...item, aiStyleAnalysis: aiResult, error: errorMsg });
+            
+            // Artificial delay to prevent rate limits
+            await new Promise(r => setTimeout(r, 2000));
+        }
+        return results;
+    }
+
     async function execTelegramNode(node, inputData) {
         if (!inputData || inputData.length === 0) return;
         const data = node.data || {};
@@ -3834,7 +3891,22 @@
                     <div style="font-size:10px; color:#64748b; margin-top:5px;">Dùng {{url}}, {{status}}, {{error}} để làm biến số.</div>
                 </div>
             `;
-        } else if (node.type === 'ai-content') {
+        } else if (node.type === 'ai-vision-search') {
+            paramsHtml = `
+                <div class="set-group">
+                    <label class="set-label">Gemini API Key:</label>
+                    <input type="password" id="setVisionApiKey" class="set-input" value="${data.apiKey || ''}" placeholder="AIzaSy...">
+                    <div style="font-size:10px; color:#64748b; margin-top:5px;">Cần Key của Gemini 1.5 Pro để hỗ trợ Vision & Search.</div>
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Lệnh Nghiên Cứu (Prompt):</label>
+                    <textarea id="setVisionPrompt" class="set-input" style="height: 120px;" placeholder="Lên Google tìm ảnh về {{keyword}}. Phân tích màu sắc, phong cách, và bố cục phổ biến nhất.">${data.prompt || 'Lên Google tìm ảnh về {{keyword}}. Phân tích màu sắc, phong cách, và bố cục phổ biến nhất của các đối thủ TOP đầu. Viết ra 1 prompt tiếng Anh thật chi tiết để hướng dẫn AI khác vẽ một bức ảnh đẹp hơn, cùng phong cách.'}</textarea>
+                    <div style="font-size:10px; color:#64748b; margin-top:5px;">Dùng {{keyword}} để làm biến số lấy từ input.</div>
+                </div>
+            `;
+        } else if (node.type === 'ai-vision-search') {
+                    flowData = await execAiVisionSearchNode(node, flowData);
+                } else if (node.type === 'ai-content') {
              paramsHtml = `
                 <div class="set-group">
                     <label class="set-label">Model AI:</label>
@@ -3974,6 +4046,9 @@
             node.data.token = document.getElementById('setTeleToken')?.value;
             node.data.chatId = document.getElementById('setTeleChatId')?.value;
             node.data.template = document.getElementById('setTeleTemplate')?.value;
+        } else if (node.type === 'ai-vision-search') {
+            node.data.apiKey = document.getElementById('setVisionApiKey')?.value;
+            node.data.prompt = document.getElementById('setVisionPrompt')?.value;
         } else if (node.type === 'ai-content') {
             node.data.model = document.getElementById('setAiModel')?.value;
             node.data.prompt = document.getElementById('setAiPrompt')?.value;
