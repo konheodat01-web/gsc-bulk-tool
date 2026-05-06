@@ -362,6 +362,46 @@
         .wf-si-btn { background: none; border: none; font-size: 12px; cursor: pointer; padding: 2px 4px; border-radius: 4px; }
         .wf-si-btn:hover { background: rgba(255,255,255,0.1); }
 
+        
+        /* ====== WORKFLOW LIBRARY ====== */
+        .wf-lib-wrap { padding: 30px 40px; display: none; height: calc(100vh - 65px); overflow-y: auto; }
+        .wf-lib-wrap.active { display: block; }
+        .wf-lib-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .wf-lib-title { font-size: 24px; color: #e2e8f0; font-weight: 700; }
+        .wf-lib-btn-create { background: #7c3aed; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; display:flex; align-items:center; gap:8px; }
+        .wf-lib-btn-create:hover { background: #6d28d9; transform:scale(1.02); }
+        .wf-lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        .wf-lib-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; transition: 0.2s; cursor: pointer; display:flex; flex-direction:column; }
+        .wf-lib-card:hover { border-color: rgba(124,58,237,0.5); background: rgba(124,58,237,0.05); transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .wf-lib-card-title { font-size: 16px; font-weight: 600; color: #e2e8f0; margin-bottom: 8px; }
+        .wf-lib-card-meta { font-size: 12px; color: #64748b; margin-bottom: 20px; }
+        .wf-lib-card-actions { display: flex; gap: 10px; margin-top: auto; }
+        .wf-lib-card-btn { flex: 1; padding: 8px; border-radius: 6px; border: none; font-size: 12px; cursor: pointer; font-weight: 600; transition:0.2s; }
+        .wf-lib-btn-edit { background: rgba(124,58,237,0.15); color: #a78bfa; }
+        .wf-lib-btn-edit:hover { background: rgba(124,58,237,0.3); }
+        .wf-lib-btn-run { background: rgba(16,185,129,0.15); color: #34d399; }
+        .wf-lib-btn-run:hover { background: rgba(16,185,129,0.3); }
+        .wf-lib-btn-del { flex: 0 0 auto; width: 32px; background: rgba(239,68,68,0.15); color: #f87171; }
+        .wf-lib-btn-del:hover { background: rgba(239,68,68,0.3); }
+
+        /* Builder view toggle */
+        .wf-builder-body { display: none; }
+        .wf-builder-body.active { display: flex; }
+
+        /* Create Modal */
+        .wf-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1100; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .wf-modal { background: #130d2a; border: 1px solid rgba(124,58,237,0.4); border-radius: 12px; width: 400px; padding: 24px; box-shadow: 0 10px 50px rgba(0,0,0,0.8); animation: slideUp 0.2s ease-out; }
+        @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        .wf-modal-title { font-size: 18px; color: #e2e8f0; margin-bottom: 20px; font-weight: 600; }
+        .wf-modal-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; color: white; margin-bottom: 20px; box-sizing: border-box; outline:none; }
+        .wf-modal-input:focus { border-color:#7c3aed; background: rgba(124,58,237,0.05); }
+        .wf-modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+        .wf-modal-btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition:0.2s; }
+        .wf-modal-btn-cancel { background: transparent; color: #94a3b8; }
+        .wf-modal-btn-cancel:hover { background: rgba(255,255,255,0.05); color:#e2e8f0; }
+        .wf-modal-btn-create { background: #7c3aed; color: white; }
+        .wf-modal-btn-create:hover { background: #6d28d9; }
+
         </style>
 </head>
 <body>
@@ -3270,7 +3310,178 @@
                 else insEl.innerText = '-';
             }
         }
-    </script>
+    
+    // --- WORKFLOW FLOW OVERRIDES ---
+    let currentEditingWfIndex = -1;
+
+    function openAutomationPanel() {
+        document.getElementById('automationPanel').classList.add('open');
+        document.getElementById('autoOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        sessionStorage.setItem('panelOpen', '1');
+        
+        // Show library by default
+        document.getElementById('wfLibraryView').classList.add('active');
+        document.getElementById('wfBuilderView').classList.remove('active');
+        toggleToolbarVisibility(false);
+        
+        if (!window._wfInited) {
+            window._wfInited = true;
+            initWorkflowBuilder();
+        }
+        renderWfLibrary();
+    }
+
+    function toggleToolbarVisibility(isBuilder) {
+        const btns = ['wfBtnBack', 'wfBtnClear', 'wfBtnTest', 'wfBtnSave'];
+        btns.forEach(id => {
+            const b = document.getElementById(id);
+            if(b) b.style.display = isBuilder ? 'inline-block' : 'none';
+        });
+    }
+
+    function renderWfLibrary() {
+        const grid = document.getElementById('wfLibGrid');
+        if (!grid) return;
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        if (list.length === 0) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color:#64748b; background:rgba(255,255,255,0.02); border-radius:12px; border:2px dashed rgba(255,255,255,0.05); font-size:14px;">Chưa có quy trình nào. Hãy bấm <b>Tạo Quy Trình Mới</b> ở góc trên!</div>';
+            return;
+        }
+        grid.innerHTML = list.map((wf, idx) => `
+            <div class="wf-lib-card" onclick="editWorkflow(${idx})">
+                <div class="wf-lib-card-title">${wf.name}</div>
+                <div class="wf-lib-card-meta">
+                    ${wf.nodes ? wf.nodes.length : 0} Nodes • Đã lưu: ${new Date(wf.savedAt || Date.now()).toLocaleDateString('vi-VN')}
+                </div>
+                <div class="wf-lib-card-actions" onclick="event.stopPropagation()">
+                    <button class="wf-lib-card-btn wf-lib-btn-edit" onclick="editWorkflow(${idx})">🛠️ Sửa Nội Thất</button>
+                    <button class="wf-lib-card-btn wf-lib-btn-run" onclick="runWorkflowLib(${idx})">▶️ Chạy</button>
+                    <button class="wf-lib-card-btn wf-lib-btn-del" onclick="deleteWorkflowLib(${idx})" title="Xóa">🗑️</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function openWfCreateModal() {
+        document.getElementById('wfCreateModal').style.display = 'flex';
+        document.getElementById('newWfName').value = '';
+        setTimeout(() => document.getElementById('newWfName').focus(), 100);
+    }
+    
+    function closeWfCreateModal() {
+        document.getElementById('wfCreateModal').style.display = 'none';
+    }
+
+    // Capture enter key
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('newWfName')?.addEventListener('keyup', (e) => {
+            if(e.key === 'Enter') submitCreateWf();
+        });
+    });
+
+    function submitCreateWf() {
+        const name = document.getElementById('newWfName').value.trim() || 'Quy trình chưa đặt tên';
+        closeWfCreateModal();
+        clearCanvasRaw();
+        if(document.getElementById('wfNameInput')) document.getElementById('wfNameInput').value = name;
+        currentEditingWfIndex = -1; // Create new mode
+        showBuilder();
+    }
+
+    function editWorkflow(idx) {
+        currentEditingWfIndex = idx;
+        loadWorkflowRaw(idx);
+        showBuilder();
+    }
+
+    function showBuilder() {
+        document.getElementById('wfLibraryView').classList.remove('active');
+        document.getElementById('wfBuilderView').classList.add('active');
+        toggleToolbarVisibility(true);
+    }
+
+    function backToLibrary() {
+        document.getElementById('wfLibraryView').classList.add('active');
+        document.getElementById('wfBuilderView').classList.remove('active');
+        toggleToolbarVisibility(false);
+        renderWfLibrary();
+    }
+
+    function clearCanvasRaw() {
+        wfNodes = []; wfEdges = []; wfNodeCount = 0; connectingFrom = null;
+        if (tempLine) { tempLine.remove(); tempLine = null; }
+        document.querySelectorAll('#wfCanvas .wf-node').forEach(el => el.remove());
+        const svg = document.getElementById('wfSvg');
+        if (svg) svg.innerHTML = '';
+        showHint();
+    }
+
+    function saveCurrentWorkflow() {
+        const nameEl = document.getElementById('wfNameInput');
+        const name = (nameEl ? nameEl.value.trim() : '') || 'Quy trình chưa đặt tên';
+        
+        const wf = { id: Date.now(), name, nodes: wfNodes.map(n=>({id:n.id,type:n.type,cat:n.cat,x:n.x,y:n.y})), edges: wfEdges, savedAt: new Date().toISOString() };
+        let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        
+        if (currentEditingWfIndex >= 0 && currentEditingWfIndex < list.length) {
+            wf.id = list[currentEditingWfIndex].id;
+            list[currentEditingWfIndex] = wf;
+        } else {
+            list.unshift(wf);
+            currentEditingWfIndex = 0;
+        }
+        
+        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        updateAutomationBadge();
+        
+        const btn = document.getElementById('wfBtnSave');
+        if(btn) {
+            const old = btn.innerHTML;
+            btn.innerHTML = '✅ Đã Lưu!';
+            setTimeout(() => { btn.innerHTML = old; backToLibrary(); }, 800);
+        } else {
+            backToLibrary();
+        }
+    }
+
+    function loadWorkflowRaw(idx) {
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        const wf = list[idx];
+        if (!wf) return;
+        clearCanvasRaw();
+        wf.nodes.forEach(n => {
+            const def = allBlocks().find(b => b.type === n.type);
+            if (!def) return;
+            wfNodes.push({ ...n, def });
+            wfNodeCount = Math.max(wfNodeCount, parseInt(n.id.split('_')[1]) || 0);
+            renderNode(n.id);
+        });
+        wfEdges = wf.edges || [];
+        renderConnections();
+        if (wfNodes.length > 0) hideHint();
+        const nameEl = document.getElementById('wfNameInput');
+        if (nameEl) nameEl.value = wf.name;
+    }
+
+    function deleteWorkflowLib(idx) {
+        if (!confirm('Bạn có chắc chắn muốn xóa quy trình này?')) return;
+        let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        list.splice(idx, 1);
+        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        renderWfLibrary();
+        updateAutomationBadge();
+    }
+
+    function runWorkflowLib(idx) {
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        const wf = list[idx];
+        if (!wf) return;
+        if (!wf.nodes || wf.nodes.length === 0) { alert('Quy trình này trống!'); return; }
+        alert('🚀 Đang chạy ngầm Quy trình: ' + wf.name + '\n\n(Logic chạy thực tế sẽ nối vào các API tương ứng ở VPS)');
+    }
+
+</script>
 
 </div>
 
@@ -3289,9 +3500,10 @@
         <div class="auto-panel-header">
             <h2 style="font-size:14px;">⚙️ Workflow Builder <span style="font-size:10px; color:#a78bfa; margin-left:5px; background:rgba(124,58,237,0.2); padding:2px 7px; border-radius:99px;">Beta</span></h2>
             <div class="wf-toolbar-strip">
-                <button class="wf-tool-btn" onclick="clearCanvas()">🗑️ Xóa Canvas</button>
-                <button class="wf-tool-btn" onclick="saveCurrentWorkflow()">💾 Lưu WF</button>
-                <button class="wf-tool-btn primary" onclick="runCurrentWorkflow()">▶️ Chạy Ngay</button>
+                <button class="wf-tool-btn" onclick="backToLibrary()" style="margin-right:auto;background:transparent;border:none;font-weight:600;color:#a78bfa;" id="wfBtnBack">⬅️ Trở về Library</button>
+                <button class="wf-tool-btn" onclick="clearCanvas()" id="wfBtnClear">🗑️ Xóa Canvas</button>
+                <button class="wf-tool-btn" onclick="saveCurrentWorkflow()" id="wfBtnSave">💾 Lưu & Thoát</button>
+                <button class="wf-tool-btn primary" onclick="runCurrentWorkflow()" id="wfBtnTest">▶️ Test Run</button>
                 <button onclick="closeAutomationPanel()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer; padding:5px; margin-left:5px;">✕</button>
             </div>
         </div>
