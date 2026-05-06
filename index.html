@@ -824,12 +824,15 @@
             try {
                 const ctrl2 = new AbortController();
                 const tid = setTimeout(() => ctrl2.abort(), 12000);
-                const res = await fetch(`http://${ip}:3000/proxy?url=${encodeURIComponent(url)}&raw=true`, { signal: ctrl2.signal });
+                // Bọc qua codetabs để tránh lỗi Mixed Content
+                const vpsUrl = `http://${ip}:3000/proxy?url=${encodeURIComponent(url)}&raw=true`;
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(vpsUrl)}`;
+                const res = await fetch(proxyUrl, { signal: ctrl2.signal });
                 clearTimeout(tid);
                 if (res.ok) return await res.text();
             } catch(e) { /* fallback */ }
         }
-        // Fallback: codetabs
+        // Fallback: codetabs trực tiếp
         const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, { signal });
         if (res.ok) return await res.text();
         throw new Error('Proxy failed');
@@ -841,7 +844,10 @@
             try {
                 const ctrl2 = new AbortController();
                 const tid = setTimeout(() => ctrl2.abort(), 12000);
-                const res = await fetch(`http://${ip}:3000/proxy?url=${encodeURIComponent(url)}`, { signal: ctrl2.signal });
+                // Bọc qua codetabs để tránh lỗi Mixed Content
+                const vpsUrl = `http://${ip}:3000/proxy?url=${encodeURIComponent(url)}`;
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(vpsUrl)}`;
+                const res = await fetch(proxyUrl, { signal: ctrl2.signal });
                 clearTimeout(tid);
                 if (res.ok) {
                     const data = await res.json();
