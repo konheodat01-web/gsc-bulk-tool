@@ -4,7 +4,7 @@ echo "🧠 Đang nâng cấp Siêu Agent (Fix lỗi Crash do thư viện)..."
 
 # 1. Cài đặt các thư viện cần thiết
 cd ~/seo-agent
-npm install axios cheerio express body-parser dotenv
+npm install axios cheerio express body-parser dotenv google-auth-library
 
 # 2. Tạo file agent.js HOÀN CHỈNH
 cat <<EOT > agent.js
@@ -13,10 +13,23 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const { GoogleAuth } = require('google-auth-library');
 require('dotenv').config();
 
 const app = express();
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '1mb' }));
+
+// API nhận file JSON Service Account
+app.get('/update-credentials', (req, res) => {
+    const { jsonContent } = req.query;
+    try {
+        JSON.parse(jsonContent); // Kiểm tra JSON hợp lệ
+        fs.writeFileSync(path.join(__dirname, 'service-account.json'), jsonContent);
+        res.json({ success: true, message: 'Đã nhận chìa khóa Google thành công!' });
+    } catch (e) {
+        res.json({ success: false, message: 'JSON không hợp lệ sếp ơi!' });
+    }
+});
 
 // API tự động nâng cấp Agent từ xa
 app.get('/update-agent', (req, res) => {
@@ -63,7 +76,20 @@ async function runFullAudit() {
     try {
         const sheetId = sheetUrl.match(/\\/d\\/([^/]+)/)?.[1];
         const csvUrl = \`https://docs.google.com/spreadsheets/d/\${sheetId}/gviz/tq?tqx=out:csv\`;
-        const res = await axios.get(csvUrl);
+        
+        let headers = {};
+        const credPath = path.join(__dirname, 'service-account.json');
+        if (fs.existsSync(credPath)) {
+            const auth = new GoogleAuth({
+                keyFile: credPath,
+                scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+            });
+            const client = await auth.getClient();
+            const token = await client.getAccessToken();
+            headers['Authorization'] = \`Bearer \${token.token}\`;
+        }
+
+        const res = await axios.get(csvUrl, { headers });
         const rows = res.data.split('\\n').slice(1).map(row => {
             return row.split(',').map(cell => cell.replace(/^"|"$/g, '').trim());
         }).filter(r => r[0]);
