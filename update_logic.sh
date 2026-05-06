@@ -189,7 +189,8 @@ async function verifyLogin(url, adminPath, user, pass) {
     // 2. Thử Login trực tiếp qua Form POST (Dành cho web chặn XML-RPC)
     try {
         const p = adminPath || 'wp-admin';
-        const loginUrl = baseUrl + '/' + (p === 'wp-admin' ? 'wp-login.php' : p);
+        let loginUrl = baseUrl + '/' + (p === 'wp-admin' ? 'wp-login.php' : p);
+        if (!loginUrl.endsWith('.php') && !loginUrl.endsWith('/')) loginUrl += '/';
         
         const params = new URLSearchParams();
         params.append('log', user);
