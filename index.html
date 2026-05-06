@@ -1564,19 +1564,37 @@
 
     // ===== WORKFLOW BUILDER ENGINE =====
     // Workflow Builder Engine - all functions
+        const CATEGORIES = [
+        { id: 'trigger', label: '⚡ Trình Kích Hoạt' },
+        { id: 'core',    label: '⚙️ Cốt Lõi & Logic' },
+        { id: 'app',     label: '🌐 Ứng Dụng' },
+        { id: 'seo',     label: '🔍 Nghiệp Vụ SEO' }
+    ];
+
     const ATOMIC_BLOCKS = [
-        { type: 'http-status', icon: '🔍', label: 'Check Trạng Thái', color: '#10b981', desc: 'Dò lỗi 404, 502, Time out, Trắng trang...' },
-        { type: 'input',       icon: '📥', label: 'Nhập Dữ Liệu',     color: '#3b82f6', desc: 'Danh sách URL / domain đầu vào' },
-        { type: 'gsc-auth',    icon: '🔗', label: 'Kết Nối Google',    color: '#4f46e5', desc: 'Xác thực tài khoản Google OAuth' },
-        { type: 'gsc-verify',  icon: '✅', label: 'Xác Minh Site',     color: '#7c3aed', desc: 'Xác minh quyền sở hữu trong GSC' },
-        { type: 'gsc-sitemap', icon: '🗺️', label: 'Nạp Sitemap',      color: '#8b5cf6', desc: 'Submit sitemap lên Google Search' },
-        { type: 'check-301',   icon: '🔀', label: 'Check 301',         color: '#f59e0b', desc: 'Kiểm tra redirect 301 có đúng không' },
-        { type: 'check-login', icon: '🔑', label: 'Check WP Login',    color: '#ef4444', desc: 'Kiểm tra đăng nhập WordPress' },
-        { type: 'check-bot',   icon: '🤖', label: 'Check Bot Access',  color: '#10b981', desc: 'Kiểm tra bot được phép truy cập' },
-        { type: 'fetch-gsc',   icon: '📊', label: 'Lấy Data GSC',      color: '#06b6d4', desc: 'Lấy dữ liệu click / impression' },
-        { type: 'condition',   icon: '⑂',  label: 'Điều Kiện / Lọc',  color: '#f97316', desc: 'Rẽ nhánh: Đúng → A, Sai → B' },
-        { type: 'ai-content',  icon: '✍️', label: 'AI Viết Bài',      color: '#a855f7', desc: 'Tạo nội dung SEO bằng AI' },
-        { type: 'telegram',    icon: '📩', label: 'Báo Cáo Telegram',  color: '#0088cc', desc: 'Gửi kết quả qua Telegram bot' },
+        // Triggers
+        { type: 'trigger-manual', category: 'trigger', icon: '▶️', label: 'Manual Trigger', color: '#f59e0b', desc: 'Kích hoạt bằng nút bấm' },
+        { type: 'trigger-cron',   category: 'trigger', icon: '⏱️', label: 'Schedule Trigger', color: '#f59e0b', desc: 'Hẹn giờ chạy tự động' },
+        { type: 'trigger-webhook',category: 'trigger', icon: '🪝', label: 'Webhook Trigger', color: '#f59e0b', desc: 'Kích hoạt từ app khác' },
+        
+        // Cốt lõi & Logic
+        { type: 'input',       category: 'core', icon: '📥', label: 'Nhập Dữ Liệu',     color: '#3b82f6', desc: 'Danh sách URL / domain đầu vào' },
+        { type: 'condition',   category: 'core', icon: '⑂',  label: 'Điều Kiện / Lọc',  color: '#f97316', desc: 'Rẽ nhánh: Đúng → A, Sai → B' },
+        { type: 'loop',        category: 'core', icon: '🔁', label: 'Vòng Lặp',         color: '#ec4899', desc: 'Chạy lặp qua từng phần tử' },
+        
+        // Ứng dụng
+        { type: 'telegram',    category: 'app', icon: '📩', label: 'Báo Cáo Telegram',  color: '#0088cc', desc: 'Gửi kết quả qua Telegram bot' },
+        { type: 'ai-content',  category: 'app', icon: '✍️', label: 'AI Viết Bài',      color: '#a855f7', desc: 'Tạo nội dung SEO bằng AI' },
+        { type: 'gsc-auth',    category: 'app', icon: '🔗', label: 'Kết Nối Google',    color: '#4f46e5', desc: 'Xác thực tài khoản Google OAuth' },
+        { type: 'gsc-verify',  category: 'app', icon: '✅', label: 'Xác Minh Site',     color: '#7c3aed', desc: 'Xác minh quyền sở hữu trong GSC' },
+        { type: 'gsc-sitemap', category: 'app', icon: '🗺️', label: 'Nạp Sitemap',      color: '#8b5cf6', desc: 'Submit sitemap lên Google Search' },
+        { type: 'fetch-gsc',   category: 'app', icon: '📊', label: 'Lấy Data GSC',      color: '#06b6d4', desc: 'Lấy dữ liệu click / impression' },
+        
+        // SEO
+        { type: 'http-status', category: 'seo', icon: '🌐', label: 'Check Trạng Thái', color: '#10b981', desc: 'Dò lỗi 404, 502, Time out, Trắng trang...' },
+        { type: 'check-301',   category: 'seo', icon: '🔀', label: 'Check 301',         color: '#f59e0b', desc: 'Kiểm tra redirect 301 có đúng không' },
+        { type: 'check-login', category: 'seo', icon: '🔑', label: 'Check WP Login',    color: '#ef4444', desc: 'Kiểm tra đăng nhập WordPress' },
+        { type: 'check-bot',   category: 'seo', icon: '🤖', label: 'Check Bot Access',  color: '#10b981', desc: 'Kiểm tra bot được phép truy cập' },
     ];
     
     const COMPOUND_BLOCKS = [
@@ -1607,18 +1625,36 @@
         const atomicEl = document.getElementById('atomicPaletteList');
         const compoundEl = document.getElementById('compoundPaletteList');
         if (!atomicEl || !compoundEl) return;
-        atomicEl.innerHTML = ATOMIC_BLOCKS.map(b =>
-            `<div class="palette-item" draggable="true" data-btype="${b.type}" data-bcat="atomic" title="${b.desc}">
-                <span class="pi-icon">${b.icon}</span>
-                <div class="pi-text"><div class="pi-label">${b.label}</div><div class="pi-desc">${b.desc.substring(0,32)}...</div></div>
-            </div>`
-        ).join('');
+        
+        atomicEl.innerHTML = '';
+        CATEGORIES.forEach(cat => {
+            const items = ATOMIC_BLOCKS.filter(b => b.category === cat.id);
+            if (items.length === 0) return;
+            
+            const catDiv = document.createElement('div');
+            catDiv.style.cssText = 'font-size:11px; font-weight:700; color:#a78bfa; margin: 15px 0 5px 5px; text-transform:uppercase; letter-spacing:0.5px;';
+            catDiv.innerText = cat.label;
+            atomicEl.appendChild(catDiv);
+            
+            items.forEach(b => {
+                const el = document.createElement('div');
+                el.className = 'palette-item';
+                el.draggable = true;
+                el.dataset.btype = b.type;
+                el.dataset.bcat = 'atomic';
+                el.title = b.desc;
+                el.innerHTML = `<span class="pi-icon">${b.icon}</span><div class="pi-text"><div class="pi-label">${b.label}</div><div class="pi-desc">${b.desc.substring(0,32)}...</div></div>`;
+                atomicEl.appendChild(el);
+            });
+        });
+
         compoundEl.innerHTML = COMPOUND_BLOCKS.map(b =>
             `<div class="palette-item" draggable="true" data-btype="${b.type}" data-bcat="compound" title="${b.desc}" style="border-color:rgba(245,158,11,0.25);background:rgba(245,158,11,0.06);">
                 <span class="pi-icon">${b.icon}</span>
                 <div class="pi-text"><div class="pi-label" style="color:#fbbf24;">${b.label}</div><div class="pi-desc">${b.desc.substring(0,32)}...</div></div>
             </div>`
         ).join('');
+        
         // Attach drag events to palette items
         document.querySelectorAll('#atomicPaletteList .palette-item, #compoundPaletteList .palette-item').forEach(el => {
             el.addEventListener('dragstart', e => {
@@ -3575,6 +3611,12 @@
         clearCanvasRaw();
         if(document.getElementById('wfNameInput')) document.getElementById('wfNameInput').value = name;
         currentEditingWfIndex = -1; // Create new mode
+        
+        // Add default Manual Trigger
+        setTimeout(() => {
+            addNode('trigger-manual', 'atomic', 50, 150);
+        }, 100);
+        
         showBuilder();
     }
 
