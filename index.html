@@ -3726,6 +3726,8 @@
         document.getElementById('wfSetLabel').textContent = node.def.label;
         document.getElementById('wfSetIcon').textContent = node.def.icon;
         
+        // Ensure data object exists when opening settings
+        if (!node.data) node.data = {};
         renderSettingsBody(node);
     }
 
@@ -3736,6 +3738,9 @@
 
     function renderSettingsBody(node) {
         const body = document.getElementById('wfSetBody');
+        // CLEAR OLD CONTENT IMMEDIATELY to prevent bleeding data
+        body.innerHTML = '';
+        
         const data = node.data || {};
         
         if (node.type === 'input') {
@@ -3763,21 +3768,36 @@
                         <label class="set-label">Vùng dữ liệu (vd: A2:D100):</label>
                         <input type="text" id="setSheetRange" class="set-input" placeholder="A2:E200" value="${data.sheetRange || 'A2:E200'}">
                     </div>
-                    <div style="font-size:11px; color:#94a3b8; background:rgba(255,255,255,0.03); padding:10px; border-radius:6px; border-left:3px solid #7c3aed;">
-                        <b>Lưu ý:</b> Các cột nên theo thứ tự: <br>
-                        1. URL | 2. Admin Path | 3. User | 4. Pass
-                    </div>
                 </div>
             `;
-        
-        } else if (node.type === 'telegram') {
-            node.data.token = document.getElementById('setTeleToken')?.value;
-            node.data.chatId = document.getElementById('setTeleChatId')?.value;
-            node.data.template = document.getElementById('setTeleTemplate')?.value;
         } else if (node.type === 'http-status') {
-            node.data.timeout = parseInt(document.getElementById('setStatusTimeout')?.value || 10000);
-            node.data.checkWhitePage = document.getElementById('setCheckWhitePage')?.checked;
-
+            body.innerHTML = `
+                <div class="set-group">
+                    <label class="set-label">Thời gian chờ (Timeout):</label>
+                    <input type="number" id="setStatusTimeout" class="set-input" value="${data.timeout || 10000}" placeholder="ms (vd: 10000 = 10 giây)">
+                </div>
+                <div class="set-group">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#e2e8f0; cursor:pointer;">
+                        <input type="checkbox" id="setCheckWhitePage" ${data.checkWhitePage !== false ? 'checked' : ''}> Check lỗi Trắng trang
+                    </label>
+                </div>
+            `;
+        } else if (node.type === 'telegram') {
+            body.innerHTML = `
+                <div class="set-group">
+                    <label class="set-label">Bot Token (Để trống nếu dùng Bot tổng):</label>
+                    <input type="text" id="setTeleToken" class="set-input" value="${data.token || ''}" placeholder="123456:ABC-DEF...">
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Chat ID (Để trống nếu dùng Chat ID tổng):</label>
+                    <input type="text" id="setTeleChatId" class="set-input" value="${data.chatId || ''}" placeholder="vd: -100123456789">
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Mẫu báo cáo (Template):</label>
+                    <textarea id="setTeleTemplate" class="set-input" style="height: 120px;" placeholder="Ví dụ: \n⚠️ Website {{url}} đang gặp lỗi {{status}}!">${data.template || ''}</textarea>
+                    <div style="font-size:10px; color:#64748b; margin-top:5px;">Dùng {{url}}, {{status}}, {{error}} để làm biến số.</div>
+                </div>
+            `;
         } else if (node.type === 'ai-content') {
              body.innerHTML = `
                 <div class="set-group">
@@ -3800,10 +3820,9 @@
 
     function switchInputMode(mode) {
         document.querySelectorAll('.set-tab').forEach(t => t.classList.remove('active'));
-        event.target.classList.add('active');
+        if (event) event.target.classList.add('active');
         document.getElementById('inputModeManual').style.display = mode === 'manual' ? 'block' : 'none';
         document.getElementById('inputModeSheet').style.display = mode === 'sheet' ? 'block' : 'none';
-        // temporary store in node data if we can
         if (currentEditingNodeId) {
             const node = wfNodes.find(n => n.id === currentEditingNodeId);
             if(node) {
@@ -3820,11 +3839,19 @@
         
         if (!node.data) node.data = {};
         
+        // ONLY save data that belongs to the current node type
         if (node.type === 'input') {
             node.data.manualRaw = document.getElementById('setManualData')?.value;
             node.data.sheetUrl = document.getElementById('setSheetUrl')?.value;
             node.data.sheetRange = document.getElementById('setSheetRange')?.value;
-            // mode is already set by switchInputMode
+            // mode is handled by switchInputMode
+        } else if (node.type === 'http-status') {
+            node.data.timeout = parseInt(document.getElementById('setStatusTimeout')?.value || 10000);
+            node.data.checkWhitePage = document.getElementById('setCheckWhitePage')?.checked;
+        } else if (node.type === 'telegram') {
+            node.data.token = document.getElementById('setTeleToken')?.value;
+            node.data.chatId = document.getElementById('setTeleChatId')?.value;
+            node.data.template = document.getElementById('setTeleTemplate')?.value;
         } else if (node.type === 'ai-content') {
             node.data.model = document.getElementById('setAiModel')?.value;
             node.data.prompt = document.getElementById('setAiPrompt')?.value;
@@ -3834,14 +3861,18 @@
         
         // Visual feedback
         const btn = document.querySelector('.btn-save-settings');
-        const oldText = btn.textContent;
-        btn.textContent = "✅ Đã Lưu!";
-        btn.style.background = "#10b981";
-        setTimeout(() => {
-            btn.textContent = oldText;
-            btn.style.background = "";
+        if (btn) {
+            const oldText = btn.textContent;
+            btn.textContent = "✅ Đã Lưu!";
+            btn.style.background = "#10b981";
+            setTimeout(() => {
+                btn.textContent = oldText;
+                btn.style.background = "";
+                closeNodeSettings();
+            }, 600);
+        } else {
             closeNodeSettings();
-        }, 600);
+        }
     }
 
 </script>
