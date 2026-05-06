@@ -1321,6 +1321,9 @@
     window.addEventListener('load', () => {
         loadTeleSettings();
         loadAccountsFromLocal();
+        // Khôi phục Workflow đã lưu từ localStorage
+        renderWorkflowList();
+        updateAutomationBadge();
     });
 
     
@@ -1390,6 +1393,75 @@ async function saveWorkflow() {
     }
 
 
+    
+    function updateAutomationBadge() {
+        const stored = JSON.parse(localStorage.getItem('wf_list') || '[]');
+        const btn = document.getElementById('automationBtn');
+        if (!btn) return;
+        // Xóa badge cũ
+        const old = document.getElementById('wfBadge');
+        if (old) old.remove();
+        if (stored.length > 0) {
+            const badge = document.createElement('span');
+            badge.id = 'wfBadge';
+            badge.textContent = stored.length;
+            badge.style.cssText = 'position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:10px;font-weight:bold;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;';
+            btn.style.position = 'relative';
+            btn.appendChild(badge);
+        }
+    }
+
+    function renderWorkflowList() {
+        const el = document.getElementById('wfListBody');
+        if (!el) return;
+        const stored = JSON.parse(localStorage.getItem('wf_list') || '[]');
+        if (!stored.length) {
+            el.innerHTML = '<div style="text-align:center; padding:20px; color:#475569; font-size:12px;">Chưa có workflow nào. Tạo mới ở trên!</div>';
+            return;
+        }
+        el.innerHTML = stored.map((wf, i) => {
+            const triggerLabels = { 'cron_8h': '⏰ 8h sáng / ngày', 'cron_4h': '⏰ Mỗi 4 tiếng', 'manual': '👉 Thủ công' };
+            const actionLabels = { 'audit_301': '🔍 Check 301 & Login', 'audit_bot': '🤖 Check Bot', 'fetch_gsc': '📈 Đồng bộ GSC' };
+            const trigLabel = wf.triggerLabel || triggerLabels[wf.trigger] || wf.trigger;
+            const actLabel = wf.actionLabel || actionLabels[wf.action] || wf.action;
+            return `
+            <div style="display:grid; grid-template-columns:2fr 1.5fr 1fr; gap:8px; align-items:center; padding:12px 15px; background:rgba(16,185,129,0.05); border-radius:8px; margin-bottom:8px; border-left:3px solid #10b981; font-size:12px;">
+                <div>
+                    <div style="font-weight:600; font-size:12px; color:#e2e8f0;">${actLabel}</div>
+                    <div style="font-size:10px; color:#475569; margin-top:2px;">${new Date(wf.time).toLocaleString('vi-VN')}</div>
+                </div>
+                <span style="font-size:10px; padding:3px 8px; border-radius:999px; background:rgba(124,58,237,0.2); color:#c4b5fd; white-space:nowrap;">${trigLabel}</span>
+                <div style="display:flex; gap:5px; justify-content:flex-end;">
+                    <button onclick="runWorkflowNow('${wf.action}')" style="background:rgba(16,185,129,0.15); border:none; border-radius:5px; color:#34d399; font-size:11px; padding:4px 8px; cursor:pointer;">▶️ Chạy</button>
+                    <button onclick="deleteWorkflow(${i})" style="background:rgba(239,68,68,0.15); border:none; border-radius:5px; color:#f87171; font-size:11px; padding:4px 8px; cursor:pointer;">🗑️</button>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+
+    function deleteWorkflow(idx) {
+        let stored = JSON.parse(localStorage.getItem('wf_list') || '[]');
+        stored.splice(idx, 1);
+        localStorage.setItem('wf_list', JSON.stringify(stored));
+        renderWorkflowList();
+        updateAutomationBadge();
+    }
+
+    function runWorkflowNow(action) {
+        const actions = {
+            'audit_301': () => { closeAutomationPanel(); switchTab('tab2'); document.querySelector('[onclick="startCheck()"]')?.click(); },
+            'audit_bot': () => { closeAutomationPanel(); switchTab('tab4'); document.querySelector('[onclick="startBotCheck()"]')?.click(); },
+            'fetch_gsc': () => { closeAutomationPanel(); switchTab('tab0'); document.getElementById('btnRunOverview')?.click(); }
+        };
+        if (actions[action]) {
+            actions[action]();
+        } else {
+            alert('Workflow không hỗ trợ chạy thủ công từ đây!');
+        }
+    }
+
+    
     function switchTab(id) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
