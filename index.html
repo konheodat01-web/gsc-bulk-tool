@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GSC Bulk &amp; SEO Automation Pro</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ðŸš€</text></svg>" type="image/svg+xml">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
@@ -105,76 +105,76 @@
 <div class="container">
     <div class="header">
         <h1>GSC Bulk & SEO Automation Pro</h1>
-        <p>Há»‡ thá»‘ng quáº£n lÃ½ PBN: GSC, Sitemap, 301 & Outbound Link</p>
+        <p>Hệ thống quản lý PBN: GSC, Sitemap, 301 & Outbound Link</p>
     </div>
 <!-- GLOBAL SETTINGS -->
     <div class="card" style="margin-top: 20px; margin-bottom: 20px; background: rgba(59, 130, 246, 0.05); border-color: var(--primary);">
         <h3 style="margin-top:0; font-size: 14px; color: var(--primary); display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-cogs"></i> Cáº¥u hÃ¬nh Chung (Telegram & Google Sheet)
-            <button class="help-btn" onclick="showHelp('telegram')" title="HÆ°á»›ng dáº«n sá»­ dá»¥ng">?</button>
+            <i class="fa-solid fa-cogs"></i> Cấu hình Chung (Telegram & Google Sheet)
+            <button class="help-btn" onclick="showHelp('telegram')" title="Hướng dẫn sử dụng">?</button>
         </h3>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
             <div class="form-group" style="margin-bottom:0">
                 <label style="font-size:11px; color:var(--text-muted)">Telegram Bot Token</label>
-                <input type="password" id="teleToken" placeholder="DÃ¡n Token vÃ o Ä‘Ã¢y..." onchange="saveTeleSettings()" style="width:100%; padding:8px; font-size:12px;">
+                <input type="password" id="teleToken" placeholder="Dán Token vào đây..." onchange="saveTeleSettings()" style="width:100%; padding:8px; font-size:12px;">
             </div>
             <div class="form-group" style="margin-bottom:0">
-                <label style="font-size:11px; color:var(--text-muted)">Telegram Chat ID (DÃ£y sá»‘)</label>
+                <label style="font-size:11px; color:var(--text-muted)">Telegram Chat ID (Dãy số)</label>
                 <div style="display:flex; gap:8px;">
                     <input type="text" id="teleChatId" placeholder="VD: 543216789" onchange="saveTeleSettings()" style="flex-grow:1; padding:8px; font-size:12px;">
-                    <button class="btn-mini" onclick="testTele()" style="background:var(--success); border:none; height:33px; white-space:nowrap;">ðŸ”” Test</button>
+                    <button class="btn-mini" onclick="testTele()" style="background:var(--success); border:none; height:33px; white-space:nowrap;">🔔 Test</button>
                 </div>
             </div>
         </div>
         <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
             <div>
-                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Google Client ID (DÃ¹ng cho GSC & Sheets API)</label>
-                <input type="password" id="googleClientId" placeholder="DÃ¡n Client ID vÃ o Ä‘Ã¢y..." onchange="saveTeleSettings()" style="width:100%; border:1px solid var(--border); padding:8px; font-size:12px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box;">
+                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Google Client ID (Dùng cho GSC & Sheets API)</label>
+                <input type="password" id="googleClientId" placeholder="Dán Client ID vào đây..." onchange="saveTeleSettings()" style="width:100%; border:1px solid var(--border); padding:8px; font-size:12px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box;">
             </div>
             <div>
-                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Google Sheet URL (Link nguá»“n cá»‘ Ä‘á»‹nh Ä‘á»ƒ náº¡p dá»¯ liá»‡u)</label>
+                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Google Sheet URL (Link nguồn cố định để nạp dữ liệu)</label>
                 <input type="text" id="globalSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/1X2Y3Z.../edit" onchange="saveTeleSettings()" style="width:100%; border:1px solid var(--border); padding:8px; font-size:12px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box;">
             </div>
         </div>
-        <!-- Cáº¥u hÃ¬nh VPS -->
+        <!-- Cấu hình VPS -->
         <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px dashed rgba(255,255,255,0.1);">
             <h4 style="margin-top:0; font-size:14px; color:var(--primary); display:flex; align-items:center; gap:8px;">
-                <span style="font-size:18px;">ðŸ–¥ï¸</span> Äiá»u khiá»ƒn VPS (Super Agent)
+                <span style="font-size:18px;">🖥️</span> Điều khiển VPS (Super Agent)
             </h4>
             <div class="input-group">
-                <label>Äá»‹a chá»‰ IP VPS:</label>
-                <input type="text" id="vpsIp" placeholder="VÃ­ dá»¥: 103.82.195.87" onchange="saveTeleSettings()">
+                <label>Địa chỉ IP VPS:</label>
+                <input type="text" id="vpsIp" placeholder="Ví dụ: 103.82.195.87" onchange="saveTeleSettings()">
             </div>
             <div class="input-group" style="margin-top:10px;">
-                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">ðŸ”‘ Google Service Account JSON (DÃ¡n ná»™i dung file JSON vÃ o Ä‘Ã¢y):</label>
+                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">🔑 Google Service Account JSON (Dán nội dung file JSON vào đây):</label>
                 <textarea id="vpsGoogleJson" placeholder='{"type": "service_account", ...}' style="width:100%; height:60px; border:1px solid var(--border); padding:8px; font-size:10px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box; font-family:monospace;"></textarea>
-                <button onclick="syncCredentialsToVps()" style="width:100%; margin-top:5px; background:rgba(255,255,255,0.05); border:1px solid var(--border); padding:5px; border-radius:6px; color:var(--text); font-size:11px; cursor:pointer;">ðŸ’¾ LÆ°u ChÃ¬a KhÃ³a LÃªn VPS</button>
+                <button onclick="syncCredentialsToVps()" style="width:100%; margin-top:5px; background:rgba(255,255,255,0.05); border:1px solid var(--border); padding:5px; border-radius:6px; color:var(--text); font-size:11px; cursor:pointer;">💾 Lưu Chìa Khóa Lên VPS</button>
             </div>
             <div style="display:flex; gap:10px; margin-top:10px;">
                 <button onclick="syncToVps()" id="syncVpsBtn" style="flex:1; background:var(--secondary); border:none; padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                    <span>ðŸ“¤</span> Äá»“ng bá»™ cáº¥u hÃ¬nh
+                    <span>📤</span> Đồng bộ cấu hình
                 </button>
                 <button onclick="upgradeAgent()" id="upgradeVpsBtn" style="flex:1; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                    <span>ðŸ”„</span> NÃ¢ng cáº¥p Agent
+                    <span>🔄</span> Nâng cấp Agent
                 </button>
             </div>
             <div id="vpsStatus" style="font-size:11px; margin-top:8px; text-align:center;"></div>
         </div>
         <div style="margin-top: 15px; text-align: right;">
-            <button class="btn btn-primary" onclick="saveTeleSettings()" style="padding: 8px 25px; font-size: 12px; height: 35px; white-space: nowrap;">ðŸ’¾ LÆ°u Cáº¥u HÃ¬nh</button>
+            <button class="btn btn-primary" onclick="saveTeleSettings()" style="padding: 8px 25px; font-size: 12px; height: 35px; white-space: nowrap;">💾 Lưu Cấu Hình</button>
         </div>
-        <div id="teleStatus" style="font-size:11px; margin-top:8px; color:var(--success); display:none;">âœ… ÄÃ£ lÆ°u cáº¥u hÃ¬nh chung!</div>
+        <div id="teleStatus" style="font-size:11px; margin-top:8px; color:var(--success); display:none;">✅ Đã lưu cấu hình chung!</div>
     </div>
 
     <div class="tab-nav">
-        <button class="tab-btn active" onclick="switchTab('tab0')">ðŸ“Š Tá»•ng Quan</button>
-        <button class="tab-btn" onclick="switchTab('tab1')">ðŸ”Œ Quáº£n lÃ½ GSC</button>
-        <button class="tab-btn" onclick="switchTab('tab2')">ðŸ” Check 301 & WP</button>
-        <button class="tab-btn" onclick="switchTab('tab3')">ðŸ”— Outbound Audit</button>
-        <button class="tab-btn" onclick="switchTab('tab4')">ðŸ¤– Check Má»Ÿ Bot</button>
-        <button class="tab-btn" onclick="switchTab('tab5')">ðŸ“ SEO Content</button>
-        <button class="tab-btn" onclick="switchTab('tab6')">ðŸ  Homepage Status</button>
-        <button class="tab-btn" onclick="switchTab('tab7')">ðŸ“ˆ GSC Insights</button>
+        <button class="tab-btn active" onclick="switchTab('tab0')">📊 Tổng Quan</button>
+        <button class="tab-btn" onclick="switchTab('tab1')">🔌 Quản lý GSC</button>
+        <button class="tab-btn" onclick="switchTab('tab2')">🔍 Check 301 & WP</button>
+        <button class="tab-btn" onclick="switchTab('tab3')">🔗 Outbound Audit</button>
+        <button class="tab-btn" onclick="switchTab('tab4')">🤖 Check Mở Bot</button>
+        <button class="tab-btn" onclick="switchTab('tab5')">📝 SEO Content</button>
+        <button class="tab-btn" onclick="switchTab('tab6')">🏠 Homepage Status</button>
+        <button class="tab-btn" onclick="switchTab('tab7')">📈 GSC Insights</button>
     </div>
 
     
@@ -182,16 +182,16 @@
     <div id="tab0" class="tab-content active">
         <div class="card" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%); border-color: var(--primary);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="margin:0; color: var(--primary);"><i class="fa-solid fa-gauge-high"></i> GiÃ¡m SÃ¡t Há»‡ Thá»‘ng (300+ Web)</h2>
+                <h2 style="margin:0; color: var(--primary);"><i class="fa-solid fa-gauge-high"></i> Giám Sát Hệ Thống (300+ Web)</h2>
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-outline" onclick="importFromSheet('overviewUrlInput')" style="border-color:#0f9d58; color:#0f9d58; background: rgba(15, 157, 88, 0.1);"><i class="fa-solid fa-file-import"></i> Náº¡p Data tá»« Sheet</button>
-                    <button class="btn btn-success" id="btnRunOverview" onclick="startSystemOverview()"><i class="fa-solid fa-play"></i> QuÃ©t ToÃ n Bá»™ Há»‡ Thá»‘ng</button>
+                    <button class="btn btn-outline" onclick="importFromSheet('overviewUrlInput')" style="border-color:#0f9d58; color:#0f9d58; background: rgba(15, 157, 88, 0.1);"><i class="fa-solid fa-file-import"></i> Nạp Data từ Sheet</button>
+                    <button class="btn btn-success" id="btnRunOverview" onclick="startSystemOverview()"><i class="fa-solid fa-play"></i> Quét Toàn Bộ Hệ Thống</button>
                 </div>
             </div>
             
             <div id="overviewStats" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 25px;">
                 <div class="card" style="padding: 15px; text-align: center; background: rgba(255,255,255,0.03);">
-                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 5px;">Tá»”NG WEBSITE</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 5px;">TỔNG WEBSITE</div>
                     <div id="statTotal" style="font-size: 24px; font-weight: 700; color: var(--text);">0</div>
                 </div>
                 <div class="card" style="padding: 15px; text-align: center; background: rgba(16, 185, 129, 0.05);">
@@ -199,7 +199,7 @@
                     <div id="statLive" style="font-size: 24px; font-weight: 700; color: var(--success);">0</div>
                 </div>
                 <div class="card" style="padding: 15px; text-align: center; background: rgba(239, 68, 68, 0.05);">
-                    <div style="font-size: 11px; color: var(--danger); margin-bottom: 5px;">CHáº¾T/Lá»–I</div>
+                    <div style="font-size: 11px; color: var(--danger); margin-bottom: 5px;">CHẾT/LỖI</div>
                     <div id="statDead" style="font-size: 24px; font-weight: 700; color: var(--danger);">0</div>
                 </div>
                 <div class="card" style="padding: 15px; text-align: center; background: rgba(245, 158, 11, 0.05);">
@@ -207,14 +207,14 @@
                     <div id="statWrong301" style="font-size: 24px; font-weight: 700; color: var(--warning);">0</div>
                 </div>
                 <div class="card" style="padding: 15px; text-align: center; background: rgba(139, 92, 246, 0.05);">
-                    <div style="font-size: 11px; color: #a78bfa; margin-bottom: 5px;">CHÆ¯A CÃ“ GSC</div>
+                    <div style="font-size: 11px; color: #a78bfa; margin-bottom: 5px;">CHƯA CÓ GSC</div>
                     <div id="statNoGsc" style="font-size: 24px; font-weight: 700; color: #a78bfa;">0</div>
                 </div>
             </div>
 
             <div style="margin-bottom: 15px;">
-                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px;">DÃ¡n danh sÃ¡ch Website (Gá»‘c | ÄÃ­ch | AdminPath | User | Pass):</label>
-                <textarea id="overviewUrlInput" placeholder="VÃ­ dá»¥: max10.bio https://mip.us.com/ /wp-admin seo bgrwypxk1mpoFch" style="width: 100%; height: 100px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: var(--text); padding: 10px; border-radius: 8px; font-family: monospace; font-size: 12px;"></textarea>
+                <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px;">Dán danh sách Website (Gốc | Đích | AdminPath | User | Pass):</label>
+                <textarea id="overviewUrlInput" placeholder="Ví dụ: max10.bio https://mip.us.com/ /wp-admin seo bgrwypxk1mpoFch" style="width: 100%; height: 100px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: var(--text); padding: 10px; border-radius: 8px; font-family: monospace; font-size: 12px;"></textarea>
             </div>
 
             <div style="overflow-x: auto;">
@@ -223,7 +223,7 @@
                         <tr>
                             <th width="18%">Website</th>
                             <th width="15%">GSC Owner</th>
-                            <th width="12%">Tráº¡ng thÃ¡i</th>
+                            <th width="12%">Trạng thái</th>
                             <th width="15%">Redirect (301)</th>
                             <th width="12%">Brand Footer</th>
                             <th width="10%">Admin</th>
@@ -232,45 +232,45 @@
                         </tr>
                     </thead>
                     <tbody id="overviewBody">
-                        <tr><td colspan="6" style="text-align:center; padding: 40px; color:var(--text-muted)">ChÆ°a cÃ³ dá»¯ liá»‡u. HÃ£y Náº¡p Data vÃ  báº¥m QuÃ©t ToÃ n Bá»™ Há»‡ Thá»‘ng!</td></tr>
+                        <tr><td colspan="6" style="text-align:center; padding: 40px; color:var(--text-muted)">Chưa có dữ liệu. Hãy Nạp Data và bấm Quét Toàn Bộ Hệ Thống!</td></tr>
                     </tbody>
                 </table>
             </div>
-            <div id="overviewLoading" style="display:none; margin-top: 20px; font-size:13px; color:var(--warning); text-align: center;">â³ Há»‡ thá»‘ng Ä‘ang quÃ©t toÃ n bá»™ 300+ website... Sáº¿p vui lÃ²ng Ä‘á»£i trong giÃ¢y lÃ¡t...</div>
+            <div id="overviewLoading" style="display:none; margin-top: 20px; font-size:13px; color:var(--warning); text-align: center;">⏳ Hệ thống đang quét toàn bộ 300+ website... Sếp vui lòng đợi trong giây lát...</div>
         </div>
     </div>
 
     <!-- TAB 1: GSC -->
     <div id="tab1" class="tab-content">
         <div class="card">
-            <h3 style="margin-top:0">BÆ°á»›c 1: Quáº£n lÃ½ TÃ i khoáº£n Google <button class="help-btn" onclick="showHelp('gsc-account')" title="HÆ°á»›ng dáº«n sá»­ dá»¥ng">?</button></h3>
-            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">ThÃªm cÃ¡c tÃ i khoáº£n GSC cá»§a báº¡n vÃ o Ä‘Ã¢y. Chá»n tÃ i khoáº£n muá»‘n sá»­ dá»¥ng Ä‘á»ƒ Add Web.</p>
+            <h3 style="margin-top:0">Bước 1: Quản lý Tài khoản Google <button class="help-btn" onclick="showHelp('gsc-account')" title="Hướng dẫn sử dụng">?</button></h3>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Thêm các tài khoản GSC của bạn vào đây. Chọn tài khoản muốn sử dụng để Add Web.</p>
             <div id="accountList" style="margin-bottom:15px;"></div>
-            <button class="btn btn-outline" onclick="addGoogleAccount()" style="font-size:12px; padding:6px 12px; border-color:var(--primary); color:var(--primary);">âž• ThÃªm TÃ i Khoáº£n Google</button>
+            <button class="btn btn-outline" onclick="addGoogleAccount()" style="font-size:12px; padding:6px 12px; border-color:var(--primary); color:var(--primary);">➕ Thêm Tài Khoản Google</button>
         </div>
         <div class="card" style="margin-top:20px;">
-            <h3 style="margin-top:0">BÆ°á»›c 2: Website &amp; Sitemap <button class="help-btn" onclick="showHelp('gsc-sitemap')" title="HÆ°á»›ng dáº«n sá»­ dá»¥ng">?</button></h3>
+            <h3 style="margin-top:0">Bước 2: Website &amp; Sitemap <button class="help-btn" onclick="showHelp('gsc-sitemap')" title="Hướng dẫn sử dụng">?</button></h3>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-            <label style="font-size:12px; color:var(--text-muted);">Danh sÃ¡ch Domain:</label>
-            <button class="btn btn-outline" onclick="importFromSheet('domainList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); cursor: pointer;">ðŸ“Š Náº¡p vÃ¹ng dá»¯ liá»‡u</button>
+            <label style="font-size:12px; color:var(--text-muted);">Danh sách Domain:</label>
+            <button class="btn btn-outline" onclick="importFromSheet('domainList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); cursor: pointer;">📊 Nạp vùng dữ liệu</button>
         </div>
-        <textarea id="domainList" placeholder="Danh sÃ¡ch domain..."></textarea>
+        <textarea id="domainList" placeholder="Danh sách domain..."></textarea>
             <div style="margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px;">
-                <label style="font-size:12px; color:var(--text-muted);">Sitemap Names (cÃ¡ch nhau báº±ng dáº¥u pháº©y):</label>
+                <label style="font-size:12px; color:var(--text-muted);">Sitemap Names (cách nhau bằng dấu phẩy):</label>
                 <div style="display:flex; gap:10px; margin-top:5px;">
                     <input type="text" id="sitemapList" value="sitemap_index.xml, category-sitemap.xml, page-sitemap.xml, post-sitemap.xml">
-                    <button class="btn btn-secondary" onclick="checkAndSubmitSitemaps()">Náº¡p Sitemap</button>
+                    <button class="btn btn-secondary" onclick="checkAndSubmitSitemaps()">Nạp Sitemap</button>
                 </div>
             </div>
             <div style="margin-top:15px; display:flex; gap:10px;">
-                <button id="btnStart" class="btn btn-success" onclick="startProcess()" disabled>ðŸš€ Báº¯t Ä‘áº§u Add & Láº¥y MÃ£</button>
-                <button id="btnRetryVerify" class="btn btn-outline" onclick="retryFailedVerifications()" style="border-color:var(--danger); color:var(--danger); font-size:13px;">ðŸ”„ Thá»­ láº¡i xÃ¡c minh lá»—i</button>
+                <button id="btnStart" class="btn btn-success" onclick="startProcess()" disabled>🚀 Bắt đầu Add & Lấy Mã</button>
+                <button id="btnRetryVerify" class="btn btn-outline" onclick="retryFailedVerifications()" style="border-color:var(--danger); color:var(--danger); font-size:13px;">🔄 Thử lại xác minh lỗi</button>
             </div>
         </div>
         <div class="card" style="margin-top:20px;">
             <table id="gscTable">
                 <thead>
-                    <tr><th width="25%">Website URL</th><th width="15%">Tráº¡ng thÃ¡i</th><th width="35%">MÃ£ HTML</th><th width="12%">XÃ¡c minh</th><th width="13%">Sitemaps</th></tr>
+                    <tr><th width="25%">Website URL</th><th width="15%">Trạng thái</th><th width="35%">Mã HTML</th><th width="12%">Xác minh</th><th width="13%">Sitemaps</th></tr>
                 </thead>
                 <tbody id="resultBody"></tbody>
             </table>
@@ -280,21 +280,21 @@
     <!-- TAB 2: 301 & WP -->
     <div id="tab2" class="tab-content">
         <div class="card">
-            <h3 style="margin-top:0">Check Website &amp; 301 Status <button class="help-btn" onclick="showHelp('check301')" title="HÆ°á»›ng dáº«n sá»­ dá»¥ng">?</button></h3>
+            <h3 style="margin-top:0">Check Website &amp; 301 Status <button class="help-btn" onclick="showHelp('check301')" title="Hướng dẫn sử dụng">?</button></h3>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                        <label style="font-size:11px; color:var(--text-muted); display:block;">ðŸŒ Web Gá»‘c <span style="color:#64748b">(1 dÃ²ng 1 URL)</span></label>
-                        <button class="btn btn-outline" onclick="importFromSheet('srcList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">ðŸ“Š Náº¡p vÃ¹ng dá»¯ liá»‡u</button>
+                        <label style="font-size:11px; color:var(--text-muted); display:block;">🌐 Web Gốc <span style="color:#64748b">(1 dòng 1 URL)</span></label>
+                        <button class="btn btn-outline" onclick="importFromSheet('srcList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp vùng dữ liệu</button>
                     </div>
                     <textarea id="srcList" placeholder="https://88go.futbol/&#10;https://site2.com/&#10;..." style="height:160px;"></textarea>
                 </div>
                 <div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                        <label style="font-size:11px; color:var(--text-muted); display:block;">ðŸŽ¯ Web ÄÃ­ch + Admin + User + Pass</label>
-                        <button class="btn btn-outline" onclick="importFromSheet('dstList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">ðŸ“Š Náº¡p vÃ¹ng dá»¯ liá»‡u</button>
+                        <label style="font-size:11px; color:var(--text-muted); display:block;">🎯 Web Đích + Admin + User + Pass</label>
+                        <button class="btn btn-outline" onclick="importFromSheet('dstList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp vùng dữ liệu</button>
                     </div>
-                    <textarea id="dstList" placeholder="xn--abc.jpn.com wp-admin admin pass123&#10;(tÆ°Æ¡ng á»©ng dÃ²ng vá»›i cá»™t 1 â€” bá» trá»‘ng náº¿u chá»‰ check 301)" style="height:160px;"></textarea>
+                    <textarea id="dstList" placeholder="xn--abc.jpn.com wp-admin admin pass123&#10;(tương ứng dòng với cột 1 — bỏ trống nếu chỉ check 301)" style="height:160px;"></textarea>
                 </div>
             </div>
             <div style="margin-top:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
@@ -303,19 +303,19 @@
                 </label>
             </div>
             <div style="margin-top:10px; display: flex; gap: 10px;">
-                <button class="btn btn-success" onclick="startCheck()">ðŸ” QuÃ©t Tráº¡ng ThÃ¡i (Full)</button>
-                <button id="btnCheck301Only" class="btn btn-primary" onclick="startCheck301Only()" style="background-color: var(--primary);">ðŸ”„ Chá»‰ Check 301 (Xuáº¥t List)</button>
+                <button class="btn btn-success" onclick="startCheck()">🔍 Quét Trạng Thái (Full)</button>
+                <button id="btnCheck301Only" class="btn btn-primary" onclick="startCheck301Only()" style="background-color: var(--primary);">🔄 Chỉ Check 301 (Xuất List)</button>
             </div>
             <div id="check301OutputContainer" style="margin-top: 15px; display: none;">
-                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--primary);">Káº¿t quáº£ danh sÃ¡ch 301:</label>
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--primary);">Kết quả danh sách 301:</label>
                 <textarea id="check301Output" readonly style="height:150px; border-color:var(--primary); background:rgba(59, 130, 246, 0.05);"></textarea>
-                <button class="btn" style="margin-top:10px; width:100%;" onclick="copyToClipboard(this, document.getElementById('check301Output').value)">ðŸ“‹ Copy Káº¿t Quáº£</button>
+                <button class="btn" style="margin-top:10px; width:100%;" onclick="copyToClipboard(this, document.getElementById('check301Output').value)">📋 Copy Kết Quả</button>
             </div>
         </div>
         <div class="card" style="margin-top:20px;">
             <table>
                 <thead>
-                    <tr><th width="14%">Web Gá»‘c</th><th width="16%">Website (301 ÄÃ­ch)</th><th width="7%">Status</th><th width="5%">Code</th><th width="14%">So khá»›p 301</th><th width="16%">Brand Gá»‘c (Footer)</th><th width="10%">Admin</th><th width="8%">Login</th><th width="10%">Láº¡i</th></tr>
+                    <tr><th width="14%">Web Gốc</th><th width="16%">Website (301 Đích)</th><th width="7%">Status</th><th width="5%">Code</th><th width="14%">So khớp 301</th><th width="16%">Brand Gốc (Footer)</th><th width="10%">Admin</th><th width="8%">Login</th><th width="10%">Lại</th></tr>
                 </thead>
                 <tbody id="checkResultBody"></tbody>
             </table>
@@ -325,31 +325,31 @@
     <!-- TAB 3: OUTBOUND AUDIT -->
     <div id="tab3" class="tab-content">
         <div class="card">
-            <h3 style="margin-top:0">Outbound Link Auditor <button class="help-btn" onclick="showHelp('outbound')" title="HÆ°á»›ng dáº«n sá»­ dá»¥ng">?</button></h3>
-            <p style="font-size:13px; color:var(--text-muted);">Nháº­p danh sÃ¡ch web cáº§n quÃ©t (má»—i dÃ²ng 1 URL). Tool tá»± tÃ¬m & kiá»ƒm tra táº¥t cáº£ link trá» ra ngoÃ i.</p>
+            <h3 style="margin-top:0">Outbound Link Auditor <button class="help-btn" onclick="showHelp('outbound')" title="Hướng dẫn sử dụng">?</button></h3>
+            <p style="font-size:13px; color:var(--text-muted);">Nhập danh sách web cần quét (mỗi dòng 1 URL). Tool tự tìm & kiểm tra tất cả link trỏ ra ngoài.</p>
             <textarea id="auditUrlList" placeholder="https://site1.com/&#10;https://site2.com/&#10;https://site3.com/"></textarea>
             <div style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-                <button class="btn btn-success" onclick="startOutboundAudit()">ðŸš€ QuÃ©t Táº¥t Cáº£ Outbound</button>
-                <button class="btn" style="background:#7c3aed;" onclick="startMlinkCheck()">ðŸ”— Chá»‰ Check /mlink/ Cloaking</button>
+                <button class="btn btn-success" onclick="startOutboundAudit()">🚀 Quét Tất Cả Outbound</button>
+                <button class="btn" style="background:#7c3aed;" onclick="startMlinkCheck()">🔗 Chỉ Check /mlink/ Cloaking</button>
             </div>
         </div>
-        <!-- Káº¾T QUáº¢ MLINK CHECK -->
+        <!-- KẾT QUẢ MLINK CHECK -->
         <div id="mlinkResultContainer" class="card" style="margin-top:20px; display:none;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <h3 style="margin:0; color:#a78bfa;">ðŸ”— Káº¿t Quáº£ Check /mlink/ Cloaking</h3>
-                <div style="font-size:13px; color:var(--text-muted);">âœ… CÃ³ mlink: <span id="mlinkOkCount" style="color:var(--success); font-weight:700;">0</span> &nbsp;|&nbsp; âŒ Thiáº¿u mlink: <span id="mlinkErrCount" style="color:var(--danger); font-weight:700;">0</span></div>
+                <h3 style="margin:0; color:#a78bfa;">🔗 Kết Quả Check /mlink/ Cloaking</h3>
+                <div style="font-size:13px; color:var(--text-muted);">✅ Có mlink: <span id="mlinkOkCount" style="color:var(--success); font-weight:700;">0</span> &nbsp;|&nbsp; ❌ Thiếu mlink: <span id="mlinkErrCount" style="color:var(--danger); font-weight:700;">0</span></div>
             </div>
             <table>
-                <thead><tr><th width="35%">Website</th><th width="15%">Tráº¡ng thÃ¡i</th><th width="35%">Link /mlink/ tÃ¬m tháº¥y</th><th width="15%">Thao tÃ¡c</th></tr></thead>
+                <thead><tr><th width="35%">Website</th><th width="15%">Trạng thái</th><th width="35%">Link /mlink/ tìm thấy</th><th width="15%">Thao tác</th></tr></thead>
                 <tbody id="mlinkResultBody"></tbody>
             </table>
         </div>
-        <!-- Káº¾T QUáº¢ OUTBOUND Äáº¦Y Äá»¦ -->
+        <!-- KẾT QUẢ OUTBOUND ĐẦY ĐỦ -->
         <div class="card" style="margin-top:20px;">
-            <h3 style="margin-top:0; font-size:14px; color:var(--text-muted);">ðŸ“‹ Káº¿t Quáº£ Outbound Äáº§y Äá»§</h3>
+            <h3 style="margin-top:0; font-size:14px; color:var(--text-muted);">📋 Kết Quả Outbound Đầy Đủ</h3>
             <table>
                 <thead>
-                    <tr><th width="15%">Website nguá»“n</th><th width="25%">Link trá» ra</th><th width="20%">RDR (redirect Ä‘Ã­ch)</th><th width="15%">Domain Ä‘Ã­ch</th><th width="9%">Tráº¡ng thÃ¡i</th><th width="8%">Code</th><th width="8%">Láº¡i</th></tr>
+                    <tr><th width="15%">Website nguồn</th><th width="25%">Link trỏ ra</th><th width="20%">RDR (redirect đích)</th><th width="15%">Domain đích</th><th width="9%">Trạng thái</th><th width="8%">Code</th><th width="8%">Lại</th></tr>
                 </thead>
                 <tbody id="auditResultBody"></tbody>
             </table>
@@ -359,16 +359,16 @@
     <!-- TAB 4: CHECK BOT -->
     <div id="tab4" class="tab-content">
         <div class="card">
-            <h3 style="margin-top:0">Check Tráº¡ng ThÃ¡i Má»Ÿ Bot (Index) <button class="help-btn" onclick="showHelp('checkbot')" title="HÆ°á»›ng dáº«n sá»­ dá»¥ng">?</button></h3>
-            <p style="font-size:13px; color:var(--text-muted);">Kiá»ƒm tra xem Website Ä‘Ã£ Ä‘Æ°á»£c cáº¥u hÃ¬nh cho phÃ©p Googlebot vÃ o thu tháº­p dá»¯ liá»‡u (Index) chÆ°a.</p>
-            <textarea id="checkBotList" placeholder="Nháº­p danh sÃ¡ch website (má»—i dÃ²ng 1 URL)..."></textarea>
+            <h3 style="margin-top:0">Check Trạng Thái Mở Bot (Index) <button class="help-btn" onclick="showHelp('checkbot')" title="Hướng dẫn sử dụng">?</button></h3>
+            <p style="font-size:13px; color:var(--text-muted);">Kiểm tra xem Website đã được cấu hình cho phép Googlebot vào thu thập dữ liệu (Index) chưa.</p>
+            <textarea id="checkBotList" placeholder="Nhập danh sách website (mỗi dòng 1 URL)..."></textarea>
             <div style="margin-top:10px;">
-                <button id="btnCheckBot" class="btn btn-success" onclick="startCheckBot()">ðŸ¤– Báº¯t Ä‘áº§u Check Má»Ÿ Bot</button>
+                <button id="btnCheckBot" class="btn btn-success" onclick="startCheckBot()">🤖 Bắt đầu Check Mở Bot</button>
             </div>
             <div id="checkBotOutputContainer" style="margin-top: 15px; display: none;">
-                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--primary);">BÃ¡o cÃ¡o káº¿t quáº£:</label>
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--primary);">Báo cáo kết quả:</label>
                 <textarea id="checkBotOutput" readonly style="height:200px; border-color:var(--primary); background:rgba(59, 130, 246, 0.05); font-size:12px;"></textarea>
-                <button class="btn" style="margin-top:10px; width:100%;" onclick="copyToClipboard(this, document.getElementById('checkBotOutput').value)">ðŸ“‹ Copy BÃ¡o CÃ¡o</button>
+                <button class="btn" style="margin-top:10px; width:100%;" onclick="copyToClipboard(this, document.getElementById('checkBotOutput').value)">📋 Copy Báo Cáo</button>
             </div>
         </div>
     </div>
@@ -376,38 +376,38 @@
     <!-- TAB 5: SEO Content Auditor -->
     <div id="tab5" class="tab-content">
         <button class="rule-btn" onclick="document.getElementById('ruleModal').style.display='flex'">
-            <span>ðŸ“–</span> Quy chuáº©n SEO
+            <span>📖</span> Quy chuẩn SEO
         </button>
-        <h3 style="margin-top:0">Kiá»ƒm tra Chuáº©n SEO (Title, Meta, H1/H2/H3, áº¢nh, Word Count)</h3>
+        <h3 style="margin-top:0">Kiểm tra Chuẩn SEO (Title, Meta, H1/H2/H3, Ảnh, Word Count)</h3>
         
         <div class="card">
             <div class="input-grid">
                 <div class="form-group">
-                    <label>Danh sÃ¡ch URL (Má»—i dÃ²ng 1 URL)</label>
+                    <label>Danh sách URL (Mỗi dòng 1 URL)</label>
                     <textarea id="auditor_urlInput" placeholder="https://domain.com/bai-viet-1/&#10;https://domain.com/bai-viet-2/"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Tá»« khÃ³a tÆ°Æ¡ng á»©ng (Má»—i dÃ²ng 1 tá»« khÃ³a)</label>
-                    <textarea id="keywordInput" placeholder="laptop cÅ©&#10;Ä‘iá»‡n thoáº¡i giÃ¡ ráº»"></textarea>
+                    <label>Từ khóa tương ứng (Mỗi dòng 1 từ khóa)</label>
+                    <textarea id="keywordInput" placeholder="laptop cũ&#10;điện thoại giá rẻ"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Danh má»¥c tÆ°Æ¡ng á»©ng (Má»—i dÃ²ng 1 danh má»¥c)</label>
-                    <textarea id="categoryInput" placeholder="Tin tá»©c&#10;ÄÃ¡nh giÃ¡ sáº£n pháº©m"></textarea>
+                    <label>Danh mục tương ứng (Mỗi dòng 1 danh mục)</label>
+                    <textarea id="categoryInput" placeholder="Tin tức&#10;Đánh giá sản phẩm"></textarea>
                 </div>
             </div>
             
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
-                <h3 style="font-size: 1rem; margin-top:0; color: var(--text-muted);">TÃ¹y chá»n Quy chuáº©n cáº§n quÃ©t:</h3>
+                <h3 style="font-size: 1rem; margin-top:0; color: var(--text-muted);">Tùy chọn Quy chuẩn cần quét:</h3>
                 <div class="checkbox-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 12px;">
-                    <label><input type="checkbox" id="chkUrl" checked> Cáº¥u trÃºc URL</label>
+                    <label><input type="checkbox" id="chkUrl" checked> Cấu trúc URL</label>
                     <label><input type="checkbox" id="chkTitle" checked> Title (45-60)</label>
                     <label><input type="checkbox" id="chkDesc" checked> Meta Des (140-160)</label>
-                    <label><input type="checkbox" id="chkH1" checked> H1 duy nháº¥t</label>
+                    <label><input type="checkbox" id="chkH1" checked> H1 duy nhất</label>
                     <label><input type="checkbox" id="chkH2H3" checked> Logic H2/H3</label>
-                    <label><input type="checkbox" id="chkAlt" checked> Alt áº¢nh</label>
-                    <label><input type="checkbox" id="chkFeatImg" checked> áº¢nh Äáº¡i Diá»‡n</label>
-                    <label><input type="checkbox" id="chkWord" checked> Sá»‘ tá»« (>=1000)</label>
-                    <label><input type="checkbox" id="chkKw" checked> Tá»« khÃ³a (Title/Meta/H1)</label>
+                    <label><input type="checkbox" id="chkAlt" checked> Alt Ảnh</label>
+                    <label><input type="checkbox" id="chkFeatImg" checked> Ảnh Đại Diện</label>
+                    <label><input type="checkbox" id="chkWord" checked> Số từ (>=1000)</label>
+                    <label><input type="checkbox" id="chkKw" checked> Từ khóa (Title/Meta/H1)</label>
                     <label><input type="checkbox" id="chkSapo" checked> Sapo (Link)</label>
                 </div>
             </div>
@@ -417,13 +417,13 @@
             </div>
 
             <div style="display:flex; justify-content:center; margin-top:25px;">
-                <button id="auditor_btnStart" class="btn" style="margin:0; width:100%;" onclick="startAnalysis()">ðŸš€ Cháº¡y Tool Kiá»ƒm Tra</button>
+                <button id="auditor_btnStart" class="btn" style="margin:0; width:100%;" onclick="startAnalysis()">🚀 Chạy Tool Kiểm Tra</button>
             </div>
             
             <div class="progress-bar-container" id="progressContainer" style="height:auto; background:none; margin-top:20px; display:none;">
                 <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:8px;">
-                    <span id="progressText" style="color:var(--text-muted); font-size:14px;">Äang chuáº©n bá»‹ quÃ©t...</span>
-                    <button id="auditor_btnStop" class="btn" style="background:var(--danger); padding:4px 12px; font-size:13px; cursor:pointer; width:auto; border-radius:4px;">â›” Dá»«ng quÃ©t</button>
+                    <span id="progressText" style="color:var(--text-muted); font-size:14px;">Đang chuẩn bị quét...</span>
+                    <button id="auditor_btnStop" class="btn" style="background:var(--danger); padding:4px 12px; font-size:13px; cursor:pointer; width:auto; border-radius:4px;">⛔ Dừng quét</button>
                 </div>
                 <div style="width:100%; background:var(--border); border-radius:8px; height:8px; overflow:hidden;">
                     <div class="progress-bar" id="progressBar" style="height:100%; background:var(--success); width:0%; transition:width 0.3s;"></div>
@@ -432,31 +432,31 @@
         </div>
 
         <div class="card" style="margin-top: 20px;">
-            <h3>Báº£ng ÄÃ¡nh GiÃ¡ SEO</h3>
+            <h3>Bảng Đánh Giá SEO</h3>
             <div style="overflow-x: auto;">
                 <table class="dashboard-table" id="resultTable">
                     <thead>
                         <tr>
                             <th>URL</th>
-                            <th>Äiá»ƒm</th>
+                            <th>Điểm</th>
                             <th class="col-title">Title (45-60)</th>
                             <th class="col-desc">Meta Des (140-160)</th>
                             <th class="col-h1">H1</th>
                             <th class="col-h2h3">H2/H3 Logic</th>
-                            <th class="col-img">áº¢nh (Alt)</th>
-                            <th class="col-featimg">áº¢nh Äáº¡i Diá»‡n</th>
-                            <th class="col-word">Tá»« (>=1000)</th>
-                            <th class="col-kw">Tá»« khÃ³a</th>
-                            <th>Danh má»¥c</th>
-                            <th class="col-catmatch">So khá»›p DM</th>
+                            <th class="col-img">Ảnh (Alt)</th>
+                            <th class="col-featimg">Ảnh Đại Diện</th>
+                            <th class="col-word">Từ (>=1000)</th>
+                            <th class="col-kw">Từ khóa</th>
+                            <th>Danh mục</th>
+                            <th class="col-catmatch">So khớp DM</th>
                             <th>Schema</th>
                             <th class="col-sapo">Sapo (Link)</th>
-                            <th class="col-urlslug">Cáº¥u trÃºc URL</th>
-                            <th>Thao tÃ¡c</th>
+                            <th class="col-urlslug">Cấu trúc URL</th>
+                            <th>Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="resultBody">
-                        <tr><td colspan="10" style="text-align:center; padding: 30px; color:var(--text-muted)">ChÆ°a cÃ³ dá»¯ liá»‡u. HÃ£y dÃ¡n Link vÃ  báº¥m QuÃ©t!</td></tr>
+                        <tr><td colspan="10" style="text-align:center; padding: 30px; color:var(--text-muted)">Chưa có dữ liệu. Hãy dán Link và bấm Quét!</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -464,21 +464,21 @@
 
         <div class="card" style="margin-top: 20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h2 style="font-size: 1.2rem; margin:0;">ðŸ“ BÃ¡o CÃ¡o Lá»—i (DÃ nh cho Content)</h2>
+                <h2 style="font-size: 1.2rem; margin:0;">📝 Báo Cáo Lỗi (Dành cho Content)</h2>
                 <div style="display:flex; gap:8px;">
-                    <button class="btn" onclick="copyExcelReport()" style="width:auto; background:#059669; padding:6px 12px; font-size:14px; border-radius:4px;" title="Copy 1 dÃ²ng/bÃ i theo Ä‘Ãºng vá»‹ trÃ­ STT - dÃ¡n tháº³ng vÃ o cá»™t Excel">ðŸ“Š Copy Excel</button>
-                    <button class="btn" onclick="copyReport()" style="width:auto; background:#4b5563; padding:6px 12px; font-size:14px; border-radius:4px;">ðŸ“‹ Copy BÃ¡o CÃ¡o</button>
+                    <button class="btn" onclick="copyExcelReport()" style="width:auto; background:#059669; padding:6px 12px; font-size:14px; border-radius:4px;" title="Copy 1 dòng/bài theo đúng vị trí STT - dán thẳng vào cột Excel">📊 Copy Excel</button>
+                    <button class="btn" onclick="copyReport()" style="width:auto; background:#4b5563; padding:6px 12px; font-size:14px; border-radius:4px;">📋 Copy Báo Cáo</button>
                 </div>
             </div>
-            <textarea id="reportText" style="width:100%; height:200px; background:rgba(15,23,42,0.5); color:var(--text-main); border:1px solid var(--border); border-radius:8px; padding:15px; font-size:14px; font-family:monospace; resize:vertical;" readonly placeholder="Káº¿t quáº£ bÃ¡o cÃ¡o lá»—i sáº½ tá»± Ä‘á»™ng hiá»ƒn thá»‹ á»Ÿ Ä‘Ã¢y..."></textarea>
+            <textarea id="reportText" style="width:100%; height:200px; background:rgba(15,23,42,0.5); color:var(--text-main); border:1px solid var(--border); border-radius:8px; padding:15px; font-size:14px; font-family:monospace; resize:vertical;" readonly placeholder="Kết quả báo cáo lỗi sẽ tự động hiển thị ở đây..."></textarea>
         </div>
         
     <!-- Modal for details (hidden) -->
     <div id="detailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center;">
         <div class="card" style="width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto; background: var(--panel-bg);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <h2 style="margin:0">Chi tiáº¿t Lá»—i SEO</h2>
-                <button class="btn" style="width:auto; padding:5px 10px; background:var(--danger)" onclick="document.getElementById('detailModal').style.display='none'">ÄÃ³ng</button>
+                <h2 style="margin:0">Chi tiết Lỗi SEO</h2>
+                <button class="btn" style="width:auto; padding:5px 10px; background:var(--danger)" onclick="document.getElementById('detailModal').style.display='none'">Đóng</button>
             </div>
             <div id="modalContent"></div>
         </div>
@@ -488,52 +488,52 @@
     <div id="ruleModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:999; justify-content:center; align-items:center;">
         <div class="card" style="width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; background: var(--panel-bg);">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom: 1px solid var(--border); padding-bottom: 15px;">
-                <h2 style="margin:0; color: var(--primary);">ðŸ“– Quy Chuáº©n SEO Há»‡ Thá»‘ng</h2>
-                <button class="btn" style="width:auto; padding:5px 15px; background:var(--border)" onclick="document.getElementById('ruleModal').style.display='none'">ÄÃ³ng</button>
+                <h2 style="margin:0; color: var(--primary);">📖 Quy Chuẩn SEO Hệ Thống</h2>
+                <button class="btn" style="width:auto; padding:5px 15px; background:var(--border)" onclick="document.getElementById('ruleModal').style.display='none'">Đóng</button>
             </div>
             <div style="font-size: 15px; line-height: 1.7;">
-                <h3 style="color:#60a5fa">1. Cáº¥u trÃºc URL</h3>
+                <h3 style="color:#60a5fa">1. Cấu trúc URL</h3>
                 <ul>
-                    <li>Pháº£i chá»©a tá»« khÃ³a chÃ­nh dáº¡ng slug (khÃ´ng dáº¥u, gáº¡ch ngang).</li>
-                    <li>KhÃ´ng chá»©a sá»‘ rÃ¡c á»Ÿ Ä‘uÃ´i URL (trá»« khi sá»‘ Ä‘Ã³ náº±m trong tá»« khÃ³a chÃ­nh).</li>
-                    <li>Dáº¥u "/" trong ngÃ y thÃ¡ng cá»§a tá»« khÃ³a tá»± Ä‘á»™ng chuyá»ƒn thÃ nh "-".</li>
+                    <li>Phải chứa từ khóa chính dạng slug (không dấu, gạch ngang).</li>
+                    <li>Không chứa số rác ở đuôi URL (trừ khi số đó nằm trong từ khóa chính).</li>
+                    <li>Dấu "/" trong ngày tháng của từ khóa tự động chuyển thành "-".</li>
                 </ul>
 
                 <h3 style="color:#60a5fa">2. Title & Meta Description</h3>
                 <ul>
-                    <li><strong>Title:</strong> DÃ i tá»« 45 - 60 kÃ½ tá»±.</li>
-                    <li><strong>Meta Description:</strong> DÃ i tá»« 140 - 160 kÃ½ tá»±.</li>
+                    <li><strong>Title:</strong> Dài từ 45 - 60 ký tự.</li>
+                    <li><strong>Meta Description:</strong> Dài từ 140 - 160 ký tự.</li>
                 </ul>
 
-                <h3 style="color:#60a5fa">3. Cáº¥u trÃºc Tháº» Heading (H1, H2, H3)</h3>
+                <h3 style="color:#60a5fa">3. Cấu trúc Thẻ Heading (H1, H2, H3)</h3>
                 <ul>
-                    <li><strong>H1:</strong> Chá»‰ Ä‘Æ°á»£c phÃ©p cÃ³ duy nháº¥t 1 tháº» H1 trÃªn toÃ n trang.</li>
-                    <li><strong>H2/H3 Logic:</strong> Chá»‰ xÃ©t trong pháº§n ná»™i dung chÃ­nh bÃ i viáº¿t.</li>
-                    <li>DÆ°á»›i má»—i tháº» H2 pháº£i cÃ³ <strong>Ã­t nháº¥t 2 tháº» H3</strong>. KhÃ´ng Ä‘Æ°á»£c phÃ©p chá»‰ cÃ³ 1 tháº» H3 (ngoáº¡i trá»« H2 cuá»‘i cÃ¹ng káº¿t luáº­n).</li>
-                    <li>H3 khÃ´ng Ä‘Æ°á»£c Ä‘á»©ng lÆ¡ lá»­ng náº¿u phÃ­a trÃªn khÃ´ng cÃ³ H2.</li>
+                    <li><strong>H1:</strong> Chỉ được phép có duy nhất 1 thẻ H1 trên toàn trang.</li>
+                    <li><strong>H2/H3 Logic:</strong> Chỉ xét trong phần nội dung chính bài viết.</li>
+                    <li>Dưới mỗi thẻ H2 phải có <strong>ít nhất 2 thẻ H3</strong>. Không được phép chỉ có 1 thẻ H3 (ngoại trừ H2 cuối cùng kết luận).</li>
+                    <li>H3 không được đứng lơ lửng nếu phía trên không có H2.</li>
                 </ul>
 
-                <h3 style="color:#60a5fa">4. HÃ¬nh áº¢nh</h3>
+                <h3 style="color:#60a5fa">4. Hình Ảnh</h3>
                 <ul>
-                    <li><strong>Alt áº¢nh:</strong> Má»i tháº» hÃ¬nh áº£nh trong ná»™i dung bÃ i viáº¿t báº¯t buá»™c pháº£i cÃ³ thuá»™c tÃ­nh <code>alt</code>.</li>
-                    <li><strong>áº¢nh Ä‘áº¡i diá»‡n:</strong> Báº¯t buá»™c pháº£i cÃ i Ä‘áº·t Featured Image (PhÃ¡t hiá»‡n thÃ´ng qua tháº» meta <code>og:image</code> chuáº©n SEO).</li>
+                    <li><strong>Alt Ảnh:</strong> Mọi thẻ hình ảnh trong nội dung bài viết bắt buộc phải có thuộc tính <code>alt</code>.</li>
+                    <li><strong>Ảnh đại diện:</strong> Bắt buộc phải cài đặt Featured Image (Phát hiện thông qua thẻ meta <code>og:image</code> chuẩn SEO).</li>
                 </ul>
 
-                <h3 style="color:#60a5fa">5. Sá»‘ tá»« (Word Count)</h3>
+                <h3 style="color:#60a5fa">5. Số từ (Word Count)</h3>
                 <ul>
-                    <li>Chá»‰ Ä‘áº¿m chá»¯ trong pháº§n ná»™i dung chÃ­nh (Loáº¡i bá» Footer, Sidebar, Comments...).</li>
-                    <li>YÃªu cáº§u: Tá»‘i thiá»ƒu <strong>1000 tá»«</strong>.</li>
+                    <li>Chỉ đếm chữ trong phần nội dung chính (Loại bỏ Footer, Sidebar, Comments...).</li>
+                    <li>Yêu cầu: Tối thiểu <strong>1000 từ</strong>.</li>
                 </ul>
 
-                <h3 style="color:#60a5fa">6. Máº­t Ä‘á»™ Tá»« khÃ³a</h3>
+                <h3 style="color:#60a5fa">6. Mật độ Từ khóa</h3>
                 <ul>
-                    <li>Tá»« khÃ³a báº¯t buá»™c pháº£i xuáº¥t hiá»‡n Ä‘áº§y Ä‘á»§ á»Ÿ 3 vá»‹ trÃ­ chiáº¿n lÆ°á»£c: <strong>Title, Meta Description, vÃ  tháº» H1</strong>.</li>
+                    <li>Từ khóa bắt buộc phải xuất hiện đầy đủ ở 3 vị trí chiến lược: <strong>Title, Meta Description, và thẻ H1</strong>.</li>
                 </ul>
 
-                <h3 style="color:#60a5fa">7. LiÃªn káº¿t Sapo (Äoáº¡n Ä‘áº§u tiÃªn)</h3>
+                <h3 style="color:#60a5fa">7. Liên kết Sapo (Đoạn đầu tiên)</h3>
                 <ul>
-                    <li>Äoáº¡n Sapo pháº£i chá»©a Ã­t nháº¥t 1 <strong>Internal Link trá» vá» chÃ­nh bÃ i viáº¿t Ä‘Ã³</strong> (Anchor text chá»©a tá»« khÃ³a).</li>
-                    <li>Äoáº¡n Sapo pháº£i chá»©a Ã­t nháº¥t 1 <strong>Link trá» vá» Trang chá»§</strong> cá»§a website.</li>
+                    <li>Đoạn Sapo phải chứa ít nhất 1 <strong>Internal Link trỏ về chính bài viết đó</strong> (Anchor text chứa từ khóa).</li>
+                    <li>Đoạn Sapo phải chứa ít nhất 1 <strong>Link trỏ về Trang chủ</strong> của website.</li>
                 </ul>
             </div>
         </div>
@@ -543,28 +543,28 @@
     <!-- TAB 6: Homepage Status -->
     <div id="tab6" class="tab-content">
         <div class="card">
-            <h3 style="margin-top:0">Kiá»ƒm tra Loáº¡i Trang Chá»§ (Homepage Status) <button class="help-btn" onclick="showHelp('homepagestatus')" title="HÆ°á»›ng dáº«n">?</button></h3>
-            <p style="font-size:13px; color:var(--text-muted);">Tá»± Ä‘á»™ng quÃ©t Ä‘á»ƒ phÃ¡t hiá»‡n web Ä‘ang Ä‘á»ƒ Trang Chá»§ lÃ  <b>BÃ i viáº¿t má»›i nháº¥t (Latest Posts)</b> hay <b>Trang tÄ©nh (Static Page)</b> dá»±a vÃ o mÃ£ nguá»“n HTML (WordPress).</p>
+            <h3 style="margin-top:0">Kiểm tra Loại Trang Chủ (Homepage Status) <button class="help-btn" onclick="showHelp('homepagestatus')" title="Hướng dẫn">?</button></h3>
+            <p style="font-size:13px; color:var(--text-muted);">Tự động quét để phát hiện web đang để Trang Chủ là <b>Bài viết mới nhất (Latest Posts)</b> hay <b>Trang tĩnh (Static Page)</b> dựa vào mã nguồn HTML (WordPress).</p>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                <label style="font-size:12px; color:var(--text-muted);">Danh sÃ¡ch URL:</label>
-                <button class="btn btn-outline" onclick="importFromSheet('homepageUrlInput')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); cursor: pointer;">ðŸ“Š Náº¡p vÃ¹ng dá»¯ liá»‡u</button>
+                <label style="font-size:12px; color:var(--text-muted);">Danh sách URL:</label>
+                <button class="btn btn-outline" onclick="importFromSheet('homepageUrlInput')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); cursor: pointer;">📊 Nạp vùng dữ liệu</button>
             </div>
-            <textarea id="homepageUrlInput" placeholder="Danh sÃ¡ch website (Má»—i dÃ²ng 1 URL)..."></textarea>
+            <textarea id="homepageUrlInput" placeholder="Danh sách website (Mỗi dòng 1 URL)..."></textarea>
             <div style="margin-top:10px;">
-                <button id="btnCheckHomepage" class="btn btn-success" onclick="startCheckHomepage()">ðŸš€ Báº¯t Ä‘áº§u QuÃ©t</button>
+                <button id="btnCheckHomepage" class="btn btn-success" onclick="startCheckHomepage()">🚀 Bắt đầu Quét</button>
             </div>
             
             <table id="homepageTable" style="margin-top:20px; display:none; width: 100%; border-collapse: collapse;">
                 <thead>
-                    <tr><th style="text-align: left; border-bottom: solid 1px var(--border); padding: 10px;" width="40%">Website</th><th style="text-align: left; border-bottom: solid 1px var(--border); padding: 10px;" width="30%">Tráº¡ng thÃ¡i Trang Chá»§</th><th style="text-align: left; border-bottom: solid 1px var(--border); padding: 10px;" width="30%">MÃ£ HTTP</th></tr>
+                    <tr><th style="text-align: left; border-bottom: solid 1px var(--border); padding: 10px;" width="40%">Website</th><th style="text-align: left; border-bottom: solid 1px var(--border); padding: 10px;" width="30%">Trạng thái Trang Chủ</th><th style="text-align: left; border-bottom: solid 1px var(--border); padding: 10px;" width="30%">Mã HTTP</th></tr>
                 </thead>
                 <tbody id="homepageBody"></tbody>
             </table>
             
             <div id="homepageOutputContainer" style="margin-top: 15px; display: none;">
-                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--primary);">BÃ¡o cÃ¡o káº¿t quáº£:</label>
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--primary);">Báo cáo kết quả:</label>
                 <textarea id="homepageOutput" readonly style="height:200px; border-color:var(--primary); background:rgba(59, 130, 246, 0.05); font-size:12px;"></textarea>
-                <button class="btn" style="margin-top:10px; width:100%;" onclick="copyToClipboard(this, document.getElementById('homepageOutput').value)">ðŸ“‹ Copy BÃ¡o CÃ¡o</button>
+                <button class="btn" style="margin-top:10px; width:100%;" onclick="copyToClipboard(this, document.getElementById('homepageOutput').value)">📋 Copy Báo Cáo</button>
             </div>
         </div>
     </div>
@@ -572,39 +572,39 @@
     <!-- TAB 7: GSC Insights -->
     <div id="tab7" class="tab-content">
         <div class="card">
-            <h3 style="margin-top:0">PhÃ¢n tÃ­ch Chá»‰ sá»‘ GSC (So sÃ¡nh TÄƒng trÆ°á»Ÿng) <button class="help-btn" onclick="showHelp('gsc-insights')" title="HÆ°á»›ng dáº«n">?</button></h3>
-            <p style="font-size:13px; color:var(--text-muted);">Tá»± Ä‘á»™ng quÃ©t vÃ  so sÃ¡nh dá»¯ liá»‡u Clicks, Impressions tá»« táº¥t cáº£ cÃ¡c tÃ i khoáº£n Google Ä‘Ã£ náº¡p á»Ÿ Tab 1.</p>
+            <h3 style="margin-top:0">Phân tích Chỉ số GSC (So sánh Tăng trưởng) <button class="help-btn" onclick="showHelp('gsc-insights')" title="Hướng dẫn">?</button></h3>
+            <p style="font-size:13px; color:var(--text-muted);">Tự động quét và so sánh dữ liệu Clicks, Impressions từ tất cả các tài khoản Google đã nạp ở Tab 1.</p>
             
             <div style="display: flex; gap: 10px; align-items: center; margin-top: 15px; margin-bottom: 20px; flex-wrap: wrap;">
                             <div style="width: 100%;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-                    <label style="font-size:12px; color:var(--text-muted);">Danh sÃ¡ch Domain cáº§n check (má»—i dÃ²ng 1 URL):</label>
-                    <button class="btn btn-outline" onclick="importFromSheet('gscInsightsUrls')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); display: inline-flex; align-items: center; gap: 4px; cursor: pointer; transition: all 0.2s;">ðŸ“Š Náº¡p vÃ¹ng dá»¯ liá»‡u</button>
+                    <label style="font-size:12px; color:var(--text-muted);">Danh sách Domain cần check (mỗi dòng 1 URL):</label>
+                    <button class="btn btn-outline" onclick="importFromSheet('gscInsightsUrls')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); display: inline-flex; align-items: center; gap: 4px; cursor: pointer; transition: all 0.2s;">📊 Nạp vùng dữ liệu</button>
                 </div>
-                <textarea id="gscInsightsUrls" placeholder="DÃ¡n danh sÃ¡ch domain cáº§n check..." style="margin-bottom:15px; width: 100%; box-sizing: border-box;"></textarea>
+                <textarea id="gscInsightsUrls" placeholder="Dán danh sách domain cần check..." style="margin-bottom:15px; width: 100%; box-sizing: border-box;"></textarea>
             </div>
             
             <div style="background: rgba(255,255,255,0.05); padding: 5px; border-radius: 6px; display: flex; gap: 5px;">
-                    <button class="btn btn-outline" id="btnModeDay" onclick="setGscMode('day')" style="font-size:12px; padding:6px 15px;">â˜€ï¸ Theo NgÃ y (1 vs 1)</button>
-                    <button class="btn btn-outline active" id="btnModeWeek" onclick="setGscMode('week')" style="font-size:12px; padding:6px 15px; background:var(--primary); color:white; border-color:var(--primary);">ðŸ“… Theo Tuáº§n (7 vs 7)</button>
-                    <button class="btn btn-outline" id="btnModeMonth" onclick="setGscMode('month')" style="font-size:12px; padding:6px 15px;">ðŸ“Š Theo ThÃ¡ng (30 vs 30)</button>
+                    <button class="btn btn-outline" id="btnModeDay" onclick="setGscMode('day')" style="font-size:12px; padding:6px 15px;">☀️ Theo Ngày (1 vs 1)</button>
+                    <button class="btn btn-outline active" id="btnModeWeek" onclick="setGscMode('week')" style="font-size:12px; padding:6px 15px; background:var(--primary); color:white; border-color:var(--primary);">📅 Theo Tuần (7 vs 7)</button>
+                    <button class="btn btn-outline" id="btnModeMonth" onclick="setGscMode('month')" style="font-size:12px; padding:6px 15px;">📊 Theo Tháng (30 vs 30)</button>
                 </div>
-                <button class="btn btn-success" id="btnRunInsights" onclick="startGscInsights()">ðŸš€ QuÃ©t ToÃ n Bá»™ Website</button>
+                <button class="btn btn-success" id="btnRunInsights" onclick="startGscInsights()">🚀 Quét Toàn Bộ Website</button>
             </div>
             
             <table id="insightsTable" class="dashboard-table" style="display:none; width: 100%;">
                 <thead>
                     <tr>
                         <th width="25%">Website</th>
-                        <th width="25%">Clicks (TÄƒng trÆ°á»Ÿng)</th>
+                        <th width="25%">Clicks (Tăng trưởng)</th>
                         <th width="25%">Impressions</th>
-                        <th width="15%">Vá»‹ trÃ­ TB</th>
-                        <th width="10%">Tráº¡ng thÃ¡i</th>
+                        <th width="15%">Vị trí TB</th>
+                        <th width="10%">Trạng thái</th>
                     </tr>
                 </thead>
                 <tbody id="insightsBody"></tbody>
             </table>
-            <div id="insightsLoading" style="display:none; margin-top: 20px; font-size:13px; color:var(--warning);">â³ Äang bá»‘c dá»¯ liá»‡u tá»« Google... Vui lÃ²ng chá»...</div>
+            <div id="insightsLoading" style="display:none; margin-top: 20px; font-size:13px; color:var(--warning);">⏳ Đang bốc dữ liệu từ Google... Vui lòng chờ...</div>
         </div>
     </div>
 </div>
@@ -624,17 +624,17 @@
 <script>
     async function importFromSheet(targetTextareaId) {
         if (!activeAccountEmails || activeAccountEmails.length === 0) {
-            return alert('Vui lÃ²ng qua BÆ°á»›c 1 Ä‘á»ƒ thÃªm hoáº·c chá»n TÃ i khoáº£n Google trÆ°á»›c! Tool cáº§n quyá»n Ä‘á»ƒ Ä‘á»c Sheet.');
+            return alert('Vui lòng qua Bước 1 để thêm hoặc chọn Tài khoản Google trước! Tool cần quyền để đọc Sheet.');
         }
         
         let activeAcc = gscAccounts.find(a => a.email === activeAccountEmails[0]);
         if (!activeAcc || !activeAcc.token || Date.now() > activeAcc.expiresAt) {
-            return alert('TÃ i khoáº£n Ä‘Ã£ háº¿t phiÃªn. Vui lÃ²ng sang BÆ°á»›c 1 báº¥m Refresh (ðŸ”„).');
+            return alert('Tài khoản đã hết phiên. Vui lòng sang Bước 1 bấm Refresh (🔄).');
         }
 
         let sheetUrl = localStorage.getItem('global_sheet_url');
         if (!sheetUrl) {
-            sheetUrl = prompt('Vui lÃ²ng dÃ¡n Link Google Sheet vÃ o Ä‘Ã¢y:\n(LÆ°u Ã½: Báº¡n cÃ³ thá»ƒ lÆ°u link nÃ y á»Ÿ pháº§n Cáº¥u hÃ¬nh Chung phÃ­a trÃªn)');
+            sheetUrl = prompt('Vui lòng dán Link Google Sheet vào đây:\n(Lưu ý: Bạn có thể lưu link này ở phần Cấu hình Chung phía trên)');
             if (!sheetUrl) return;
         }
 
@@ -644,132 +644,132 @@
             if (match && match[1]) sheetId = match[1];
             else throw new Error('Invalid URL');
         } catch(e) {
-            return alert('Link Google Sheet khÃ´ng há»£p lá»‡! Vui lÃ²ng kiá»ƒm tra láº¡i Link á»Ÿ pháº§n Cáº¥u hÃ¬nh Chung.');
+            return alert('Link Google Sheet không hợp lệ! Vui lòng kiểm tra lại Link ở phần Cấu hình Chung.');
         }
 
-        const range = prompt('Nháº­p vÃ¹ng dá»¯ liá»‡u cáº§n láº¥y (Máº·c Ä‘á»‹nh: A2:E100):\nVÃ­ dá»¥: Láº¥y 1 cá»™t thÃ¬ nháº­p A2:A100. Láº¥y nhiá»u cá»™t (Gá»‘c, ÄÃ­ch, User, Pass) thÃ¬ nháº­p A2:E100', 'A2:A100');
+        const range = prompt('Nhập vùng dữ liệu cần lấy (Mặc định: A2:E100):\nVí dụ: Lấy 1 cột thì nhập A2:A100. Lấy nhiều cột (Gốc, Đích, User, Pass) thì nhập A2:E100', 'A2:A100');
         if (!range) return;
 
         try {
-            document.getElementById(targetTextareaId).value = 'Äang táº£i dá»¯ liá»‡u tá»« Google Sheet...';
+            document.getElementById(targetTextareaId).value = 'Đang tải dữ liệu từ Google Sheet...';
             const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`, {
                 headers: { 'Authorization': 'Bearer ' + activeAcc.token }
             });
             
             if (!res.ok) {
-                if(res.status === 403) throw new Error('Lá»—i 403: KhÃ´ng cÃ³ quyá»n truy cáº­p. Báº¡n Ä‘Ã£ share Sheet nÃ y cho email ' + activeAcc.email + ' chÆ°a? Hoáº·c hÃ£y má»Ÿ quyá»n "Anyone with the link".');
-                throw new Error('Lá»—i HTTP: ' + res.status);
+                if(res.status === 403) throw new Error('Lỗi 403: Không có quyền truy cập. Bạn đã share Sheet này cho email ' + activeAcc.email + ' chưa? Hoặc hãy mở quyền "Anyone with the link".');
+                throw new Error('Lỗi HTTP: ' + res.status);
             }
             
             const data = await res.json();
             if (!data.values || data.values.length === 0) {
                 document.getElementById(targetTextareaId).value = '';
-                return alert('Google Sheet rá»—ng hoáº·c vÃ¹ng dá»¯ liá»‡u khÃ´ng cÃ³ gÃ¬!');
+                return alert('Google Sheet rỗng hoặc vùng dữ liệu không có gì!');
             }
 
             let resultText = '';
             data.values.forEach(row => {
-                // Lá»c cÃ¡c Ã´ trá»‘ng vÃ  ná»‘i láº¡i báº±ng dáº¥u cÃ¡ch (Ä‘á»ƒ phÃ¹ há»£p vá»›i format web-gá»‘c web-Ä‘Ã­ch admin user pass)
+                // Lọc các ô trống và nối lại bằng dấu cách (để phù hợp với format web-gốc web-đích admin user pass)
                 const line = row.filter(cell => cell.trim() !== '').join(' ');
                 if(line) resultText += line + '\n';
             });
 
             document.getElementById(targetTextareaId).value = resultText.trim();
             
-            // Cáº­p nháº­t sá»‘ lÆ°á»£ng tá»•ng ngay láº­p tá»©c náº¿u lÃ  Tab Tá»•ng Quan
+            // Cập nhật số lượng tổng ngay lập tức nếu là Tab Tổng Quan
             if (targetTextareaId === 'overviewUrlInput') {
                 const lines = resultText.trim().split('\n').filter(l => l.trim());
                 document.getElementById('statTotal').innerText = lines.length;
-                document.getElementById('overviewBody').innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 40px; color:var(--success)">âœ… ÄÃ£ náº¡p ${lines.length} website! Má»i sáº¿p báº¥m nÃºt "QuÃ©t ToÃ n Bá»™ Há»‡ Thá»‘ng" Ä‘á»ƒ báº¯t Ä‘áº§u.</td></tr>`;
+                document.getElementById('overviewBody').innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 40px; color:var(--success)">✅ Đã nạp ${lines.length} website! Mời sếp bấm nút "Quét Toàn Bộ Hệ Thống" để bắt đầu.</td></tr>`;
             }
 
-            alert('âœ… ÄÃ£ náº¡p thÃ nh cÃ´ng ' + data.values.length + ' dÃ²ng dá»¯ liá»‡u tá»« Google Sheet!');
+            alert('✅ Đã nạp thành công ' + data.values.length + ' dòng dữ liệu từ Google Sheet!');
             
         } catch(e) {
             document.getElementById(targetTextareaId).value = '';
-            alert('âŒ Lá»—i khi Ä‘á»c Sheet:\n' + e.message);
+            alert('❌ Lỗi khi đọc Sheet:\n' + e.message);
         }
     }
 </script>
 <script>
     const HELP_DATA = {
         'telegram': {
-            icon: 'ðŸ“¬', title: 'Cáº¥u hÃ¬nh Telegram Bot',
-            desc: 'Káº¿t ná»‘i bot Telegram Ä‘á»ƒ tool tá»± Ä‘á»™ng gá»­i bÃ¡o cÃ¡o sau má»—i láº§n cháº¡y (Check 301, Outbound Audit, Check Bot...).',
+            icon: '📬', title: 'Cấu hình Telegram Bot',
+            desc: 'Kết nối bot Telegram để tool tự động gửi báo cáo sau mỗi lần chạy (Check 301, Outbound Audit, Check Bot...).',
             steps: [
-                'Táº¡o bot: nháº¯n <b>@BotFather</b> â†’ gÃµ <code>/newbot</code> â†’ Ä‘áº·t tÃªn â†’ sao chÃ©p <b>Token</b>.',
-                'Láº¥y Chat ID: nháº¯n <b>@userinfobot</b>, nÃ³ tráº£ vá» dÃ£y sá»‘ ID cá»§a sáº¿p.',
-                'DÃ¡n <b>Bot Token</b> vÃ  <b>Chat ID</b> vÃ o 2 Ã´ rá»“i báº¥m <b>ðŸ”” Test</b> Ä‘á»ƒ kiá»ƒm tra.',
-                'Náº¿u Telegram nháº­n Ä‘Æ°á»£c tin nháº¯n test lÃ  xong â€” tool sáº½ tá»± bÃ¡o cÃ¡o sau má»—i láº§n quÃ©t.'
+                'Tạo bot: nhắn <b>@BotFather</b> → gõ <code>/newbot</code> → đặt tên → sao chép <b>Token</b>.',
+                'Lấy Chat ID: nhắn <b>@userinfobot</b>, nó trả về dãy số ID của sếp.',
+                'Dán <b>Bot Token</b> và <b>Chat ID</b> vào 2 ô rồi bấm <b>🔔 Test</b> để kiểm tra.',
+                'Nếu Telegram nhận được tin nhắn test là xong — tool sẽ tự báo cáo sau mỗi lần quét.'
             ],
-            tip: 'ðŸ’¡ Cáº¥u hÃ¬nh Ä‘Æ°á»£c Ä‘á»“ng bá»™ lÃªn cloud, nÃªn nhiá»u mÃ¡y/ngÆ°á»i dÃ¹ng chung tool Ä‘á»u nháº­n bÃ¡o cÃ¡o cÃ¹ng lÃºc.'
+            tip: '💡 Cấu hình được đồng bộ lên cloud, nên nhiều máy/người dùng chung tool đều nhận báo cáo cùng lúc.'
         },
                 'gsc-insights': {
-            icon: 'ðŸ“ˆ', title: 'PhÃ¢n tÃ­ch Chá»‰ sá»‘ GSC',
-            desc: 'Tá»± Ä‘á»™ng quÃ©t Clicks, Impressions, Position cá»§a toÃ n bá»™ website vÃ  tÃ­nh toÃ¡n tá»· lá»‡ tÄƒng trÆ°á»Ÿng.',
+            icon: '📈', title: 'Phân tích Chỉ số GSC',
+            desc: 'Tự động quét Clicks, Impressions, Position của toàn bộ website và tính toán tỷ lệ tăng trưởng.',
             steps: [
-                'Chá»n má»‘c thá»i gian: <b>NgÃ y</b> (hÃ´m qua vs hÃ´m kia), <b>Tuáº§n</b> (7 ngÃ y qua vs 7 ngÃ y trÆ°á»›c), <b>ThÃ¡ng</b> (30 ngÃ y).',
-                'Báº¥m <b>ðŸš€ QuÃ©t ToÃ n Bá»™ Website</b>.',
-                'Tool tá»± Ä‘á»™ng láº¥y danh sÃ¡ch web tá»« Tab 1, sau Ä‘Ã³ táº£i dá»¯ liá»‡u GSC vá» so sÃ¡nh.',
-                'Quan sÃ¡t mÅ©i tÃªn Xanh/Äá» Ä‘á»ƒ biáº¿t ngay web nÃ o Ä‘ang tÄƒng hay tá»¥t dá»‘c.'
+                'Chọn mốc thời gian: <b>Ngày</b> (hôm qua vs hôm kia), <b>Tuần</b> (7 ngày qua vs 7 ngày trước), <b>Tháng</b> (30 ngày).',
+                'Bấm <b>🚀 Quét Toàn Bộ Website</b>.',
+                'Tool tự động lấy danh sách web từ Tab 1, sau đó tải dữ liệu GSC về so sánh.',
+                'Quan sát mũi tên Xanh/Đỏ để biết ngay web nào đang tăng hay tụt dốc.'
             ],
-            tip: 'ðŸ’¡ Dá»¯ liá»‡u GSC luÃ´n trá»… khoáº£ng 3 ngÃ y. Tool Ä‘Ã£ tá»± Ä‘á»™ng lÃ¹i 3 ngÃ y Ä‘á»ƒ lÃ m má»‘c thá»i gian láº¥y dá»¯ liá»‡u.'
+            tip: '💡 Dữ liệu GSC luôn trễ khoảng 3 ngày. Tool đã tự động lùi 3 ngày để làm mốc thời gian lấy dữ liệu.'
         },
         'gsc-account': {
-            icon: 'ðŸ‘¤', title: 'BÆ°á»›c 1 â€“ Quáº£n lÃ½ TÃ i khoáº£n GSC',
-            desc: 'ThÃªm vÃ  quáº£n lÃ½ nhiá»u tÃ i khoáº£n Google Search Console. Há»— trá»£ Ä‘a tÃ i khoáº£n, add web vÃ o nhiá»u GSC cÃ¹ng lÃºc.',
+            icon: '👤', title: 'Bước 1 – Quản lý Tài khoản GSC',
+            desc: 'Thêm và quản lý nhiều tài khoản Google Search Console. Hỗ trợ đa tài khoản, add web vào nhiều GSC cùng lúc.',
             steps: [
-                'Báº¥m <b>âž• ThÃªm TÃ i Khoáº£n Google</b> â†’ Ä‘Äƒng nháº­p tÃ i khoáº£n GSC muá»‘n dÃ¹ng.',
-                'Tick checkbox Ä‘á»ƒ <b>chá»n tÃ i khoáº£n</b> sáº½ dÃ¹ng. CÃ³ thá»ƒ chá»n nhiá»u tÃ i khoáº£n.',
-                'Náº¿u badge Ä‘á» <i>Háº¿t phiÃªn</i> â†’ báº¥m <b>ðŸ”„ Refresh</b> Ä‘á»ƒ láº¥y láº¡i token (khÃ´ng cáº§n nháº­p pass).',
-                'Báº¥m <b>âŒ XÃ³a</b> Ä‘á»ƒ gá»¡ tÃ i khoáº£n khá»i danh sÃ¡ch.'
+                'Bấm <b>➕ Thêm Tài Khoản Google</b> → đăng nhập tài khoản GSC muốn dùng.',
+                'Tick checkbox để <b>chọn tài khoản</b> sẽ dùng. Có thể chọn nhiều tài khoản.',
+                'Nếu badge đỏ <i>Hết phiên</i> → bấm <b>🔄 Refresh</b> để lấy lại token (không cần nhập pass).',
+                'Bấm <b>❌ Xóa</b> để gỡ tài khoản khỏi danh sách.'
             ],
-            tip: 'ðŸ’¡ PhiÃªn Ä‘Äƒng nháº­p cÃ³ hiá»‡u lá»±c ~58 phÃºt. Tool khÃ´ng lÆ°u máº­t kháº©u â€” chá»‰ lÆ°u token táº¡m trong bá»™ nhá»› trÃ¬nh duyá»‡t.'
+            tip: '💡 Phiên đăng nhập có hiệu lực ~58 phút. Tool không lưu mật khẩu — chỉ lưu token tạm trong bộ nhớ trình duyệt.'
         },
         'gsc-sitemap': {
-            icon: 'ðŸ—ºï¸', title: 'BÆ°á»›c 2 â€“ Add Web & Náº¡p Sitemap',
-            desc: 'Tá»± Ä‘á»™ng add hÃ ng loáº¡t domain vÃ o GSC, láº¥y mÃ£ xÃ¡c minh HTML Meta Tag vÃ  ná»™p sitemap â€” táº¥t cáº£ chá»‰ 1 click.',
+            icon: '🗺️', title: 'Bước 2 – Add Web & Nạp Sitemap',
+            desc: 'Tự động add hàng loạt domain vào GSC, lấy mã xác minh HTML Meta Tag và nộp sitemap — tất cả chỉ 1 click.',
             steps: [
-                'Nháº­p danh sÃ¡ch domain vÃ o textarea (má»—i dÃ²ng 1 domain, cÃ³ hoáº·c khÃ´ng cÃ³ https).',
-                'Äiá»n tÃªn cÃ¡c file sitemap cÃ¡ch nhau báº±ng dáº¥u pháº©y vÃ o Ã´ <b>Sitemap Names</b>.',
-                'Äáº£m báº£o Ä‘Ã£ chá»n tÃ i khoáº£n (BÆ°á»›c 1), rá»“i báº¥m <b>ðŸš€ Báº¯t Ä‘áº§u Add & Láº¥y MÃ£</b>.',
-                'Cá»™t <b>MÃ£ HTML</b>: copy meta tag dÃ¡n vÃ o &lt;head&gt; website. Cá»™t <b>XÃ¡c minh</b>: báº¥m Ä‘á»ƒ verify vá»›i Google.',
-                'Báº¥m <b>Náº¡p Sitemap</b> báº¥t ká»³ lÃºc nÃ o Ä‘á»ƒ ná»™p sitemap cho táº¥t cáº£ web trong báº£ng.'
+                'Nhập danh sách domain vào textarea (mỗi dòng 1 domain, có hoặc không có https).',
+                'Điền tên các file sitemap cách nhau bằng dấu phẩy vào ô <b>Sitemap Names</b>.',
+                'Đảm bảo đã chọn tài khoản (Bước 1), rồi bấm <b>🚀 Bắt đầu Add & Lấy Mã</b>.',
+                'Cột <b>Mã HTML</b>: copy meta tag dán vào &lt;head&gt; website. Cột <b>Xác minh</b>: bấm để verify với Google.',
+                'Bấm <b>Nạp Sitemap</b> bất kỳ lúc nào để nộp sitemap cho tất cả web trong bảng.'
             ],
-            tip: 'ðŸ’¡ Náº¿u domain Ä‘Ã£ cÃ³ trong GSC vá»›i quyá»n Owner, tool bá» qua bÆ°á»›c add vÃ  chuyá»ƒn tháº³ng sang ná»™p sitemap.'
+            tip: '💡 Nếu domain đã có trong GSC với quyền Owner, tool bỏ qua bước add và chuyển thẳng sang nộp sitemap.'
         },
         'check301': {
-            icon: 'ðŸ”', title: 'Check Website & 301 Status',
-            desc: 'Kiá»ƒm tra hÃ ng loáº¡t: tráº¡ng thÃ¡i sá»‘ng/cháº¿t, 301 redirect Ä‘Ãºng Ä‘Ã­ch chÆ°a, admin cÃ²n hoáº¡t Ä‘á»™ng khÃ´ng, Ä‘Äƒng nháº­p tá»± Ä‘á»™ng.',
+            icon: '🔍', title: 'Check Website & 301 Status',
+            desc: 'Kiểm tra hàng loạt: trạng thái sống/chết, 301 redirect đúng đích chưa, admin còn hoạt động không, đăng nhập tự động.',
             steps: [
-                '<b>QuÃ©t Ä‘áº§y Ä‘á»§:</b> Nháº­p <code>web-gá»‘c web-Ä‘Ã­ch admin-path user pass</code> (má»—i dÃ²ng 1 web). Báº¥m <b>ðŸ” QuÃ©t Tráº¡ng ThÃ¡i (Full)</b>.',
-                '<b>Chá»‰ check 301:</b> DÃ¡n list web gá»‘c (1 dÃ²ng 1 URL), báº¥m <b>ðŸ”„ Chá»‰ Check 301</b> Ä‘á»ƒ xuáº¥t URL Ä‘Ã­ch tÆ°Æ¡ng á»©ng.',
-                'Cá»™t <b>So khá»›p 301</b>: âœ… KHHP = redirect Ä‘Ãºng Ä‘Ã­ch. ðŸš¨ LHCH = redirect sai Ä‘Ã­ch.',
-                'Cá»™t <b>Login</b>: CÃ³ user/pass â†’ báº¥m ðŸ”‘ Login Ä‘á»ƒ má»Ÿ wp-admin tá»± Ä‘á»™ng trong tab má»›i.'
+                '<b>Quét đầy đủ:</b> Nhập <code>web-gốc web-đích admin-path user pass</code> (mỗi dòng 1 web). Bấm <b>🔍 Quét Trạng Thái (Full)</b>.',
+                '<b>Chỉ check 301:</b> Dán list web gốc (1 dòng 1 URL), bấm <b>🔄 Chỉ Check 301</b> để xuất URL đích tương ứng.',
+                'Cột <b>So khớp 301</b>: ✅ KHHP = redirect đúng đích. 🚨 LHCH = redirect sai đích.',
+                'Cột <b>Login</b>: Có user/pass → bấm 🔑 Login để mở wp-admin tự động trong tab mới.'
             ],
-            tip: 'ðŸ’¡ Tool dÃ¹ng proxy cÃ´ng khai (codetabs, allorigins). Web cÃ³ Cloudflare báº£o vá»‡ cÃ³ thá»ƒ tráº£ káº¿t quáº£ khÃ´ng chÃ­nh xÃ¡c.'
+            tip: '💡 Tool dùng proxy công khai (codetabs, allorigins). Web có Cloudflare bảo vệ có thể trả kết quả không chính xác.'
         },
         'outbound': {
-            icon: 'ðŸ”—', title: 'Outbound Link Auditor',
-            desc: 'QuÃ©t mÃ£ nguá»“n trang web, tÃ¬m vÃ  kiá»ƒm tra táº¥t cáº£ link trá» ra ngoÃ i. PhÃ¡t hiá»‡n affiliate cloaking qua Ä‘Æ°á»ng dáº«n /mlink/.',
+            icon: '🔗', title: 'Outbound Link Auditor',
+            desc: 'Quét mã nguồn trang web, tìm và kiểm tra tất cả link trỏ ra ngoài. Phát hiện affiliate cloaking qua đường dẫn /mlink/.',
             steps: [
-                'Nháº­p danh sÃ¡ch URL cáº§n quÃ©t (má»—i dÃ²ng 1 URL).',
-                'Báº¥m <b>ðŸš€ QuÃ©t Táº¥t Cáº£ Outbound</b> Ä‘á»ƒ tÃ¬m toÃ n bá»™ link ngoÃ i (tháº» a, onclick, data-href, JS...).',
-                'Báº¥m <b>ðŸ”— Chá»‰ Check /mlink/ Cloaking</b> Ä‘á»ƒ chá»‰ kiá»ƒm tra link affiliate áº©n qua /mlink/.',
-                'Káº¿t quáº£ hiá»‡n link Ä‘Ã­ch thá»±c sau redirect (cá»™t RDR), âœ… Sá»NG / âŒ CHáº¾T, vÃ  HTTP code.'
+                'Nhập danh sách URL cần quét (mỗi dòng 1 URL).',
+                'Bấm <b>🚀 Quét Tất Cả Outbound</b> để tìm toàn bộ link ngoài (thẻ a, onclick, data-href, JS...).',
+                'Bấm <b>🔗 Chỉ Check /mlink/ Cloaking</b> để chỉ kiểm tra link affiliate ẩn qua /mlink/.',
+                'Kết quả hiện link đích thực sau redirect (cột RDR), ✅ SỐNG / ❌ CHẾT, và HTTP code.'
             ],
-            tip: 'ðŸ’¡ Tool quÃ©t 5 nguá»“n: tháº» &lt;a&gt;, onclick, data-href, ná»™i dung &lt;script&gt;, &lt;noscript&gt;. Ráº¥t há»¯u Ã­ch Ä‘á»ƒ audit PBN cÃ³ link cloaking.'
+            tip: '💡 Tool quét 5 nguồn: thẻ &lt;a&gt;, onclick, data-href, nội dung &lt;script&gt;, &lt;noscript&gt;. Rất hữu ích để audit PBN có link cloaking.'
         },
         'checkbot': {
-            icon: 'ðŸ¤–', title: 'Check Tráº¡ng ThÃ¡i Má»Ÿ Bot (Index)',
-            desc: 'Kiá»ƒm tra nhanh Googlebot cÃ³ Ä‘Æ°á»£c phÃ©p thu tháº­p dá»¯ liá»‡u khÃ´ng, hay bá»‹ cháº·n bá»Ÿi robots.txt hoáº·c meta noindex.',
+            icon: '🤖', title: 'Check Trạng Thái Mở Bot (Index)',
+            desc: 'Kiểm tra nhanh Googlebot có được phép thu thập dữ liệu không, hay bị chặn bởi robots.txt hoặc meta noindex.',
             steps: [
-                'Nháº­p danh sÃ¡ch website vÃ o textarea (má»—i dÃ²ng 1 URL).',
-                'Báº¥m <b>ðŸ¤– Báº¯t Ä‘áº§u Check Má»Ÿ Bot</b>.',
-                '<b>ðŸŸ¢ Má»ž BOT:</b> robots.txt khÃ´ng cháº·n + khÃ´ng cÃ³ meta noindex â†’ Googlebot vÃ o Ä‘Æ°á»£c.',
-                '<b>ðŸ”´ ÄÃ“NG BOT:</b> CÃ³ <code>Disallow: /</code> trong robots.txt hoáº·c <code>meta noindex</code> â†’ Googlebot bá»‹ cháº·n.'
+                'Nhập danh sách website vào textarea (mỗi dòng 1 URL).',
+                'Bấm <b>🤖 Bắt đầu Check Mở Bot</b>.',
+                '<b>🟢 MỞ BOT:</b> robots.txt không chặn + không có meta noindex → Googlebot vào được.',
+                '<b>🔴 ĐÓNG BOT:</b> Có <code>Disallow: /</code> trong robots.txt hoặc <code>meta noindex</code> → Googlebot bị chặn.'
             ],
-            tip: 'ðŸ’¡ Tool kiá»ƒm tra 2 lá»›p: (1) robots.txt cÃ³ Disallow: / khÃ´ng, (2) trang chá»§ cÃ³ meta robots=noindex khÃ´ng.'
+            tip: '💡 Tool kiểm tra 2 lớp: (1) robots.txt có Disallow: / không, (2) trang chủ có meta robots=noindex không.'
         }
     };
 
@@ -807,85 +807,92 @@
     }
 
     async function vpsProxyRaw(url, signal) {
-        const vps = getVpsProxyUrl(url, true);
-        const proxies = vps ? [vps] : [];
-        proxies.push(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
-        
-        let lastErr;
-        for (let p of proxies) {
+        const ip = document.getElementById('vpsIp')?.value.trim();
+        if (ip) {
             try {
-                const res = await fetch(p, { signal });
+                const ctrl2 = new AbortController();
+                const tid = setTimeout(() => ctrl2.abort(), 12000);
+                const res = await fetch(`http://${ip}:3000/proxy?url=${encodeURIComponent(url)}&raw=true`, { signal: ctrl2.signal });
+                clearTimeout(tid);
                 if (res.ok) return await res.text();
-            } catch (e) { lastErr = e; }
+            } catch(e) { /* fallback */ }
         }
-        throw lastErr;
+        // Fallback: codetabs
+        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, { signal });
+        if (res.ok) return await res.text();
+        throw new Error('Proxy failed');
     }
 
     async function vpsProxyJson(url, signal) {
-        const vps = getVpsProxyUrl(url, false);
-        const proxies = vps ? [vps] : [];
-        proxies.push(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-        
-        let lastErr;
-        for (let p of proxies) {
+        const ip = document.getElementById('vpsIp')?.value.trim();
+        if (ip) {
             try {
-                const res = await fetch(p, { signal });
+                const ctrl2 = new AbortController();
+                const tid = setTimeout(() => ctrl2.abort(), 12000);
+                const res = await fetch(`http://${ip}:3000/proxy?url=${encodeURIComponent(url)}`, { signal: ctrl2.signal });
+                clearTimeout(tid);
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.status) return data;
                 }
-            } catch (e) { lastErr = e; }
+            } catch(e) { /* fallback */ }
         }
-        throw lastErr;
+        // Fallback: allorigins
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { signal });
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.status) return data;
+        }
+        throw new Error('Proxy failed');
+    }
+
+    async function callVps(ip, path) {
+        // Gọi thẳng vào VPS - VPS đã có CORS headers nên không cần trung gian
+        const res = await fetch(`http://${ip}:3000${path}`);
+        return res.json();
     }
 
     // --- TELEGRAM LOGIC ---
     const TELE_JSON_URL = "https://api.restful-api.dev/objects/ff8081819d82fab6019dd7f81ef5626c";
     
-        async function callVps(ip, path) {
-            // Gá»i tháº³ng vÃ o VPS - VPS Ä‘Ã£ cÃ³ CORS headers nÃªn khÃ´ng cáº§n trung gian
-            const res = await fetch(`http://${ip}:3000${path}`);
-            return res.json();
-        }
-
         async function syncCredentialsToVps() {
             const ip = document.getElementById('vpsIp').value.trim();
             const jsonContent = document.getElementById('vpsGoogleJson').value.trim();
             const statusEl = document.getElementById('vpsStatus');
 
-            if (!ip || !jsonContent) { alert('Vui lÃ²ng nháº­p IP vÃ  dÃ¡n JSON!'); return; }
+            if (!ip || !jsonContent) { alert('Vui lòng nhập IP và dán JSON!'); return; }
 
-            statusEl.innerHTML = 'ðŸŸ¡ Äang gá»­i chÃ¬a khÃ³a lÃªn VPS...';
+            statusEl.innerHTML = '🟡 Đang gửi chìa khóa lên VPS...';
             try {
                 const data = await callVps(ip, `/update-credentials?jsonContent=${encodeURIComponent(jsonContent)}`);
                 if (data.success) {
-                    statusEl.innerHTML = '<span style="color:var(--success)">âœ… ' + data.message + '</span>';
-                    alert('ÄÃ£ lÆ°u chÃ¬a khÃ³a thÃ nh cÃ´ng!');
+                    statusEl.innerHTML = '<span style="color:var(--success)">✅ ' + data.message + '</span>';
+                    alert('Đã lưu chìa khóa thành công!');
                 } else {
-                    statusEl.innerHTML = '<span style="color:var(--danger)">âŒ ' + data.message + '</span>';
+                    statusEl.innerHTML = '<span style="color:var(--danger)">❌ ' + data.message + '</span>';
                 }
             } catch (error) {
-                statusEl.innerHTML = '<span style="color:var(--danger)">âŒ Lá»—i gá»­i chÃ¬a khÃ³a.</span>';
+                statusEl.innerHTML = '<span style="color:var(--danger)">❌ Lỗi gửi chìa khóa.</span>';
             }
         }
 
         async function upgradeAgent() {
             const ip = document.getElementById('vpsIp').value.trim();
             const statusEl = document.getElementById('vpsStatus');
-            if (!ip) { alert('Vui lÃ²ng nháº­p IP VPS!'); return; }
+            if (!ip) { alert('Vui lòng nhập IP VPS!'); return; }
 
-            if (!confirm('Sáº¿p cÃ³ cháº¯c muá»‘n nÃ¢ng cáº¥p Agent tá»« xa khÃ´ng?')) return;
+            if (!confirm('Sếp có chắc muốn nâng cấp Agent từ xa không?')) return;
 
-            statusEl.innerHTML = 'ðŸŸ¡ Äang gá»­i lá»‡nh nÃ¢ng cáº¥p tá»›i VPS...';
+            statusEl.innerHTML = '🟡 Đang gửi lệnh nâng cấp tới VPS...';
             try {
                 const data = await callVps(ip, '/update-agent');
                 if (data.success) {
-                    statusEl.innerHTML = '<span style="color:var(--success)">âœ… ' + data.message + '</span>';
+                    statusEl.innerHTML = '<span style="color:var(--success)">✅ ' + data.message + '</span>';
                 } else {
-                    statusEl.innerHTML = '<span style="color:var(--warning)">âš ï¸ ' + (data.message || 'KhÃ´ng rÃµ tráº¡ng thÃ¡i') + '</span>';
+                    statusEl.innerHTML = '<span style="color:var(--warning)">⚠️ ' + (data.message || 'Không rõ trạng thái') + '</span>';
                 }
             } catch (error) {
-                statusEl.innerHTML = '<span style="color:var(--danger)">âŒ Lá»—i: VPS chÆ°a cháº¡y hoáº·c sai IP.</span>';
+                statusEl.innerHTML = '<span style="color:var(--danger)">❌ Lỗi: VPS chưa chạy hoặc sai IP.</span>';
             }
         }
 
@@ -897,26 +904,26 @@
             const statusEl = document.getElementById('vpsStatus');
             const btn = document.getElementById('syncVpsBtn');
 
-            if (!ip) { alert('Vui lÃ²ng nháº­p IP VPS!'); return; }
-            if (!token || !chatId || !sheetUrl) { alert('Vui lÃ²ng Ä‘iá»n Ä‘á»§ Token, Chat ID vÃ  Sheet URL trÆ°á»›c!'); return; }
+            if (!ip) { alert('Vui lòng nhập IP VPS!'); return; }
+            if (!token || !chatId || !sheetUrl) { alert('Vui lòng điền đủ Token, Chat ID và Sheet URL trước!'); return; }
 
             btn.disabled = true;
-            btn.innerText = 'â³ Äang Ä‘á»“ng bá»™...';
-            statusEl.innerHTML = 'ðŸŸ¡ Äang káº¿t ná»‘i tháº³ng tá»›i VPS...';
+            btn.innerText = '⏳ Đang đồng bộ...';
+            statusEl.innerHTML = '🟡 Đang kết nối tới VPS...';
 
             try {
                 const data = await callVps(ip, `/update-config?telegramToken=${encodeURIComponent(token)}&chatId=${encodeURIComponent(chatId)}&sheetUrl=${encodeURIComponent(sheetUrl)}`);
                 if (data.success) {
-                    statusEl.innerHTML = '<span style="color:var(--success)">âœ… Äá»“ng bá»™ thÃ nh cÃ´ng! Agent Ä‘ang khá»Ÿi Ä‘á»™ng láº¡i...</span>';
+                    statusEl.innerHTML = '<span style="color:var(--success)">✅ Đồng bộ thành công! Agent đang khởi động lại...</span>';
                 } else {
-                    statusEl.innerHTML = '<span style="color:var(--danger)">âŒ Tháº¥t báº¡i: ' + data.message + '</span>';
+                    statusEl.innerHTML = '<span style="color:var(--danger)">❌ Thất bại: ' + data.message + '</span>';
                 }
             } catch (error) {
                 console.error(error);
-                statusEl.innerHTML = '<span style="color:var(--danger)">âŒ Lá»—i káº¿t ná»‘i! HÃ£y Ä‘áº£m báº£o VPS Ä‘Ã£ cháº¡y lá»‡nh update_logic.sh vÃ  má»Ÿ cá»•ng 3000.</span>';
+                statusEl.innerHTML = '<span style="color:var(--danger)">❌ Lỗi kết nối! Hãy đảm bảo VPS đã chạy lệnh update_logic.sh và mở cổng 3000.</span>';
             } finally {
                 btn.disabled = false;
-                btn.innerText = 'ðŸ“¤ Äá»“ng bá»™ cáº¥u hÃ¬nh lÃªn VPS';
+                btn.innerText = '📤 Đồng bộ cấu hình lên VPS';
             }
         }
 
@@ -932,7 +939,7 @@
         localStorage.setItem('global_sheet_url', sheetUrl);
         localStorage.setItem('google_client_id', clientId);
         localStorage.setItem('vps_ip', vpsIp);
-        GOOGLE_CLIENT_ID = clientId; // Cáº­p nháº­t biáº¿n toÃ n cá»¥c ngay láº­p tá»©c
+        GOOGLE_CLIENT_ID = clientId; // Cập nhật biến toàn cục ngay lập tức
         
         try {
             const emails = typeof gscAccounts !== 'undefined' ? gscAccounts.map(a => a.email) : [];
@@ -941,7 +948,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ data: { tele_token: token, tele_chat_id: chatId, global_sheet_url: sheetUrl, google_client_id: clientId, gsc_emails: emails } })
             });
-        } catch(e) { console.error("Lá»—i Ä‘á»“ng bá»™ cáº¥u hÃ¬nh (Save)", e); }
+        } catch(e) { console.error("Lỗi đồng bộ cấu hình (Save)", e); }
 
         const st = document.getElementById('teleStatus');
         st.style.display = 'block';
@@ -980,7 +987,7 @@
                     localStorage.setItem('gsc_emails', JSON.stringify(data.gsc_emails));
                 }
             }
-        } catch(e) { console.error("Lá»—i Ä‘á»“ng bá»™ cáº¥u hÃ¬nh (Load)", e); }
+        } catch(e) { console.error("Lỗi đồng bộ cấu hình (Load)", e); }
     }
     async function sendToTelegram(msg) {
         const t = localStorage.getItem('tele_token'), c = localStorage.getItem('tele_chat_id');
@@ -994,9 +1001,9 @@
         } catch(e) { return false; }
     }
     async function testTele() {
-        const ok = await sendToTelegram('<b>ðŸ”” Test thÃ nh cÃ´ng!</b>\nTool GSC Ä‘Ã£ káº¿t ná»‘i Ä‘Æ°á»£c vá»›i Telegram cá»§a sáº¿p.');
-        if(ok) alert("âœ… Bot Ä‘Ã£ gá»­i tin nháº¯n test thÃ nh cÃ´ng! Sáº¿p kiá»ƒm tra Telegram nhÃ©.");
-        else alert("âŒ Lá»—i! Sáº¿p kiá»ƒm tra láº¡i Token hoáº·c Chat ID (pháº£i lÃ  dÃ£y sá»‘) xem Ä‘Ãºng chÆ°a nhÃ©.");
+        const ok = await sendToTelegram('<b>🔔 Test thành công!</b>\nTool GSC đã kết nối được với Telegram của sếp.');
+        if(ok) alert("✅ Bot đã gửi tin nhắn test thành công! Sếp kiểm tra Telegram nhé.");
+        else alert("❌ Lỗi! Sếp kiểm tra lại Token hoặc Chat ID (phải là dãy số) xem đúng chưa nhé.");
     }
     let gscAccounts = []; // { email, token, expiresAt }
     let activeAccountEmails = [];
@@ -1005,7 +1012,7 @@
         const emails = gscAccounts.map(a => a.email);
         localStorage.setItem('gsc_emails', JSON.stringify(emails));
         
-        // Äá»“ng bá»™ lÃªn Cloud
+        // Đồng bộ lên Cloud
         const token = document.getElementById('teleToken').value;
         const chatId = document.getElementById('teleChatId').value;
         fetch(TELE_JSON_URL, {
@@ -1031,7 +1038,7 @@
     function renderAccounts() {
         const list = document.getElementById('accountList');
         if (gscAccounts.length === 0) {
-            list.innerHTML = '<div style="font-size:12px; color:var(--text-muted); font-style:italic;">ChÆ°a cÃ³ tÃ i khoáº£n nÃ o. Vui lÃ²ng thÃªm tÃ i khoáº£n.</div>';
+            list.innerHTML = '<div style="font-size:12px; color:var(--text-muted); font-style:italic;">Chưa có tài khoản nào. Vui lòng thêm tài khoản.</div>';
             document.getElementById('btnStart').disabled = true;
             return;
         }
@@ -1052,11 +1059,11 @@
                     <div style="display:flex; align-items:center; gap:10px;">
                         <input type="checkbox" ${isActive?'checked':''} onchange="toggleAccount('${acc.email}')" style="cursor:pointer; width:16px; height:16px; accent-color:var(--primary);">
                         <span style="font-weight:600; font-size:13px; color:${isActive?'var(--primary)':'var(--text)'};">${acc.email}</span>
-                        ${isExpired ? '<span style="font-size:10px; color:var(--danger); padding:2px 6px; background:rgba(231,76,60,0.1); border-radius:4px; font-weight:600;">Háº¿t phiÃªn</span>' : '<span style="font-size:10px; color:var(--success); padding:2px 6px; background:rgba(46,204,113,0.1); border-radius:4px; font-weight:600;">Äang káº¿t ná»‘i</span>'}
+                        ${isExpired ? '<span style="font-size:10px; color:var(--danger); padding:2px 6px; background:rgba(231,76,60,0.1); border-radius:4px; font-weight:600;">Hết phiên</span>' : '<span style="font-size:10px; color:var(--success); padding:2px 6px; background:rgba(46,204,113,0.1); border-radius:4px; font-weight:600;">Đang kết nối</span>'}
                     </div>
                     <div style="display:flex; gap:6px;">
-                        <button class="btn-mini" onclick="refreshAccount('${acc.email}')" style="background:var(--bg-card); color:var(--text); border:1px solid var(--border);" title="Láº¥y láº¡i quyá»n truy cáº­p (khÃ´ng cáº§n nháº­p láº¡i pass)">ðŸ”„ Refresh</button>
-                        <button class="btn-mini" onclick="removeAccount('${acc.email}')" style="background:var(--danger); color:#fff; border:none;" title="XÃ³a tÃ i khoáº£n nÃ y">âŒ XÃ³a</button>
+                        <button class="btn-mini" onclick="refreshAccount('${acc.email}')" style="background:var(--bg-card); color:var(--text); border:1px solid var(--border);" title="Lấy lại quyền truy cập (không cần nhập lại pass)">🔄 Refresh</button>
+                        <button class="btn-mini" onclick="removeAccount('${acc.email}')" style="background:var(--danger); color:#fff; border:none;" title="Xóa tài khoản này">❌ Xóa</button>
                     </div>
                 </div>
             `;
@@ -1112,7 +1119,7 @@
                             saveAccountsToLocal();
                             renderAccounts();
                         }
-                    } catch(e) { alert("Lá»—i khi láº¥y thÃ´ng tin Email hoáº·c Danh sÃ¡ch website. Vui lÃ²ng thá»­ láº¡i."); }
+                    } catch(e) { alert("Lỗi khi lấy thông tin Email hoặc Danh sách website. Vui lòng thử lại."); }
                 } 
             }
         });
@@ -1130,7 +1137,7 @@
                 acc.sites = [];
             }
             saveAccountsToLocal();
-        } catch(e) { console.error("Lá»—i fetch sites cho " + acc.email, e); }
+        } catch(e) { console.error("Lỗi fetch sites cho " + acc.email, e); }
     }
 
     function refreshAccount(email) {
@@ -1167,11 +1174,11 @@
 
     // --- TAB 1 LOGIC ---
     async function startProcess() {
-        if(activeAccountEmails.length === 0) return alert("Vui lÃ²ng chá»n Ã­t nháº¥t 1 tÃ i khoáº£n GSC!");
+        if(activeAccountEmails.length === 0) return alert("Vui lòng chọn ít nhất 1 tài khoản GSC!");
         const lines = document.getElementById('domainList').value.split('\n').filter(l => l.trim());
         const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';
         
-        document.querySelector('#gscTable thead').innerHTML = `<tr><th width="20%">Website URL</th><th width="20%">TÃ i khoáº£n</th><th width="12%">Tráº¡ng thÃ¡i</th><th width="25%">MÃ£ HTML</th><th width="10%">XÃ¡c minh</th><th width="13%">Sitemaps</th></tr>`;
+        document.querySelector('#gscTable thead').innerHTML = `<tr><th width="20%">Website URL</th><th width="20%">Tài khoản</th><th width="12%">Trạng thái</th><th width="25%">Mã HTML</th><th width="10%">Xác minh</th><th width="13%">Sitemaps</th></tr>`;
         let rowId = 0;
 
         for (let email of activeAccountEmails) {
@@ -1198,7 +1205,7 @@
                 const perm = existingMap.get(url.toLowerCase());
                 try {
                     if (perm) {
-                        document.getElementById(`st_${currentId}`).innerHTML = `<span class="status-badge status-info">âœ… ÄÃ£ cÃ³ (${perm==='siteOwner'?'Owner':'User'})</span>`;
+                        document.getElementById(`st_${currentId}`).innerHTML = `<span class="status-badge status-info">✅ Đã có (${perm==='siteOwner'?'Owner':'User'})</span>`;
                         if (perm==='siteOwner') { 
                             document.getElementById(`mt_${currentId}`).innerText='-'; 
                             document.getElementById(`vr_${currentId}`).innerHTML='<span class="status-badge status-success">Xong</span>'; 
@@ -1208,14 +1215,14 @@
                         else await fetchMeta(url, currentId, token, email);
                     } else {
                         await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
-                        document.getElementById(`st_${currentId}`).innerHTML = '<span class="status-badge status-success">ÄÃ£ Add</span>';
+                        document.getElementById(`st_${currentId}`).innerHTML = '<span class="status-badge status-success">Đã Add</span>';
                         await fetchMeta(url, currentId, token, email);
                     }
-                } catch(e) { document.getElementById(`st_${currentId}`).innerText='Lá»—i'; }
+                } catch(e) { document.getElementById(`st_${currentId}`).innerText='Lỗi'; }
                 await new Promise(r => setTimeout(r, 200));
             }
         }
-        await sendToTelegram(`<b>âœ… HOÃ€N Táº¤T ADD GSC</b>\nÄÃ£ xá»­ lÃ½ <b>${lines.length}</b> website cho <b>${activeAccountEmails.length}</b> tÃ i khoáº£n.`);
+        await sendToTelegram(`<b>✅ HOÀN TẤT ADD GSC</b>\nĐã xử lý <b>${lines.length}</b> website cho <b>${activeAccountEmails.length}</b> tài khoản.`);
     }
 
     async function fetchMeta(url, id, token, email) {
@@ -1226,7 +1233,7 @@
         if (res.ok) {
             const data = await res.json();
             document.getElementById(`mt_${id}`).innerHTML = `<div class="code-box"><span class="code-text">${data.token.replace(/</g,'&lt;')}</span><button class="btn-mini" onclick="navigator.clipboard.writeText('${data.token.replace(/'/g,"\\'")}')">Copy</button></div>`;
-            document.getElementById(`vr_${id}`).innerHTML = `<button class="btn-mini" onclick="verifySite('${url}', ${id}, '${email}')">XÃ¡c minh</button>`;
+            document.getElementById(`vr_${id}`).innerHTML = `<button class="btn-mini" onclick="verifySite('${url}', ${id}, '${email}')">Xác minh</button>`;
         }
     }
 
@@ -1235,7 +1242,7 @@
         if(!acc || !acc.token) return;
         const token = acc.token;
         const vrEl = document.getElementById(`vr_${id}`);
-        vrEl.innerHTML = 'â³...';
+        vrEl.innerHTML = '⏳...';
         try {
             const res = await fetch(`https://www.googleapis.com/siteVerification/v1/webResource?verificationMethod=META`, {
                 method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -1243,23 +1250,23 @@
             });
             if (res.ok) { 
                 await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
-                vrEl.innerHTML = '<span class="status-badge status-success">âœ… OK</span>'; 
-                document.getElementById(`mt_${id}`).innerText = 'XÃ¡c minh xong'; 
+                vrEl.innerHTML = '<span class="status-badge status-success">✅ OK</span>'; 
+                document.getElementById(`mt_${id}`).innerText = 'Xác minh xong'; 
                 
                 const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
                 const cell = vrEl.parentNode.querySelector('.sitemap-cell');
                 if(cell) submitSitemapsForUrl(url, cell, smNames, token);
             } else { 
-                vrEl.innerHTML = `<button class="btn-mini" style="background:var(--danger); color:white; border:none;" onclick="verifySite('${url}', ${id}, '${email}')">âŒ Lá»—i - Thá»­ láº¡i</button>`;
+                vrEl.innerHTML = `<button class="btn-mini" style="background:var(--danger); color:white; border:none;" onclick="verifySite('${url}', ${id}, '${email}')">❌ Lỗi - Thử lại</button>`;
             }
         } catch(e) {
-            vrEl.innerHTML = `<button class="btn-mini" style="background:var(--danger); color:white; border:none;" onclick="verifySite('${url}', ${id}, '${email}')">âŒ Lá»—i - Thá»­ láº¡i</button>`;
+            vrEl.innerHTML = `<button class="btn-mini" style="background:var(--danger); color:white; border:none;" onclick="verifySite('${url}', ${id}, '${email}')">❌ Lỗi - Thử lại</button>`;
         }
     }
 
     async function submitSitemapsForUrl(url, cell, smNames, token) {
         if (!smNames || smNames.length === 0) return;
-        cell.innerHTML = 'â³...';
+        cell.innerHTML = '⏳...';
         try {
             let res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${token}` } });
             
@@ -1269,20 +1276,20 @@
                 res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${token}` } });
             }
 
-            if (!res.ok) throw new Error("ChÆ°a xÃ¡c minh hoáº·c lá»—i API");
+            if (!res.ok) throw new Error("Chưa xác minh hoặc lỗi API");
             const data = await res.json();
             const existed = (data.sitemap || []).map(s=>s.path);
             let html = [];
             for (let name of smNames) {
                 const full = url + name;
-                if (existed.some(p=>p.includes(name))) html.push(`<div style="color:var(--success)">âœ… ${name}</div>`);
+                if (existed.some(p=>p.includes(name))) html.push(`<div style="color:var(--success)">✅ ${name}</div>`);
                 else {
                     const sRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps/${encodeURIComponent(full)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
-                    html.push(sRes.ok? `<div style="color:var(--primary)">ðŸ†• ${name}</div>` : `âŒ ${name}`);
+                    html.push(sRes.ok? `<div style="color:var(--primary)">🆕 ${name}</div>` : `❌ ${name}`);
                 }
             }
             cell.innerHTML = html.join('');
-        } catch(e) { cell.innerText='Lá»—i'; }
+        } catch(e) { cell.innerText='Lỗi'; }
     }
 
     async function checkAndSubmitSitemaps() {
@@ -1304,19 +1311,19 @@
         const buttons = document.querySelectorAll('#resultBody button');
         let count = 0;
         for (let btn of buttons) {
-            if (btn.innerText.includes('Lá»—i - Thá»­ láº¡i')) {
+            if (btn.innerText.includes('Lỗi - Thử lại')) {
                 btn.click();
                 count++;
                 await new Promise(r => setTimeout(r, 300)); 
             }
         }
-        if(count === 0) alert("KhÃ´ng tÃ¬m tháº¥y má»¥c nÃ o bá»‹ lá»—i xÃ¡c minh.");
+        if(count === 0) alert("Không tìm thấy mục nào bị lỗi xác minh.");
     }
 
     // --- TAB 2 LOGIC ---
     async function startCheck() {
         const srcLines = document.getElementById('srcList').value.split('\n').filter(l => l.trim());
-        if (!srcLines.length) return alert('Nháº­p Ã­t nháº¥t 1 URL Web Gá»‘c sáº¿p Æ¡i!');
+        if (!srcLines.length) return alert('Nhập ít nhất 1 URL Web Gốc sếp ơi!');
         const dstLines = document.getElementById('dstList').value.split('\n');
         const checkAdmin = document.getElementById('chkAdmin').checked;
         const tbody = document.getElementById('checkResultBody');
@@ -1348,13 +1355,13 @@
             tr.innerHTML = `
                 <td style="font-size:11px; word-break:break-all; color:var(--text-muted)">${srcShort}</td>
                 <td style="font-size:11px; word-break:break-all;"><a href="${dst}" target="_blank" style="color:var(--primary)">${dstShort}</a></td>
-                <td id="cSt_${i}"><span style="color:var(--warning)">â³...</span></td>
+                <td id="cSt_${i}"><span style="color:var(--warning)">⏳...</span></td>
                 <td id="cCo_${i}">-</td>
                 <td id="cMa_${i}">-</td>
                 <td id="cBr_${i}">-</td>
                 <td id="cAd_${i}">${checkAdmin ? '...' : '-'}</td>
                 <td id="cLo_${i}">-</td>
-                <td><button class="btn-mini" onclick="recheckRow2(${i})">ðŸ”„</button></td>
+                <td><button class="btn-mini" onclick="recheckRow2(${i})">🔄</button></td>
             `;
             tbody.appendChild(tr);
 
@@ -1363,25 +1370,25 @@
         }
     }
 
-    // Chuáº©n hÃ³a hostname: tá»± Ä‘á»™ng convert IDN/Unicode sang Punycode Ä‘á»ƒ so sÃ¡nh Ä‘Ãºng
-    // VÃ­ dá»¥: ãƒ‰ãƒ³ãƒšãƒªå¡¾.jpn.com â†’ xn--gdk8a8b8az033b.jpn.com
+    // Chuẩn hóa hostname: tự động convert IDN/Unicode sang Punycode để so sánh đúng
+    // Ví dụ: ドンペリ塾.jpn.com → xn--gdk8a8b8az033b.jpn.com
     function normalizeHostname(url) {
         try {
             let u = url.trim();
             if (!u.startsWith('http')) u = 'https://' + u;
-            return new URL(u).hostname.toLowerCase(); // browser tá»± Punycode hÃ³a IDN
+            return new URL(u).hostname.toLowerCase(); // browser tự Punycode hóa IDN
         } catch(e) {
             return url.toLowerCase().replace(/^https?:\/\//,'').replace(/[/?#].*/,'');
         }
     }
 
-    // Hiá»ƒn thá»‹ URL: náº¿u lÃ  Punycode thÃ¬ cÅ©ng thÃªm dáº¡ng gá»‘c (decode)
+    // Hiển thị URL: nếu là Punycode thì cũng thêm dạng gốc (decode)
     function displayUrl(url) {
         if (!url) return '';
         try {
             const u = new URL(url.startsWith('http') ? url : 'https://' + url);
             const punyHost = u.hostname;
-            // Decode Punycode label vá» Unicode
+            // Decode Punycode label về Unicode
             const unicodeHost = punyHost.split('.').map(label => {
                 if (!label.startsWith('xn--')) return label;
                 try {
@@ -1394,15 +1401,15 @@
         } catch(e) { return url; }
     }
 
-    // Danh sÃ¡ch path wp-admin thá»­ tá»± Ä‘á»™ng
+    // Danh sách path wp-admin thử tự động
     const WP_ADMIN_PATHS = ['web_auth','kqbd_web_auth','kbd_web_auth','login','login_seo_top1_luon','seo-key-top-1','web_auth_pota','wp_hanaseo','wp-admin','wp_jisooseo'];
 
-    // Láº¥y HTML + HTTP status code + redirect URL thá»±c sá»± qua allorigins
+    // Lấy HTML + HTTP status code + redirect URL thực sự qua allorigins
     async function fetchStatus(url) {
         try {
             const ctrl = new AbortController();
             const tid = setTimeout(() => ctrl.abort(), 9000);
-            const res = { ok: true }; const data = await vpsProxyJson(url, ctrl.signal); if(data.status && data.status.http_code) res.status = data.status.http_code; if(data.status && data.status.url) data.url = data.status.url;
+            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {signal: ctrl.signal});
             clearTimeout(tid);
             if (res.ok) {
                 const data = await res.json();
@@ -1415,7 +1422,7 @@
         try {
             const ctrl = new AbortController();
             const tid = setTimeout(() => ctrl.abort(), 8000);
-            const res = { ok: true }; const html = await vpsProxyRaw(url, ctrl.signal);
+            const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, {signal: ctrl.signal});
             clearTimeout(tid);
             if (res.ok) return { html: await res.text(), code: 200, redirectUrl: '' };
             return { html: '', code: res.status, redirectUrl: '' };
@@ -1423,13 +1430,13 @@
         return { html: null, code: 0, redirectUrl: '' };
     }
 
-    // Tá»± Ä‘á»™ng dÃ² Ä‘Ãºng path wp-admin
+    // Tự động dò đúng path wp-admin
     async function detectWpAdmin(dst) {
         for (let path of WP_ADMIN_PATHS) {
             try {
                 const ctrl = new AbortController();
                 const tid = setTimeout(() => ctrl.abort(), 6000);
-                const text = await vpsProxyRaw(dst + path, ctrl.signal); const res = { ok: !!text };
+                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + path)}`, {signal: ctrl.signal});
                 clearTimeout(tid);
                 if (res.ok) {
                     const h = await res.text();
@@ -1448,42 +1455,42 @@
         const adEl = document.getElementById(`cAd_${i}`);
         const loEl = document.getElementById(`cLo_${i}`);
 
-        stEl.innerHTML = '<span style="color:var(--warning)">â³ Äang quÃ©t...</span>';
+        stEl.innerHTML = '<span style="color:var(--warning)">⏳ Đang quét...</span>';
 
-        // BÆ°á»›c 1: Láº¥y HTML + HTTP status code thá»±c sá»±
+        // Bước 1: Lấy HTML + HTTP status code thực sự
         const { html, code, redirectUrl } = await fetchStatus(src);
 
         if (!html && code === 0) {
-            stEl.innerHTML = '<span class="status-badge status-error">âŒ Timeout</span>';
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Timeout</span>';
             coEl.innerText = 'ERR'; maEl.innerText = '-'; adEl.innerText = '-';
             return;
         }
 
-        // Hiá»ƒn thá»‹ HTTP status
+        // Hiển thị HTTP status
         coEl.innerText = code || '?';
         if (code === 404) {
-            stEl.innerHTML = '<span class="status-badge status-error">ðŸ”´ 404 KhÃ´ng tÃ¬m tháº¥y</span>';
+            stEl.innerHTML = '<span class="status-badge status-error">🔴 404 Không tìm thấy</span>';
             maEl.innerText = '-'; adEl.innerText = '-';
             return;
         } else if (code >= 500) {
-            stEl.innerHTML = `<span class="status-badge status-error">âŒ Lá»—i Server ${code}</span>`;
+            stEl.innerHTML = `<span class="status-badge status-error">❌ Lỗi Server ${code}</span>`;
             maEl.innerText = '-'; adEl.innerText = '-';
             return;
         } else if (code >= 400) {
-            stEl.innerHTML = `<span class="status-badge status-error">âŒ Lá»—i ${code} (Timeout/Tá»« chá»‘i)</span>`;
+            stEl.innerHTML = `<span class="status-badge status-error">❌ Lỗi ${code} (Timeout/Từ chối)</span>`;
             maEl.innerText = '-'; adEl.innerText = '-';
             return;
         } else if (!html || html.length < 50) {
-            stEl.innerHTML = '<span class="status-badge status-error">âŒ KhÃ´ng Ä‘á»c Ä‘Æ°á»£c</span>';
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Không đọc được</span>';
             coEl.innerText = code || 'ERR'; maEl.innerText = '-'; adEl.innerText = '-';
             return;
         } else {
-            stEl.innerHTML = '<span class="status-badge status-success">âœ… Live</span>';
+            stEl.innerHTML = '<span class="status-badge status-success">✅ Live</span>';
         }
 
-        // BÆ°á»›c 2: XÃ¡c Ä‘á»‹nh URL Ä‘Ã­ch sau redirect
-        // Æ¬u tiÃªn: redirectUrl tá»« allorigins (URL thá»±c sau HTTP redirect)
-        // Fallback: Ä‘á»c canonical / og:url / meta-refresh tá»« HTML
+        // Bước 2: Xác định URL đích sau redirect
+        // Ƭu tiên: redirectUrl từ allorigins (URL thực sau HTTP redirect)
+        // Fallback: đọc canonical / og:url / meta-refresh từ HTML
         let finalUrl = '';
         const srcHostNorm = normalizeHostname(src);
         const rdrHostNorm = redirectUrl ? normalizeHostname(redirectUrl) : '';
@@ -1492,10 +1499,10 @@
         const dstHostNorm = normalizeHostname(dst);
 
         if (didRedirect) {
-            // allorigins Ä‘Ã£ follow HTTP redirect â€” dÃ¹ng luÃ´n URL Ä‘Ã­ch
+            // allorigins đã follow HTTP redirect — dùng luôn URL đích
             finalUrl = redirectUrl;
         } else {
-            // KhÃ´ng cÃ³ redirect HTTP â€” Ä‘á»c canonical / og:url / meta-refresh
+            // Không có redirect HTTP — đọc canonical / og:url / meta-refresh
             const doc = new DOMParser().parseFromString(html || '', 'text/html');
             finalUrl = doc.querySelector('link[rel="canonical"]')?.getAttribute('href') ||
                        doc.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
@@ -1505,9 +1512,9 @@
                 if (mR) finalUrl = mR[1].trim().replace(/["']/g, '');
             }
             
-            // Fallback máº¡nh cho proxy codetabs (khÃ´ng tráº£ vá» redirectUrl)
-            // Náº¿u web Ä‘Ã­ch (bá»‹ hack) khÃ´ng cÃ³ tháº» canonical/og:url,
-            // nhÆ°ng proxy tráº£ vá» HTML Cá»¦A ÄÃCH chá»©a Ä‘áº§y domain Ä‘Ã­ch -> KHHP
+            // Fallback mạnh cho proxy codetabs (không trả về redirectUrl)
+            // Nếu web đích (bị hack) không có thẻ canonical/og:url,
+            // nhưng proxy trả về HTML CỦA ĐÍCH chứa đầy domain đích -> KHHP
             if ((!finalUrl || normalizeHostname(finalUrl) === srcHostNorm) && dstHostNorm && html && html.includes(dstHostNorm)) {
                 finalUrl = dst;
             }
@@ -1516,20 +1523,20 @@
         }
 
         const finalHostNorm = normalizeHostname(finalUrl);
-        // So khá»›p sau khi cáº£ hai Ä‘Ã£ Punycode-hÃ³a (há»— trá»£ domain tiáº¿ng Nháº­t/Trung)
+        // So khớp sau khi cả hai đã Punycode-hóa (hỗ trợ domain tiếng Nhật/Trung)
         const isMatch = finalHostNorm === dstHostNorm
                      || finalHostNorm.endsWith('.' + dstHostNorm)
                      || dstHostNorm.endsWith('.' + finalHostNorm);
 
-                // Hiá»ƒn thá»‹ URL Ä‘Ã­ch (kÃ¨m dáº¡ng Unicode náº¿u lÃ  Punycode)
+                // Hiển thị URL đích (kèm dạng Unicode nếu là Punycode)
         const displayFinalUrl = finalUrl !== src ? finalUrl : '';
         maEl.innerHTML = isMatch
-            ? `<span style="color:var(--success)">âœ… KHHP</span><br><span style="font-size:10px; color:var(--text-muted)">${displayUrl(finalUrl)}</span>`
-            : `<span style="color:var(--danger)">ðŸš¨ LHCH</span><br><span style="font-size:10px; color:var(--text-muted); word-break:break-all">${displayUrl(finalUrl)}</span>`;
+            ? `<span style="color:var(--success)">✅ KHHP</span><br><span style="font-size:10px; color:var(--text-muted)">${displayUrl(finalUrl)}</span>`
+            : `<span style="color:var(--danger)">🚨 LHCH</span><br><span style="font-size:10px; color:var(--text-muted); word-break:break-all">${displayUrl(finalUrl)}</span>`;
 
-        // BÆ°á»›c: Check Brand Gá»‘c á»Ÿ Footer
+        // Bước: Check Brand Gốc ở Footer
         if (html) {
-            brEl.innerHTML = '<span style="color:var(--warning); font-size:11px">â³ DÃ²...</span>';
+            brEl.innerHTML = '<span style="color:var(--warning); font-size:11px">⏳ Dò...</span>';
             const doc = new DOMParser().parseFromString(html, 'text/html');
             let footerText = '';
             const footers = doc.querySelectorAll('footer, [class*="footer"], [id*="footer"], [class*="copyright"], [id*="copyright"]');
@@ -1544,53 +1551,52 @@
             const cleanCore = coreBrand.replace(/-/g, '');
             
             if (coreBrand && (footerText.toLowerCase().includes(coreBrand.toLowerCase()) || footerText.toLowerCase().includes(cleanCore.toLowerCase()))) {
-                brEl.innerHTML = `<span style="color:var(--success); font-size:11px; font-weight:bold;">âœ… ÄÃšNG (${coreBrand})</span>`;
+                brEl.innerHTML = `<span style="color:var(--success); font-size:11px; font-weight:bold;">✅ ĐÚNG (${coreBrand})</span>`;
             } else {
-                brEl.innerHTML = `<span style="color:var(--danger); font-size:11px; font-weight:bold;">ðŸš¨ Lá»†CH BRAND</span>`;
+                brEl.innerHTML = `<span style="color:var(--danger); font-size:11px; font-weight:bold;">🚨 LỆCH BRAND</span>`;
             }
         } else {
             brEl.innerText = '-';
         }
 
-        // BÆ°á»›c 3: Check Admin + Auto-detect path WP
-        // Äá»c checkbox TRá»°C TIáº¾P lÃºc nÃ y â€” náº¿u sáº¿p bá» tÃ­ch giá»¯a chá»«ng sáº½ dá»«ng ngay
+        // Bước 3: Check Admin + Auto-detect path WP
+        // Đọc checkbox TRỰC TIẾP lúc này — nếu sếp bỏ tích giữa chừng sẽ dừng ngay
         const shouldCheckAdmin = document.getElementById('chkAdmin').checked;
         if (shouldCheckAdmin) {
-            adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">â³ DÃ² admin...</span>';
+            adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">⏳ Dò admin...</span>';
             let foundPath = null;
             let loginHtml = '';
-            // Thá»­ path do sáº¿p nháº­p trÆ°á»›c
+            // Thử path do sếp nhập trước
             try {
                 const ctrl = new AbortController();
                 const tid = setTimeout(() => ctrl.abort(), 7000);
-                const text = await vpsProxyRaw(dst + adminPath, ctrl.signal);
+                loginHtml = await vpsProxyRaw(dst + adminPath, ctrl.signal);
                 clearTimeout(tid);
-                if (text) {
-                    loginHtml = text;
+                if (loginHtml) {
                     if (loginHtml.includes('wp-login') || loginHtml.includes('user_login') || loginHtml.includes('loginform')) {
                         foundPath = adminPath;
                     }
                 }
             } catch(e) {}
 
-            // Náº¿u path sáº¿p nháº­p sai â†’ tá»± dÃ²
+            // Nếu path sếp nhập sai → tự dò
             if (!foundPath) {
-                adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">ðŸ” Tá»± dÃ² path...</span>';
+                adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">🔍 Tự dò path...</span>';
                 foundPath = await detectWpAdmin(dst);
             }
 
             if (foundPath) {
-                adEl.innerHTML = `<span style="color:var(--success); font-size:12px">âœ… /${foundPath}</span>`;
-                if (user) loEl.innerHTML = `<button class="btn-mini" onclick="autoLogin('${dst}','${foundPath}','${user}','${pass}')">ðŸ”‘ Login</button>`;
+                adEl.innerHTML = `<span style="color:var(--success); font-size:12px">✅ /${foundPath}</span>`;
+                if (user) loEl.innerHTML = `<button class="btn-mini" onclick="autoLogin('${dst}','${foundPath}','${user}','${pass}')">🔑 Login</button>`;
                 else loEl.innerText = '-';
                 
                 if (user && pass) {
-                    loEl.innerHTML += '<br><span style="font-size:10px">â³ Äang test...</span>';
+                    loEl.innerHTML += '<br><span style="font-size:10px">⏳ Đang test...</span>';
                     const loginStatus = await verifyLoginViaVps(dst || src, user, pass);
-                    loEl.innerHTML = loEl.innerHTML.replace('â³ Äang test...', loginStatus);
+                    loEl.innerHTML = loEl.innerHTML.replace('⏳ Đang test...', loginStatus);
                 }
             } else {
-                adEl.innerHTML = '<span style="color:var(--danger); font-size:11px">âŒ KhÃ´ng tÃ¬m tháº¥y</span>';
+                adEl.innerHTML = '<span style="color:var(--danger); font-size:11px">❌ Không tìm thấy</span>';
                 loEl.innerText = '-';
             }
         }
@@ -1606,9 +1612,9 @@
     async function startCheck301Only() {
         const btn = document.getElementById('btnCheck301Only');
         const srcLines = document.getElementById('srcList').value.split('\n').filter(l => l.trim());
-        if (srcLines.length === 0) return alert("Nháº­p Ã­t nháº¥t 1 URL gá»‘c á»Ÿ cá»™t Web Gá»‘c sáº¿p Æ¡i!");
+        if (srcLines.length === 0) return alert("Nhập ít nhất 1 URL gốc ở cột Web Gốc sếp ơi!");
         
-        btn.innerText = "â³ Äang quÃ©t...";
+        btn.innerText = "⏳ Đang quét...";
         btn.disabled = true;
         
         const outputContainer = document.getElementById('check301OutputContainer');
@@ -1626,8 +1632,8 @@
                 const ctrl = new AbortController();
                 const tid = setTimeout(() => ctrl.abort(), 10000);
                 
-                // DÃ¹ng codetabs proxy vÃ¬ nÃ³ á»•n Ä‘á»‹nh hÆ¡n allorigins
-                const res = { ok: true }; const html = await vpsProxyRaw(o, ctrl.signal);
+                // Dùng codetabs proxy vì nó ổn định hơn allorigins
+                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(o)}`, { signal: ctrl.signal });
                 clearTimeout(tid);
                 
                 if (res.ok) {
@@ -1635,13 +1641,13 @@
                     const doc = new DOMParser().parseFromString(html, 'text/html');
                     
                     let finalUrl = '';
-                    // 1. TÃ¬m canonical
+                    // 1. Tìm canonical
                     finalUrl = doc.querySelector('link[rel="canonical"]')?.getAttribute('href') || '';
-                    // 2. TÃ¬m og:url
+                    // 2. Tìm og:url
                     if (!finalUrl) {
                         finalUrl = doc.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
                     }
-                    // 3. TÃ¬m meta refresh
+                    // 3. Tìm meta refresh
                     if (!finalUrl) {
                         const content = doc.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
                         const m = content.match(/url=([^;\s]+)/i);
@@ -1651,28 +1657,28 @@
                     if (finalUrl) {
                         results.push(finalUrl);
                     } else {
-                        // Náº¿u khÃ´ng tÃ¬m tháº¥y tháº» nÃ o, cÃ³ thá»ƒ web khÃ´ng 301 hoáº·c khÃ´ng cÃ³ meta
+                        // Nếu không tìm thấy thẻ nào, có thể web không 301 hoặc không có meta
                         results.push(o); 
                     }
                 } else {
-                    results.push(`[Lá»—i truy cáº­p ${res.status}] ${o}`);
+                    results.push(`[Lỗi truy cập ${res.status}] ${o}`);
                 }
             } catch(e) {
-                results.push(`[Lá»—i Máº¡ng/Timeout] ${o}`);
+                results.push(`[Lỗi Mạng/Timeout] ${o}`);
             }
             
-            outputArea.value = results.join('\n'); // Cáº­p nháº­t realtime
-            await new Promise(r => setTimeout(r, 600)); // Nghá»‰ lÃ¢u hÆ¡n tÃ­ Ä‘á»ƒ trÃ¡nh bá»‹ proxy block
+            outputArea.value = results.join('\n'); // Cập nhật realtime
+            await new Promise(r => setTimeout(r, 600)); // Nghỉ lâu hơn tí để tránh bị proxy block
         }
         
-        // Gá»­i bÃ¡o cÃ¡o Telegram
+        // Gửi báo cáo Telegram
         if (results.length > 0) {
-            let teleMsg = `<b>ðŸ“Š BÃO CÃO CHECK 301</b>\n\n`;
+            let teleMsg = `<b>📊 BÁO CÁO CHECK 301</b>\n\n`;
             results.forEach((r, idx) => { teleMsg += `${idx + 1}. ${r}\n`; });
             await sendToTelegram(teleMsg);
         }
 
-        btn.innerText = "ðŸ”„ Chá»‰ Check 301 (Xuáº¥t List)";
+        btn.innerText = "🔄 Chỉ Check 301 (Xuất List)";
         btn.disabled = false;
     }
 
@@ -1684,29 +1690,28 @@
 
     async function verifyLoginViaVps(url, user, pass) {
         const ip = document.getElementById('vpsIp').value.trim();
-        if (!ip) return '<span style="color:var(--text-muted);font-size:10px;">âš ï¸ Cáº§n IP VPS</span>';
+        if (!ip) return '<span style="color:var(--text-muted);font-size:10px;">⚠️ Cần IP VPS</span>';
         try {
-            const targetUrl = `http://${ip}:3000/check-login?url=${encodeURIComponent(url)}&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`;
-            const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
             const ctrl = new AbortController();
-            setTimeout(() => ctrl.abort(), 10000);
-            const res = await fetch(proxyUrl, { signal: ctrl.signal });
+            setTimeout(() => ctrl.abort(), 12000);
+            const res = await fetch(`http://${ip}:3000/check-login?url=${encodeURIComponent(url)}&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`, { signal: ctrl.signal });
             const data = await res.json();
             if (data.success) {
-                if (data.result.includes('OK')) return '<span class="status-badge status-success" style="font-size:10px;">ðŸ”‘ Login OK</span>';
-                if (data.result.includes('Sai Pass')) return '<span class="status-badge status-error" style="font-size:10px;">ðŸš« Sai Pass</span>';
+                if (data.result.includes('OK')) return '<span class="status-badge status-success" style="font-size:10px;">🔑 Login OK</span>';
+                if (data.result.includes('Sai Pass')) return '<span class="status-badge status-error" style="font-size:10px;">🚫 Sai Pass</span>';
                 return `<span style="color:var(--warning);font-size:10px;">${data.result}</span>`;
             }
-            return '<span style="color:var(--text-muted);font-size:10px;">â“ Lá»—i VPS</span>';
+            return '<span style="color:var(--text-muted);font-size:10px;">❓ Lỗi VPS</span>';
         } catch(e) {
-            return '<span style="color:var(--danger);font-size:10px;">âŒ Timeout</span>';
+            return '<span style="color:var(--danger);font-size:10px;">❌ Timeout</span>';
         }
     }
 
     // --- TAB 3 LOGIC ---
     async function fetchHtml(url) {
         const proxies = [
-            u => getVpsProxyUrl(u, true) || `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+            u => getVpsProxyUrl(u, true) || `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+            u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
         ];
         for (let makeUrl of proxies) {
             try {
@@ -1714,19 +1719,19 @@
                 const tid = setTimeout(() => ctrl.abort(), 8000);
                 const res = await fetch(makeUrl(url), { signal: ctrl.signal });
                 clearTimeout(tid);
-                // Bá» qua 403/429 tá»« proxy (bá»‹ cháº·n) â€” thá»­ proxy tiáº¿p theo
+                // Bỏ qua 403/429 từ proxy (bị chặn) — thử proxy tiếp theo
                 if (res.ok) {
-                    /* text already fetched */
+                    const text = await res.text();
                     if (text && text.length > 100) return text;
                 }
-            } catch(e) { /* thá»­ proxy tiáº¿p theo */ }
+            } catch(e) { /* thử proxy tiếp theo */ }
         }
         return null;
     }
 
     async function startOutboundAudit() {
         const rawLines = document.getElementById('auditUrlList').value.split('\n').map(l => l.trim()).filter(l => l);
-        if (rawLines.length === 0) return alert("Nháº­p Ã­t nháº¥t 1 URL sáº¿p Æ¡i!");
+        if (rawLines.length === 0) return alert("Nhập ít nhất 1 URL sếp ơi!");
         const tbody = document.getElementById('auditResultBody');
         tbody.innerHTML = '';
         let linkCounter = 0;
@@ -1738,18 +1743,18 @@
             const host = new URL(url).hostname.replace('www.', '');
 
             const headerTr = document.createElement('tr');
-            headerTr.innerHTML = `<td colspan="6" style="background:rgba(59,130,246,0.15); color:var(--primary); font-weight:700; font-size:12px; padding:8px 15px;">ðŸŒ Äang quÃ©t: ${url}</td>`;
+            headerTr.innerHTML = `<td colspan="6" style="background:rgba(59,130,246,0.15); color:var(--primary); font-weight:700; font-size:12px; padding:8px 15px;">🌐 Đang quét: ${url}</td>`;
             tbody.appendChild(headerTr);
 
             const html = await fetchHtml(url);
             if (!html) {
-                headerTr.innerHTML = `<td colspan="6" style="color:var(--danger); padding:8px 15px;">âŒ KhÃ´ng láº¥y Ä‘Æ°á»£c ná»™i dung: ${url}</td>`;
+                headerTr.innerHTML = `<td colspan="6" style="color:var(--danger); padding:8px 15px;">❌ Không lấy được nội dung: ${url}</td>`;
                 continue;
             }
 
             const doc = new DOMParser().parseFromString(html, 'text/html');
 
-            // HÃ m lá»c link ngoÃ i (khÃ´ng cÃ¹ng host) hoáº·c link ná»™i bá»™ Ä‘áº·c biá»‡t (/mlink/)
+            // Hàm lọc link ngoài (không cùng host) hoặc link nội bộ đặc biệt (/mlink/)
             function isExternal(href) {
                 try {
                     const h = new URL(href, url).href;
@@ -1757,10 +1762,10 @@
                     const linkHost = uObj.hostname.replace('www.', '');
                     const isInternal = linkHost.includes(host);
 
-                    // 1. Náº¿u lÃ  link ná»™i bá»™ nhÆ°ng Ä‘i qua /mlink/ -> TÃ­nh lÃ  Outbound (Affiliate Cloaking)
+                    // 1. Nếu là link nội bộ nhưng đi qua /mlink/ -> Tính là Outbound (Affiliate Cloaking)
                     if (isInternal && uObj.pathname.startsWith('/mlink/')) return true;
 
-                    // 2. Náº¿u lÃ  link ngoÃ i thá»±c sá»±
+                    // 2. Nếu là link ngoài thực sự
                     return h.startsWith('http') && !isInternal && linkHost.length > 3;
                 } catch(e) { return false; }
             }
@@ -1770,13 +1775,13 @@
 
             const foundLinks = new Set();
 
-            // 1. Tháº» <a href> thÃ´ng thÆ°á»ng
+            // 1. Thẻ <a href> thông thường
             doc.querySelectorAll('a[href]').forEach(a => {
                 const h = resolveUrl(a.getAttribute('href'));
                 if (h && isExternal(h)) foundLinks.add(h);
             });
 
-            // 2. onclick="location.href='...'" hoáº·c window.location
+            // 2. onclick="location.href='...'" hoặc window.location
             doc.querySelectorAll('[onclick]').forEach(el => {
                 const onclick = el.getAttribute('onclick') || '';
                 const matches = onclick.match(/(?:location\.href|window\.location)\s*=\s*['"]([^'"]+)['"]/g) || [];
@@ -1784,7 +1789,7 @@
                     const u = m.match(/['"]([^'"]+)['"]/)?.[1];
                     if (u) { const h = resolveUrl(u); if (h && isExternal(h)) foundLinks.add(h); }
                 });
-                // Báº¯t cáº£ dáº¡ng open('url')
+                // Bắt cả dạng open('url')
                 const opens = onclick.match(/(?:window\.open|open)\(\s*['"]([^'"]+)['"]/g) || [];
                 opens.forEach(m => {
                     const u = m.match(/['"]([^'"]+)['"]/)?.[1];
@@ -1792,7 +1797,7 @@
                 });
             });
 
-            // 3. data-href, data-url, data-link, data-redirect trÃªn báº¥t ká»³ tháº» nÃ o
+            // 3. data-href, data-url, data-link, data-redirect trên bất kỳ thẻ nào
             doc.querySelectorAll('[data-href],[data-url],[data-link],[data-redirect],[data-target]').forEach(el => {
                 ['data-href','data-url','data-link','data-redirect','data-target'].forEach(attr => {
                     const v = el.getAttribute(attr);
@@ -1800,10 +1805,10 @@
                 });
             });
 
-            // 4. QuÃ©t ná»™i dung <script> tÃ¬m URL ngoáº¡i (dáº¡ng https://... trong chuá»—i)
+            // 4. Quét nội dung <script> tìm URL ngoại (dạng https://... trong chuỗi)
             doc.querySelectorAll('script:not([src])').forEach(s => {
                 const txt = s.textContent || '';
-                // Báº¯t URL trong chuá»—i JS
+                // Bắt URL trong chuỗi JS
                 const urlMatches = txt.match(/['"`](https?:\/\/[^\s'"`<>]{8,})[`'"]/g) || [];
                 urlMatches.forEach(m => {
                     const u = m.replace(/^['"`]|['"`]$/g, '');
@@ -1821,7 +1826,7 @@
 
             if (links.length === 0) {
                 const emptyTr = document.createElement('tr');
-                emptyTr.innerHTML = `<td colspan="6" style="color:var(--text-muted); font-size:12px; padding-left:25px;">KhÃ´ng tÃ¬m tháº¥y outbound link nÃ o.</td>`;
+                emptyTr.innerHTML = `<td colspan="6" style="color:var(--text-muted); font-size:12px; padding-left:25px;">Không tìm thấy outbound link nào.</td>`;
                 tbody.appendChild(emptyTr);
                 continue;
             }
@@ -1835,25 +1840,25 @@
                     <td style="font-size:11px; word-break:break-all;"><a href="${link}" target="_blank" style="color:var(--primary)">${link}</a></td>
                     <td id="audRdr_${i}" style="font-size:11px; word-break:break-all;"><span style="color:var(--text-muted)">...</span></td>
                     <td style="font-size:11px;">${new URL(link).hostname}</td>
-                    <td id="audSt_${i}"><span style="color:var(--warning)">â³ Chá»...</span></td>
+                    <td id="audSt_${i}"><span style="color:var(--warning)">⏳ Chờ...</span></td>
                     <td id="audCo_${i}">-</td>
-                    <td><button class="btn-mini" onclick="checkOneOutbound('${link}', ${i})">ðŸ”„</button></td>
+                    <td><button class="btn-mini" onclick="checkOneOutbound('${link}', ${i})">🔄</button></td>
                 `;
                 tbody.appendChild(tr);
-                // Thu tháº­p promises â€” cháº¡y song song
+                // Thu thập promises — chạy song song
                 rowPromises.push(checkOneOutbound(link, i));
             }
-            // Chá» táº¥t cáº£ link cá»§a site nÃ y check xong trÆ°á»›c khi chuyá»ƒn site tiáº¿p theo
+            // Chờ tất cả link của site này check xong trước khi chuyển site tiếp theo
             await Promise.all(rowPromises);
             await new Promise(r => setTimeout(r, 300));
         }
 
-        // Táº¥t cáº£ Ä‘Ã£ xong â€” bÃ¢y giá» má»›i gá»­i Telegram
-        const teleMsg = `<b>ðŸ”— BÃO CÃO OUTBOUND AUDIT</b>\n\n` +
-                        `âœ… ÄÃ£ quÃ©t xong: <b>${rawLines.length}</b> website.\n` +
-                        `ðŸ”— Tá»•ng link trá» ra tÃ¬m tháº¥y: <b>${linkCounter}</b> link.\n` +
-                        `â° Thá»i gian: ${new Date().toLocaleString()}\n\n` +
-                        `<i>Sáº¿p vÃ o web xem chi tiáº¿t tá»«ng link sá»‘ng/cháº¿t nhÃ©!</i>`;
+        // Tất cả đã xong — bây giờ mới gửi Telegram
+        const teleMsg = `<b>🔗 BÁO CÁO OUTBOUND AUDIT</b>\n\n` +
+                        `✅ Đã quét xong: <b>${rawLines.length}</b> website.\n` +
+                        `🔗 Tổng link trỏ ra tìm thấy: <b>${linkCounter}</b> link.\n` +
+                        `⏰ Thời gian: ${new Date().toLocaleString()}\n\n` +
+                        `<i>Sếp vào web xem chi tiết từng link sống/chết nhé!</i>`;
         await sendToTelegram(teleMsg);
     }
 
@@ -1861,15 +1866,15 @@
         const stEl = document.getElementById(`audSt_${i}`);
         const coEl = document.getElementById(`audCo_${i}`);
         const rdrEl = document.getElementById(`audRdr_${i}`);
-        stEl.innerHTML = '<span style="color:var(--warning)">â³ QuÃ©t...</span>';
+        stEl.innerHTML = '<span style="color:var(--warning)">⏳ Quét...</span>';
 
-        // BÆ°á»›c 1: Check sá»‘ng/cháº¿t
+        // Bước 1: Check sống/chết
         try {
             const ctrl = new AbortController();
             const tid = setTimeout(() => ctrl.abort(), 8000);
-            const check = { ok: true }; const ch = await vpsProxyRaw(link, ctrl.signal);
+            const check = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`, { signal: ctrl.signal });
             clearTimeout(tid);
-            stEl.innerHTML = check.ok ? '<span class="status-badge status-success">âœ… Sá»NG</span>' : '<span class="status-badge status-error">âŒ Lá»–I</span>';
+            stEl.innerHTML = check.ok ? '<span class="status-badge status-success">✅ SỐNG</span>' : '<span class="status-badge status-error">❌ LỖI</span>';
             coEl.innerText = check.status;
             
             if (check.ok) {
@@ -1889,9 +1894,9 @@
                         const fHost = new URL(finalUrl).hostname.replace('www.', '');
                         const oHost = new URL(link).hostname.replace('www.', '');
                         if (fHost !== oHost) {
-                            rdrEl.innerHTML = `<a href="${finalUrl}" target="_blank" style="color:var(--warning); font-size:10px; word-break:break-all;">âž¡ï¸ ${finalUrl}</a>`;
+                            rdrEl.innerHTML = `<a href="${finalUrl}" target="_blank" style="color:var(--warning); font-size:10px; word-break:break-all;">➡️ ${finalUrl}</a>`;
                         } else {
-                            rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">KhÃ´ng redirect</span>';
+                            rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không redirect</span>';
                         }
                     } catch(e) { rdrEl.innerText = '-'; }
                 } else {
@@ -1899,7 +1904,7 @@
                 }
             }
         } catch(e) {
-            stEl.innerHTML = '<span class="status-badge status-error">âŒ Timeout</span>';
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Timeout</span>';
             coEl.innerText = 'ERR';
         }
     }
@@ -1907,7 +1912,7 @@
     // --- MLINK CHECK ---
     async function startMlinkCheck() {
         const rawLines = document.getElementById('auditUrlList').value.split('\n').map(l => l.trim()).filter(l => l);
-        if (rawLines.length === 0) return alert('Nháº­p Ã­t nháº¥t 1 URL sáº¿p Æ¡i!');
+        if (rawLines.length === 0) return alert('Nhập ít nhất 1 URL sếp ơi!');
 
         const container = document.getElementById('mlinkResultContainer');
         const tbody = document.getElementById('mlinkResultBody');
@@ -1926,9 +1931,9 @@
             tr.id = `row_${rowId}`;
             tr.innerHTML = `
                 <td style="word-break:break-all;"><a href="${url}" target="_blank" style="color:var(--primary);">${url}</a></td>
-                <td id="st_${rowId}"><span style="color:var(--text-muted)">Äang quÃ©t...</span></td>
+                <td id="st_${rowId}"><span style="color:var(--text-muted)">Đang quét...</span></td>
                 <td id="links_${rowId}" style="font-size:11px;">...</td>
-                <td><button class="btn-mini" onclick="recheckOneMlink('${url}', '${rowId}')">ðŸ”„ Check láº¡i</button></td>
+                <td><button class="btn-mini" onclick="recheckOneMlink('${url}', '${rowId}')">🔄 Check lại</button></td>
             `;
             tbody.appendChild(tr);
 
@@ -1936,21 +1941,21 @@
             await new Promise(r => setTimeout(r, 500));
         }
 
-        // Sau khi xong háº¿t thÃ¬ gá»­i Tele bÃ¡o cÃ¡o tá»•ng
+        // Sau khi xong hết thì gửi Tele báo cáo tổng
         updateMlinkSummaryAndTele();
     }
 
     async function checkOneMlink(url, rowId) {
         const stEl = document.getElementById(`st_${rowId}`);
         const linksEl = document.getElementById(`links_${rowId}`);
-        stEl.innerHTML = '<span style="color:var(--warning)">â³ Äang quÃ©t...</span>';
+        stEl.innerHTML = '<span style="color:var(--warning)">⏳ Đang quét...</span>';
         
         const host = new URL(url).hostname.replace('www.', '');
         const html = await fetchHtml(url);
         
         if (!html) {
-            stEl.innerHTML = '<span class="status-badge status-error">âŒ Lá»—i truy cáº­p</span>';
-            linksEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">Proxy khÃ´ng thá»ƒ káº¿t ná»‘i tá»›i Website.</span>';
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Lỗi truy cập</span>';
+            linksEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">Proxy không thể kết nối tới Website.</span>';
             return false;
         }
 
@@ -1977,12 +1982,12 @@
 
         const uniqueMlinks = [...mlinkUrls];
         if (uniqueMlinks.length > 0) {
-            stEl.innerHTML = `<span class="status-badge status-success">âœ… OK (${uniqueMlinks.length})</span>`;
+            stEl.innerHTML = `<span class="status-badge status-success">✅ OK (${uniqueMlinks.length})</span>`;
             linksEl.innerHTML = uniqueMlinks.map(l => `<a href="${l}" target="_blank" style="color:#a78bfa; display:block; margin-bottom:2px; word-break:break-all;">${l}</a>`).join('');
             return true;
         } else {
-            stEl.innerHTML = '<span class="status-badge status-error">âŒ Thiáº¿u mlink</span>';
-            linksEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">KhÃ´ng tÃ¬m tháº¥y link cloaking /mlink/ nÃ o trong mÃ£ nguá»“n.</span>';
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Thiếu mlink</span>';
+            linksEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không tìm thấy link cloaking /mlink/ nào trong mã nguồn.</span>';
             return false;
         }
     }
@@ -2000,15 +2005,15 @@
         rows.forEach(tr => {
             const stText = tr.querySelector('td:nth-child(2)').innerText;
             const url = tr.querySelector('td:nth-child(1) a').innerText;
-            if (stText.includes('OK')) { ok++; teleLines.push(`âœ… ${url}`); }
-            else if (stText.includes('Thiáº¿u') || stText.includes('Lá»—i')) { err++; teleLines.push(`âŒ ${url}`); }
+            if (stText.includes('OK')) { ok++; teleLines.push(`✅ ${url}`); }
+            else if (stText.includes('Thiếu') || stText.includes('Lỗi')) { err++; teleLines.push(`❌ ${url}`); }
         });
 
         document.getElementById('mlinkOkCount').innerText = ok;
         document.getElementById('mlinkErrCount').innerText = err;
 
         if (!isUpdateOnly) {
-            let teleMsg = `<b>ðŸ”— BÃO CÃO CHECK /mlink/ CLOAKING</b>\n\nâœ… CÃ³: <b>${ok}</b> | âŒ Thiáº¿u: <b>${err}</b>\n\n` + teleLines.join('\n');
+            let teleMsg = `<b>🔗 BÁO CÁO CHECK /mlink/ CLOAKING</b>\n\n✅ Có: <b>${ok}</b> | ❌ Thiếu: <b>${err}</b>\n\n` + teleLines.join('\n');
             sendToTelegram(teleMsg);
         }
     }
@@ -2017,9 +2022,9 @@
     async function startCheckBot() {
         const btn = document.getElementById('btnCheckBot');
         const lines = document.getElementById('checkBotList').value.split('\n').filter(l => l.trim());
-        if(lines.length === 0) return alert("Nháº­p danh sÃ¡ch website sáº¿p Æ¡i!");
+        if(lines.length === 0) return alert("Nhập danh sách website sếp ơi!");
         
-        btn.innerText = "â³ Äang quÃ©t...";
+        btn.innerText = "⏳ Đang quét...";
         btn.disabled = true;
         
         const outContainer = document.getElementById('checkBotOutputContainer');
@@ -2037,42 +2042,42 @@
             if (!url.startsWith('http')) url = 'https://' + url;
             try {
                 let parsed = new URL(url);
-                url = parsed.origin; // Chá»‰ check trang chá»§
+                url = parsed.origin; // Chỉ check trang chủ
             } catch(e) {}
             
-            let statusText = "ðŸŸ¢ Má»ž BOT (Tá»‘t)"; 
+            let statusText = "🟢 MỞ BOT (Tốt)"; 
             let isBlocked = false;
             
             try {
                 // 1. Check robots.txt
-                let robotRes = { ok: true }; try { const rtext = await vpsProxyRaw(url + '/robots.txt');
-                if (robotRes.ok) { /* try block */
+                const robotRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url + '/robots.txt')}`);
+                if (robotRes.ok) {
                     const txt = await robotRes.text();
                     if (/(disallow:\s*\/\s*$)|(disallow:\s*\/$)/im.test(txt)) {
-                        statusText = "ðŸ”´ ÄÃ“NG BOT (cháº·n trong robots.txt)";
+                        statusText = "🔴 ĐÓNG BOT (chặn trong robots.txt)";
                         isBlocked = true;
                     }
                 }
                 
                 // 2. Check Meta Tag
                 if (!isBlocked) {
-                    let htmlRes = { ok: true }; try { const htext = await vpsProxyRaw(url);
-                    if (htmlRes.ok) { /* try block */
+                    const htmlRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+                    if (htmlRes.ok) {
                         const html = await htmlRes.text();
                         const doc = new DOMParser().parseFromString(html, 'text/html');
                         const metaRobots = doc.querySelector('meta[name="robots"], meta[name="googlebot"]');
                         if (metaRobots && (metaRobots.getAttribute('content') || '').toLowerCase().includes('noindex')) {
-                            statusText = "ðŸ”´ ÄÃ“NG BOT (cháº·n bá»Ÿi meta noindex)";
+                            statusText = "🔴 ĐÓNG BOT (chặn bởi meta noindex)";
                             isBlocked = true;
                         }
                     } else {
-                        statusText = `ðŸŸ¡ KhÃ´ng vÃ o Ä‘Æ°á»£c web (HTTP ${htmlRes.status})`;
+                        statusText = `🟡 Không vào được web (HTTP ${htmlRes.status})`;
                         errorCount++;
                         isBlocked = null;
                     }
                 }
             } catch(e) {
-                statusText = "âŒ Lá»—i máº¡ng/Timeout";
+                statusText = "❌ Lỗi mạng/Timeout";
                 errorCount++;
                 isBlocked = null;
             }
@@ -2085,11 +2090,11 @@
             await new Promise(r => setTimeout(r, 600));
         }
         
-        btn.innerText = "ðŸ¤– Báº¯t Ä‘áº§u Check Má»Ÿ Bot";
+        btn.innerText = "🤖 Bắt đầu Check Mở Bot";
         btn.disabled = false;
         
-        let teleMsg = `<b>ðŸ¤– BÃO CÃO CHECK Má»ž BOT</b>\n`;
-        teleMsg += `Tá»•ng: ${lines.length} | ðŸŸ¢ Má»Ÿ: ${openCount} | ðŸ”´ ÄÃ³ng: ${blockedCount} | âŒ Lá»—i: ${errorCount}\n\n`;
+        let teleMsg = `<b>🤖 BÁO CÁO CHECK MỞ BOT</b>\n`;
+        teleMsg += `Tổng: ${lines.length} | 🟢 Mở: ${openCount} | 🔴 Đóng: ${blockedCount} | ❌ Lỗi: ${errorCount}\n\n`;
         results.forEach(r => { teleMsg += `${r}\n`; });
         await sendToTelegram(teleMsg);
     }
@@ -2099,9 +2104,9 @@
     <script>
         async function startCheckHomepage() {
             const rawUrls = document.getElementById('homepageUrlInput').value.split('\n').map(u => u.trim()).filter(u => u);
-            if(rawUrls.length === 0) return alert('Nháº­p danh sÃ¡ch URL!');
+            if(rawUrls.length === 0) return alert('Nhập danh sách URL!');
             const btn = document.getElementById('btnCheckHomepage');
-            btn.disabled = true; btn.innerText = 'Äang quÃ©t...';
+            btn.disabled = true; btn.innerText = 'Đang quét...';
             document.getElementById('homepageTable').style.display = 'table';
             const tbody = document.getElementById('homepageBody'); tbody.innerHTML = '';
             document.getElementById('homepageOutputContainer').style.display = 'none';
@@ -2109,15 +2114,15 @@
             for(let i=0; i<rawUrls.length; i++) {
                 let url = rawUrls[i]; if (!url.startsWith('http')) url = 'https://' + url;
                 let tr = document.createElement('tr');
-                tr.innerHTML = '<td><a href="' + url + '" target="_blank" style="color:var(--primary);text-decoration:none">' + url + '</a></td><td id="hp_status_' + i + '"><span class="badge badge-warning">Äang check...</span></td><td id="hp_code_' + i + '">-</td>';
+                tr.innerHTML = '<td><a href="' + url + '" target="_blank" style="color:var(--primary);text-decoration:none">' + url + '</a></td><td id="hp_status_' + i + '"><span class="badge badge-warning">Đang check...</span></td><td id="hp_code_' + i + '">-</td>';
                 tbody.appendChild(tr);
-                let type = 'Lá»—i';
+                let type = 'Lỗi';
                 try {
-                    let html = ''; let statusText = 'Lá»—i truy cáº­p'; let httpCode = '-';
+                    let html = ''; let statusText = 'Lỗi truy cập'; let httpCode = '-';
                     try {
                         const ctrl = new AbortController();
                         const tid = setTimeout(() => ctrl.abort(), 8000);
-                        const res1 = { ok: true }; const d1 = await vpsProxyJson(url, ctrl.signal);
+                        const res1 = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url), {signal: ctrl.signal});
                         clearTimeout(tid);
                         if (res1.ok) {
                             const data = await res1.json().catch(()=>({}));
@@ -2128,13 +2133,13 @@
                         try {
                             const ctrl2 = new AbortController();
                             const tid2 = setTimeout(() => ctrl2.abort(), 8000);
-                            const res2 = { ok: true }; const html2 = await vpsProxyRaw(url, ctrl2.signal);
+                            const res2 = await fetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url), {signal: ctrl2.signal});
                             clearTimeout(tid2);
                             if (res2.ok) {
                                 html = await res2.text();
                                 httpCode = 200;
                             } else { httpCode = res2.status; }
-                        } catch(e2) { statusText = 'Lá»—i máº¡ng'; }
+                        } catch(e2) { statusText = 'Lỗi mạng'; }
                     }
 
                     if (html) {
@@ -2144,29 +2149,29 @@
                         const isWP = html.includes('wp-content') || html.includes('wp-includes');
                         
                         if (bc.match(/\b(blog|home-blog|posts-page)\b/)) {
-                            type = 'BÃ i viáº¿t má»›i nháº¥t (Posts)';
-                            document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-info">BÃ i viáº¿t má»›i nháº¥t</span>';
+                            type = 'Bài viết mới nhất (Posts)';
+                            document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-info">Bài viết mới nhất</span>';
                             pC++;
                         } else if (bc.match(/\b(page|page-template|page-template-default|home-page|page-id-\d+)\b/)) {
-                            type = 'Trang tÄ©nh (Static)';
-                            document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tÄ©nh</span>';
+                            type = 'Trang tĩnh (Static)';
+                            document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
                             sC++;
                         } else {
                             if (html.includes('class="entry-content"') && !html.includes('class="blog"')) {
-                                type = 'Trang tÄ©nh (Static)';
-                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tÄ©nh</span>';
+                                type = 'Trang tĩnh (Static)';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
                                 sC++;
                             } else if (html.match(/class="[^"]*type-post[^"]*"/)) {
-                                type = 'BÃ i viáº¿t má»›i nháº¥t (Posts)';
-                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-info">BÃ i viáº¿t má»›i nháº¥t</span>';
+                                type = 'Bài viết mới nhất (Posts)';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-info">Bài viết mới nhất</span>';
                                 pC++;
                             } else if (html.match(/class="[^"]*type-page[^"]*"/)) {
-                                type = 'Trang tÄ©nh (Static)';
-                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tÄ©nh</span>';
+                                type = 'Trang tĩnh (Static)';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
                                 sC++;
                             } else {
-                                type = 'KhÃ´ng xÃ¡c Ä‘á»‹nh';
-                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge" style="background:#64748b;color:white">KhÃ´ng xÃ¡c Ä‘á»‹nh</span>';
+                                type = 'Không xác định';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge" style="background:#64748b;color:white">Không xác định</span>';
                             }
                         }
                     } else { 
@@ -2174,15 +2179,15 @@
                         document.getElementById('hp_code_'+i).innerText = httpCode;
                         eC++; 
                     }
-                } catch(e) { document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-error">Lá»—i há»‡ thá»‘ng</span>'; eC++; }
+                } catch(e) { document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-error">Lỗi hệ thống</span>'; eC++; }
                 report.push('[' + type + '] ' + url);
                 await new Promise(r => setTimeout(r, 800));
             }
-            btn.innerText = 'ðŸš€ Báº¯t Ä‘áº§u QuÃ©t'; btn.disabled = false;
+            btn.innerText = '🚀 Bắt đầu Quét'; btn.disabled = false;
             document.getElementById('homepageOutputContainer').style.display = 'block';
             document.getElementById('homepageOutput').value = report.join('\n');
-            let m = '<b>ðŸ  BÃO CÃO HOMEPAGE STATUS</b>\n';
-            m += 'Tá»•ng: ' + rawUrls.length + ' | ðŸ“ Posts: ' + pC + ' | ðŸ“„ Static: ' + sC + ' | âŒ Lá»—i: ' + eC + '\n\n' + report.join('\n');
+            let m = '<b>🏠 BÁO CÁO HOMEPAGE STATUS</b>\n';
+            m += 'Tổng: ' + rawUrls.length + ' | 📝 Posts: ' + pC + ' | 📄 Static: ' + sC + ' | ❌ Lỗi: ' + eC + '\n\n' + report.join('\n');
             await sendToTelegram(m);
         }
     </script>
@@ -2229,7 +2234,7 @@
 
         async function startGscInsights() {
             if (typeof gscAccounts === 'undefined' || gscAccounts.length === 0) {
-                return alert('Vui lÃ²ng qua BÆ°á»›c 1 thÃªm tÃ i khoáº£n Google trÆ°á»›c!');
+                return alert('Vui lòng qua Bước 1 thêm tài khoản Google trước!');
             }
             
             let siteMap = new Map();
@@ -2265,7 +2270,7 @@
             if (allSites.length === 0) {
                 document.getElementById('insightsLoading').style.display = 'none';
                 document.getElementById('btnRunInsights').disabled = false;
-                return alert('KhÃ´ng tÃ¬m tháº¥y website nÃ o khá»›p vá»›i danh sÃ¡ch check. Vui lÃ²ng kiá»ƒm tra láº¡i Tab 1 hoáº·c báº­t Search Console API!');
+                return alert('Không tìm thấy website nào khớp với danh sách check. Vui lòng kiểm tra lại Tab 1 hoặc bật Search Console API!');
             }
 
             document.getElementById('insightsTable').style.display = 'table';
@@ -2292,7 +2297,7 @@
                 let firstEmail = site.allTokens[0].email;
                 let tr = document.createElement('tr');
                 tr.innerHTML = `<td style="font-size:12px;">${site.url.replace('https://', '').replace('sc-domain:', '')} <br><span id="ins_e_${i}" style="font-size:10px; color:var(--text-muted);">${firstEmail}</span></td>
-                    <td id="ins_c_${i}">â³</td><td id="ins_i_${i}">â³</td><td id="ins_p_${i}">â³</td><td id="ins_s_${i}">â³</td>`;
+                    <td id="ins_c_${i}">⏳</td><td id="ins_i_${i}">⏳</td><td id="ins_p_${i}">⏳</td><td id="ins_s_${i}">⏳</td>`;
                 tbody.appendChild(tr);
 
                 let dataA = null; let dataB = null; let usedEmail = firstEmail;
@@ -2300,7 +2305,7 @@
                 
                 for (let tk of site.allTokens) {
                     dataA = await fetchGscMetrics(site.url, tk.token, strAStart, strAEnd);
-                    // Náº¿u lá»—i 403 (khÃ´ng cÃ³ quyá»n) hoáº·c lá»—i káº¿t ná»‘i, thá»­ tÃ i khoáº£n tiáº¿p theo
+                    // Nếu lỗi 403 (không có quyền) hoặc lỗi kết nối, thử tài khoản tiếp theo
                     if (!dataA || dataA.error === 403 || dataA.error === 401) continue; 
                     
                     dataB = await fetchGscMetrics(site.url, tk.token, strBStart, strBEnd);
@@ -2320,7 +2325,7 @@
                     let clickDelta = clicksA - clicksB;
                     let clickPct = clicksB === 0 ? (clicksA > 0 ? 100 : 0) : ((clickDelta / clicksB) * 100);
                     let clickColor = clickDelta > 0 ? 'var(--success)' : (clickDelta < 0 ? 'var(--danger)' : 'var(--text-muted)');
-                    let clickArrow = clickDelta > 0 ? 'â†‘' : (clickDelta < 0 ? 'â†“' : '-');
+                    let clickArrow = clickDelta > 0 ? '↑' : (clickDelta < 0 ? '↓' : '-');
 
                     let cDisplay = currentGscMode === 'day' ? clickDelta : clickPct.toFixed(1) + '%';
                     
@@ -2329,18 +2334,18 @@
                     let impDelta = impA - impB;
                     let impPct = impB === 0 ? (impA > 0 ? 100 : 0) : ((impDelta / impB) * 100);
                     let impColor = impDelta > 0 ? 'var(--success)' : (impDelta < 0 ? 'var(--danger)' : 'var(--text-muted)');
-                    document.getElementById(`ins_i_${i}`).innerHTML = `${impA.toLocaleString()} <br><span style="color:${impColor}; font-size:11px;">${impDelta > 0 ? 'â†‘' : (impDelta < 0 ? 'â†“' : '')} ${Math.abs(impPct).toFixed(1)}%</span>`;
+                    document.getElementById(`ins_i_${i}`).innerHTML = `${impA.toLocaleString()} <br><span style="color:${impColor}; font-size:11px;">${impDelta > 0 ? '↑' : (impDelta < 0 ? '↓' : '')} ${Math.abs(impPct).toFixed(1)}%</span>`;
 
                     let posDelta = posB - posA; // Lower position is better
                     let posColor = posDelta > 0 ? 'var(--success)' : (posDelta < 0 ? 'var(--danger)' : 'var(--text-muted)');
-                    document.getElementById(`ins_p_${i}`).innerHTML = `${posA > 0 ? posA.toFixed(1) : '-'} <br><span style="color:${posColor}; font-size:11px;">${posDelta > 0 ? 'â†‘' : (posDelta < 0 ? 'â†“' : '')} ${Math.abs(posDelta).toFixed(1)}</span>`;
+                    document.getElementById(`ins_p_${i}`).innerHTML = `${posA > 0 ? posA.toFixed(1) : '-'} <br><span style="color:${posColor}; font-size:11px;">${posDelta > 0 ? '↑' : (posDelta < 0 ? '↓' : '')} ${Math.abs(posDelta).toFixed(1)}</span>`;
 
-                    let statusBadge = '<span class="badge badge-warning">Äi ngang</span>';
-                    if (clickPct >= 5) statusBadge = '<span class="badge badge-success">Äang LÃªn</span>';
-                    if (clickPct <= -5) statusBadge = '<span class="badge badge-danger">Sá»¥t Giáº£m</span>';
+                    let statusBadge = '<span class="badge badge-warning">Đi ngang</span>';
+                    if (clickPct >= 5) statusBadge = '<span class="badge badge-success">Đang Lên</span>';
+                    if (clickPct <= -5) statusBadge = '<span class="badge badge-danger">Sụt Giảm</span>';
                     document.getElementById(`ins_s_${i}`).innerHTML = statusBadge;
                 } else {
-                    document.getElementById(`ins_c_${i}`).innerHTML = '<span style="color:var(--danger)">Lá»—i/No Data</span>';
+                    document.getElementById(`ins_c_${i}`).innerHTML = '<span style="color:var(--danger)">Lỗi/No Data</span>';
                     document.getElementById(`ins_i_${i}`).innerText = '-';
                     document.getElementById(`ins_p_${i}`).innerText = '-';
                     document.getElementById(`ins_s_${i}`).innerText = '-';
@@ -2353,7 +2358,7 @@
         }
         async function startSystemOverview() {
             const rawLines = document.getElementById('overviewUrlInput').value.split('\n').filter(l => l.trim());
-            if (rawLines.length === 0) return alert('Sáº¿p chÆ°a náº¡p dá»¯ liá»‡u! HÃ£y báº¥m "Náº¡p Data tá»« Sheet" hoáº·c dÃ¡n danh sÃ¡ch vÃ o trÆ°á»›c nhÃ©.');
+            if (rawLines.length === 0) return alert('Sếp chưa nạp dữ liệu! Hãy bấm "Nạp Data từ Sheet" hoặc dán danh sách vào trước nhé.');
             
             const tbody = document.getElementById('overviewBody');
             tbody.innerHTML = '';
@@ -2404,13 +2409,13 @@
                 tr.dataset.src = src; tr.dataset.dst = dst; tr.dataset.adminPath = adminPath; tr.dataset.user = user; tr.dataset.pass = pass;
                 tr.innerHTML = `
                     <td style="font-size:12px;"><b>${srcClean}</b></td>
-                    <td id="ov_gsc_${i}"><span style="color:var(--text-muted)">â³...</span></td>
-                    <td id="ov_http_${i}"><span style="color:var(--text-muted)">â³...</span></td>
-                    <td id="ov_301_${i}"><span style="color:var(--text-muted)">â³...</span></td>
-                    <td id="ov_brand_${i}"><span style="color:var(--text-muted)">â³...</span></td>
-                    <td id="ov_admin_${i}"><span style="color:var(--text-muted)">â³...</span></td>
-                    <td id="ov_ins_${i}"><span style="color:var(--text-muted)">â³...</span></td>
-                    <td><button class="btn-mini" onclick="recheckOverviewRow(${i})">ðŸ”„</button></td>
+                    <td id="ov_gsc_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_http_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_301_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_brand_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_admin_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_ins_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td><button class="btn-mini" onclick="recheckOverviewRow(${i})">🔄</button></td>
                 `;
                 tbody.appendChild(tr);
 
@@ -2421,15 +2426,15 @@
             document.getElementById('overviewLoading').style.display = 'none';
             document.getElementById('btnRunOverview').disabled = false;
 
-            let teleMsg = `<b>ðŸ“Š BÃO CÃO GIÃM SÃT Há»† THá»NG</b>\n\n` +
-                          `âœ… Tá»•ng: <b>${total}</b> | Live: <b>${document.getElementById('statLive').innerText}</b> | Cháº¿t: <b>${document.getElementById('statDead').innerText}</b>\n` +
-                          `âš ï¸ Sai 301: <b>${document.getElementById('statWrong301').innerText}</b> | Thiáº¿u GSC: <b>${document.getElementById('statNoGsc').innerText}</b>\n\n`;
+            let teleMsg = `<b>📊 BÁO CÁO GIÁM SÁT HỆ THỐNG</b>\n\n` +
+                          `✅ Tổng: <b>${total}</b> | Live: <b>${document.getElementById('statLive').innerText}</b> | Chết: <b>${document.getElementById('statDead').innerText}</b>\n` +
+                          `⚠️ Sai 301: <b>${document.getElementById('statWrong301').innerText}</b> | Thiếu GSC: <b>${document.getElementById('statNoGsc').innerText}</b>\n\n`;
             
             if (failedSites.length > 0) {
-                teleMsg += `<b>ðŸš¨ CÃC WEB Cáº¦N KIá»‚M TRA NGAY:</b>\n` + failedSites.slice(0, 15).join('\n');
-                if (failedSites.length > 15) teleMsg += `\n... vÃ  ${failedSites.length - 15} web khÃ¡c.`;
+                teleMsg += `<b>🚨 CÁC WEB CẦN KIỂM TRA NGAY:</b>\n` + failedSites.slice(0, 15).join('\n');
+                if (failedSites.length > 15) teleMsg += `\n... và ${failedSites.length - 15} web khác.`;
             } else {
-                teleMsg += `ðŸŽ‰ ChÃºc má»«ng sáº¿p! Má»i thá»© Ä‘á»u Ä‘ang váº­n hÃ nh hoÃ n háº£o.`;
+                teleMsg += `🎉 Chúc mừng sếp! Mọi thứ đều đang vận hành hoàn hảo.`;
             }
             await sendToTelegram(teleMsg);
         }
@@ -2454,10 +2459,10 @@
             let strAEnd = formatDateGSC(latestDate);
             let strAStart = formatDateGSC(new Date(latestDate.getTime() - (6 * 24 * 60 * 60 * 1000)));
 
-            document.getElementById(`ov_http_${i}`).innerHTML = '<span style="color:var(--text-muted)">â³...</span>';
-            document.getElementById(`ov_301_${i}`).innerHTML = '<span style="color:var(--text-muted)">â³...</span>';
-            document.getElementById(`ov_brand_${i}`).innerHTML = '<span style="color:var(--text-muted)">â³...</span>';
-            document.getElementById(`ov_admin_${i}`).innerHTML = '<span style="color:var(--text-muted)">â³...</span>';
+            document.getElementById(`ov_http_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+            document.getElementById(`ov_301_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+            document.getElementById(`ov_brand_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+            document.getElementById(`ov_admin_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
 
             await checkOverviewRow(i, tr.dataset.src, tr.dataset.dst, tr.dataset.adminPath, tr.dataset.user, tr.dataset.pass, strAStart, strAEnd, masterSiteMap);
         }
@@ -2471,7 +2476,7 @@
             if (owners.length > 0) {
                 gscEl.innerHTML = owners.map(o => `<div style="font-size:10px; color:var(--primary)">${o.email}</div>`).join('');
             } else {
-                gscEl.innerHTML = '<span class="status-badge" style="background:#4b5563">ðŸ”´ ChÆ°a cÃ³</span>';
+                gscEl.innerHTML = '<span class="status-badge" style="background:#4b5563">🔴 Chưa có</span>';
             }
 
             // --- HTTP & Content Check ---
@@ -2480,17 +2485,17 @@
             const rdrEl = document.getElementById(`ov_301_${i}`);
             
             let label = ''; let labelClass = 'status-error';
-            if (code === 0) label = 'KhÃ´ng pháº£n há»“i';
-            else if (code === 1016) label = 'Lá»—i 1016 (CF)';
-            else if (code === 404) label = 'Lá»—i 404';
-            else if (code === 403) label = 'Lá»—i 403';
-            else if (code >= 500) label = 'Lá»—i Server (' + code + ')';
-            else if (html && (html.includes('Error establishing a database connection') || html.includes('Internal Server Error'))) label = 'Lá»—i WP/DB';
-            else if (html && html.length < 200 && !redirectUrl) label = 'Tráº¯ng trang';
+            if (code === 0) label = 'Không phản hồi';
+            else if (code === 1016) label = 'Lỗi 1016 (CF)';
+            else if (code === 404) label = 'Lỗi 404';
+            else if (code === 403) label = 'Lỗi 403';
+            else if (code >= 500) label = 'Lỗi Server (' + code + ')';
+            else if (html && (html.includes('Error establishing a database connection') || html.includes('Internal Server Error'))) label = 'Lỗi WP/DB';
+            else if (html && html.length < 200 && !redirectUrl) label = 'Trắng trang';
             else if (code === 200 || code === 301 || code === 302) {
-                label = 'Tá»‘t'; labelClass = 'status-success';
+                label = 'Tốt'; labelClass = 'status-success';
             } else {
-                label = 'Lá»—i ' + code;
+                label = 'Lỗi ' + code;
             }
 
             httpEl.innerHTML = `<span class="status-badge ${labelClass}">${label}</span>`;
@@ -2501,15 +2506,15 @@
             const brandEl = document.getElementById(`ov_brand_${i}`);
             
             if (srcClean !== dstClean) {
-                if (isMatch) rdrEl.innerHTML = '<span style="color:var(--success); font-size:11px;">âœ… KHHP (301 OK)</span>';
+                if (isMatch) rdrEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ KHHP (301 OK)</span>';
                 else {
-                    rdrEl.innerHTML = `<span style="color:var(--danger); font-size:11px;">ðŸš¨ Sai domain gá»‘c</span><br><span style="font-size:9px; color:var(--text-muted)">-> ${finalHost || '???'}</span>`;
+                    rdrEl.innerHTML = `<span style="color:var(--danger); font-size:11px;">🚨 Sai domain gốc</span><br><span style="font-size:9px; color:var(--text-muted)">-> ${finalHost || '???'}</span>`;
                 }
             } else {
                 rdrEl.innerText = '-';
             }
 
-            // Check Brand Gá»‘c (Footer)
+            // Check Brand Gốc (Footer)
             if (html) {
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 let footerText = '';
@@ -2541,9 +2546,9 @@
                 }
                 
                 if (brandMatch) {
-                    brandEl.innerHTML = `<span style="color:var(--success); font-size:11px; font-weight:bold;">âœ… ÄÃšNG</span>`;
+                    brandEl.innerHTML = `<span style="color:var(--success); font-size:11px; font-weight:bold;">✅ ĐÚNG</span>`;
                 } else {
-                    brandEl.innerHTML = `<span style="color:var(--danger); font-size:11px; font-weight:bold;">ðŸš¨ Lá»†CH</span>`;
+                    brandEl.innerHTML = `<span style="color:var(--danger); font-size:11px; font-weight:bold;">🚨 LỆCH</span>`;
                 }
             } else {
                 brandEl.innerText = '-';
@@ -2551,15 +2556,17 @@
 
             if (user && pass) {
                 const adEl = document.getElementById(`ov_admin_${i}`);
-                adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">â³ Äang check Pass...</span>';
+                adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">⏳ Đang check Pass...</span>';
                 const status = await verifyLoginViaVps(dst || src, user, pass);
                 adEl.innerHTML = status;
             } else if (user) {
                 const adEl = document.getElementById(`ov_admin_${i}`);
-                try { const h = await vpsProxyRaw(dst + adminPath);
-                    if (h.includes('wp-login') || h.includes('user_login') || h.includes('user_pass')) adEl.innerHTML = '<span class="status-badge status-success" style="font-size:10px;">âœ… Admin Live</span>';
-                    else adEl.innerHTML = '<span style="color:var(--warning); font-size:10px;">âš ï¸ Äá»•i Path?</span>';
-                } catch(e) { adEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">âŒ Lá»—i WP</span>'; }
+                let h = '';
+                try { h = await vpsProxyRaw(dst + adminPath); } catch(e) {}
+                if (h) {
+                    if (h.includes('wp-login') || h.includes('user_login') || h.includes('user_pass')) adEl.innerHTML = '<span class="status-badge status-success" style="font-size:10px;">✅ Admin Live</span>';
+                    else adEl.innerHTML = '<span style="color:var(--warning); font-size:10px;">⚠️ Đổi Path?</span>';
+                } else adEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">❌ Lỗi WP</span>';
             }
 
             if (owners.length > 0) {
@@ -2574,5 +2581,3 @@
 </div>
 </body>
 </html>
-
-
