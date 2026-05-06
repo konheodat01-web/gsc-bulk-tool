@@ -3969,9 +3969,7 @@
                     <div style="font-size:10px; color:#64748b; margin-top:5px;">Dùng {{keyword}} để làm biến số lấy từ input.</div>
                 </div>
             `;
-        } else if (node.type === 'ai-vision-search') {
-                    flowData = await execAiVisionSearchNode(node, flowData);
-                } else if (node.type === 'custom-code') {
+        } else if (node.type === 'custom-code') {
             paramsHtml = `
                 <div class="set-group">
                     <label class="set-label">Mã Javascript Tùy Chỉnh:</label>
