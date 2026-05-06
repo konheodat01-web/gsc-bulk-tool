@@ -1621,7 +1621,13 @@
         restoreCanvasFromSession();
     }
     
-    function allBlocks() { return [...ATOMIC_BLOCKS, ...COMPOUND_BLOCKS]; }
+    function getUserBlocks() {
+        try { return JSON.parse(localStorage.getItem('wf_user_blocks') || '[]'); } catch(e) { return []; }
+    }
+    function saveUserBlocks(blocks) {
+        localStorage.setItem('wf_user_blocks', JSON.stringify(blocks));
+    }
+    function allBlocks() { return [...ATOMIC_BLOCKS, ...COMPOUND_BLOCKS, ...getUserBlocks()]; }
     
     function renderPalette() {
         const atomicEl = document.getElementById('atomicPaletteList');
@@ -1657,8 +1663,40 @@
             </div>`
         ).join('');
         
-        // Attach drag events to palette items
-        document.querySelectorAll('#atomicPaletteList .palette-item, #compoundPaletteList .palette-item').forEach(el => {
+        // ---- Render User Custom Blocks ----
+        const userBlocks = getUserBlocks();
+        const userSection = document.getElementById('userBlockPaletteList');
+        if (userSection) {
+            if (userBlocks.length === 0) {
+                userSection.innerHTML = '<div style="font-size:11px; color:#475569; padding:8px 5px; font-style:italic;">Chưa có viên gạch nào. Tạo viên gạch đầu tiên của bạn!</div>';
+            } else {
+                userSection.innerHTML = '';
+                userBlocks.forEach((b, idx) => {
+                    const el = document.createElement('div');
+                    el.className = 'palette-item';
+                    el.draggable = true;
+                    el.dataset.btype = b.type;
+                    el.dataset.bcat = 'user';
+                    el.title = b.desc || b.label;
+                    el.style.cssText = 'border-color:rgba(236,72,153,0.3); background:rgba(236,72,153,0.05); position:relative;';
+                    el.innerHTML = `
+                        <span class="pi-icon">${b.icon}</span>
+                        <div class="pi-text">
+                            <div class="pi-label" style="color:#f9a8d4;">${b.label}</div>
+                            <div class="pi-desc">${(b.desc||'').substring(0,30)}...</div>
+                        </div>
+                        <div style="display:flex; gap:4px; margin-left:auto; flex-shrink:0;">
+                            <button onclick="event.stopPropagation(); openBlockFactory(${idx})" style="background:rgba(255,255,255,0.1); border:none; color:#e2e8f0; padding:3px 7px; border-radius:4px; cursor:pointer; font-size:10px;">✏️</button>
+                            <button onclick="event.stopPropagation(); deleteUserBlock(${idx})" style="background:rgba(239,68,68,0.15); border:none; color:#f87171; padding:3px 7px; border-radius:4px; cursor:pointer; font-size:10px;">🗑</button>
+                        </div>
+                    `;
+                    userSection.appendChild(el);
+                });
+            }
+        }
+
+        // Attach drag events to ALL palette items
+        document.querySelectorAll('#atomicPaletteList .palette-item, #compoundPaletteList .palette-item, #userBlockPaletteList .palette-item').forEach(el => {
             el.addEventListener('dragstart', e => {
                 draggingPalette = { type: el.dataset.btype, cat: el.dataset.bcat };
                 e.dataTransfer.effectAllowed = 'copy';
@@ -4203,6 +4241,13 @@
                         <strong>Kéo block từ bảng trái vào đây</strong><br>
                         <span style="font-size:11px;color:#334155;">Nối các block bằng cách click ● (output) → ● (input)</span>
                     </div>
+            <div style="font-size:11px; font-weight:700; color:#ec4899; margin: 15px 0 5px 5px; text-transform:uppercase; letter-spacing:0.5px;">⭐ Viên Gạch Của Tôi</div>
+            <div id="userBlockPaletteList"></div>
+            <div style="padding: 12px 5px 5px 5px;">
+                <button onclick="openBlockFactory(null)" style="width:100%; background:linear-gradient(135deg, rgba(236,72,153,0.2), rgba(168,85,247,0.2)); border:1px dashed rgba(236,72,153,0.5); color:#f9a8d4; padding:10px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg, rgba(236,72,153,0.3), rgba(168,85,247,0.3))'" onmouseout="this.style.background='linear-gradient(135deg, rgba(236,72,153,0.2), rgba(168,85,247,0.2))'">
+                    ➕ Tạo Viên Gạch Mới
+                </button>
+            </div>
                 </div>
                 <!-- Toolbar overlay on canvas -->
                 <div style="position:absolute; top:15px; left:15px; display:flex; gap:10px;">
@@ -4227,6 +4272,139 @@
             <button class="btn-save-settings" onclick="saveNodeSettings()">Lưu Cài Đặt</button>
         </div>
     </div>
+
+
+    <!-- ========= BLOCK FACTORY MODAL ========= -->
+    <div id="blockFactoryOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; display:none; align-items:center; justify-content:center;">
+        <div style="background:#1e293b; border:1px solid rgba(236,72,153,0.4); border-radius:16px; width:680px; max-height:90vh; overflow-y:auto; padding:30px; box-shadow:0 0 60px rgba(236,72,153,0.2);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                <div>
+                    <h2 style="margin:0; font-size:20px; color:#f9a8d4;">🛠️ Xưởng Đúc Gạch</h2>
+                    <div style="font-size:12px; color:#64748b; margin-top:4px;">Tạo viên gạch tùy chỉnh cho Workflow của bạn</div>
+                </div>
+                <button onclick="closeBlockFactory()" style="background:rgba(255,255,255,0.08); border:none; color:#e2e8f0; width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:16px;">✕</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
+                <div>
+                    <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">Tên viên gạch *</label>
+                    <input id="bfName" class="set-input" placeholder="Ví dụ: Check Index Google" style="width:100%; box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">Icon (Emoji)</label>
+                    <input id="bfIcon" class="set-input" placeholder="🔍" style="width:100%; box-sizing:border-box; font-size:20px; text-align:center;">
+                </div>
+            </div>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
+                <div>
+                    <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">Màu sắc</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="color" id="bfColor" value="#ec4899" style="width:48px; height:40px; border:none; border-radius:8px; cursor:pointer; background:none;">
+                        <span style="font-size:11px; color:#64748b;">Chọn màu cho viên gạch</span>
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">Mô tả ngắn</label>
+                    <input id="bfDesc" class="set-input" placeholder="Mô tả tính năng..." style="width:100%; box-sizing:border-box;">
+                </div>
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <label style="font-size:12px; color:#94a3b8; display:block; margin-bottom:6px;">💻 Mã Xử Lý Javascript *</label>
+                <div style="background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:12px; margin-bottom:8px; font-size:11px; color:#64748b; line-height:1.6;">
+                    <b style="color:#94a3b8;">Hướng dẫn:</b> Dữ liệu đầu vào là mảng <code style="color:#38bdf8;">items</code>. Mỗi phần tử là một object chứa các trường dữ liệu từ bước trước (vd: <code style="color:#38bdf8;">item.url</code>, <code style="color:#38bdf8;">item.status</code>...). Bạn phải <code style="color:#38bdf8;">return items</code> sau khi xử lý.
+                </div>
+                <textarea id="bfCode" style="width:100%; height:280px; background:#0f172a; color:#38bdf8; border:1px solid rgba(56,189,248,0.3); border-radius:8px; padding:15px; font-family:monospace; font-size:12px; line-height:1.6; box-sizing:border-box; resize:vertical; outline:none;" spellcheck="false" placeholder="// Ví dụ:
+return items.map(item => {
+    item.myField = 'processed: ' + item.url;
+    return item;
+});"></textarea>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:12px;">
+                <button onclick="closeBlockFactory()" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.1); color:#e2e8f0; padding:10px 24px; border-radius:8px; cursor:pointer; font-size:13px;">Hủy</button>
+                <button onclick="saveBlockFactory()" style="background:linear-gradient(135deg, #ec4899, #a855f7); border:none; color:white; padding:10px 24px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600;">💾 Lưu Viên Gạch</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    let _bfEditingIdx = null;
+
+    function openBlockFactory(idx) {
+        _bfEditingIdx = idx;
+        const overlay = document.getElementById('blockFactoryOverlay');
+        overlay.style.display = 'flex';
+        
+        if (idx !== null && idx !== undefined) {
+            const blocks = getUserBlocks();
+            const b = blocks[idx];
+            if (b) {
+                document.getElementById('bfName').value = b.label || '';
+                document.getElementById('bfIcon').value = b.icon || '⚙️';
+                document.getElementById('bfColor').value = b.color || '#ec4899';
+                document.getElementById('bfDesc').value = b.desc || '';
+                document.getElementById('bfCode').value = b.code || '';
+            }
+        } else {
+            document.getElementById('bfName').value = '';
+            document.getElementById('bfIcon').value = '⚙️';
+            document.getElementById('bfColor').value = '#ec4899';
+            document.getElementById('bfDesc').value = '';
+            document.getElementById('bfCode').value = '// Dữ liệu đầu vào là mảng: items\n// Bạn phải return mảng items sau khi xử lý.\n\nreturn items.map(item => {\n    // Xử lý dữ liệu ở đây...\n    return item;\n});';
+        }
+    }
+
+    function closeBlockFactory() {
+        document.getElementById('blockFactoryOverlay').style.display = 'none';
+        _bfEditingIdx = null;
+    }
+
+    function saveBlockFactory() {
+        const name = document.getElementById('bfName').value.trim();
+        const code = document.getElementById('bfCode').value.trim();
+        if (!name) { alert('Vui lòng nhập tên viên gạch!'); return; }
+        if (!code) { alert('Vui lòng nhập mã xử lý!'); return; }
+        
+        const blocks = getUserBlocks();
+        const block = {
+            type: _bfEditingIdx !== null ? blocks[_bfEditingIdx].type : 'user_' + Date.now(),
+            category: 'user',
+            icon: document.getElementById('bfIcon').value.trim() || '⚙️',
+            label: name,
+            color: document.getElementById('bfColor').value || '#ec4899',
+            desc: document.getElementById('bfDesc').value.trim() || 'Viên gạch tùy chỉnh',
+            code: code
+        };
+        
+        if (_bfEditingIdx !== null && blocks[_bfEditingIdx]) {
+            blocks[_bfEditingIdx] = block;
+        } else {
+            blocks.push(block);
+        }
+        
+        saveUserBlocks(blocks);
+        renderPalette();
+        closeBlockFactory();
+        
+        // Toast notification
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed; bottom:30px; right:30px; background:linear-gradient(135deg,#ec4899,#a855f7); color:white; padding:14px 22px; border-radius:12px; font-size:14px; font-weight:600; z-index:99999; box-shadow:0 8px 32px rgba(236,72,153,0.4);';
+        toast.textContent = '✅ Đã lưu viên gạch: ' + name;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    function deleteUserBlock(idx) {
+        const blocks = getUserBlocks();
+        const name = blocks[idx]?.label || 'viên gạch này';
+        if (!confirm('Bạn có chắc muốn xóa "' + name + '"?')) return;
+        blocks.splice(idx, 1);
+        saveUserBlocks(blocks);
+        renderPalette();
+    }
+    </script>
 
 </body>
 </html>
