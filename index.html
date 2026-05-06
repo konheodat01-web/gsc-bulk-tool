@@ -3751,27 +3751,50 @@
 
     function renderSettingsBody(node) {
         const body = document.getElementById('wfSetBody');
-        // CLEAR OLD CONTENT IMMEDIATELY to prevent bleeding data
         body.innerHTML = '';
-        
         const data = node.data || {};
+        const config = node.config || {}; // Separate object for generic settings
         
-        if (node.type === 'input') {
+        let paramsHtml = '';
+        
+        if (node.type === 'trigger-cron') {
+            paramsHtml = `
+                <div class="set-group" style="background:rgba(245,158,11,0.1); padding:15px; border-radius:8px; border:1px solid rgba(245,158,11,0.2);">
+                    <div style="font-size:12px; color:#fcd34d; margin-bottom:10px;">Quy trình sẽ tự động chạy theo lịch trình bạn thiết lập ở đây.</div>
+                    
+                    <label class="set-label">Khoảng thời gian kích hoạt</label>
+                    <select id="setCronInterval" class="set-input" style="margin-bottom:15px;">
+                        <option value="minutes" ${data.interval==='minutes'?'selected':''}>Phút (Minutes)</option>
+                        <option value="hours" ${data.interval==='hours'?'selected':''}>Giờ (Hours)</option>
+                        <option value="days" ${data.interval==='days'?'selected':''}>Ngày (Days)</option>
+                        <option value="weeks" ${data.interval==='weeks'?'selected':''}>Tuần (Weeks)</option>
+                    </select>
+
+                    <label class="set-label">Giá trị (VD: mỗi 1 ngày)</label>
+                    <input type="number" id="setCronValue" class="set-input" value="${data.value || 1}" style="margin-bottom:15px;" min="1">
+                    
+                    <label class="set-label">Thời gian cụ thể (Giờ:Phút)</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="number" id="setCronHour" class="set-input" value="${data.hour || 0}" min="0" max="23" placeholder="Giờ (0-23)">
+                        <input type="number" id="setCronMinute" class="set-input" value="${data.minute || 0}" min="0" max="59" placeholder="Phút (0-59)">
+                    </div>
+                </div>
+            `;
+        } else if (node.type === 'trigger-manual') {
+            paramsHtml = '<div style="text-align:center; padding:30px 0; color:#94a3b8; font-size:13px;">Nhấn nút <b>▶️ Test Run</b> hoặc <b>Chạy</b> ở Library để kích hoạt.</div>';
+        } else if (node.type === 'input') {
             const mode = data.mode || 'manual';
-            body.innerHTML = `
-                <div class="set-tabs">
+            paramsHtml = `
+                <div class="set-tabs" style="margin-bottom:15px;">
                     <div class="set-tab ${mode === 'manual' ? 'active' : ''}" onclick="switchInputMode('manual')">⌨️ Nhập tay</div>
                     <div class="set-tab ${mode === 'sheet' ? 'active' : ''}" onclick="switchInputMode('sheet')">📊 Google Sheets</div>
                 </div>
-                
                 <div id="inputModeManual" style="display: ${mode === 'manual' ? 'block' : 'none'}">
                     <div class="set-group">
                         <label class="set-label">Danh sách Website:</label>
                         <textarea id="setManualData" class="set-input" style="height: 250px; font-family: monospace; font-size: 11px;" placeholder="url | admin_path | user | pass\nvd:\nhttps://site.com | /wp-admin | admin | pass123">${data.manualRaw || ''}</textarea>
-                        <div style="font-size:10px; color:#64748b; margin-top:5px;">Mỗi website 1 dòng. Dùng dấu | để ngăn cách các cột.</div>
                     </div>
                 </div>
-                
                 <div id="inputModeSheet" style="display: ${mode === 'sheet' ? 'block' : 'none'}">
                     <div class="set-group">
                         <label class="set-label">URL Google Sheet:</label>
@@ -3784,7 +3807,7 @@
                 </div>
             `;
         } else if (node.type === 'http-status') {
-            body.innerHTML = `
+            paramsHtml = `
                 <div class="set-group">
                     <label class="set-label">Thời gian chờ (Timeout):</label>
                     <input type="number" id="setStatusTimeout" class="set-input" value="${data.timeout || 10000}" placeholder="ms (vd: 10000 = 10 giây)">
@@ -3796,7 +3819,7 @@
                 </div>
             `;
         } else if (node.type === 'telegram') {
-            body.innerHTML = `
+            paramsHtml = `
                 <div class="set-group">
                     <label class="set-label">Bot Token (Để trống nếu dùng Bot tổng):</label>
                     <input type="text" id="setTeleToken" class="set-input" value="${data.token || ''}" placeholder="123456:ABC-DEF...">
@@ -3812,7 +3835,7 @@
                 </div>
             `;
         } else if (node.type === 'ai-content') {
-             body.innerHTML = `
+             paramsHtml = `
                 <div class="set-group">
                     <label class="set-label">Model AI:</label>
                     <select id="setAiModel" class="set-input">
@@ -3827,15 +3850,89 @@
                 </div>
              `;
         } else {
-            body.innerHTML = '<div style="text-align:center; padding:40px 0; color:#64748b;">Node này hiện chưa có thông số tùy chỉnh.</div>';
+            paramsHtml = '<div style="text-align:center; padding:40px 0; color:#64748b;">Node này hiện chưa có thông số tùy chỉnh.</div>';
         }
+
+        // Generic settings HTML (Cài đặt chung cho mọi Node)
+        const settingsHtml = `
+            <div class="set-group" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:15px;">
+                <div>
+                    <div class="set-label" style="margin:0; color:#e2e8f0;">Luôn xuất dữ liệu</div>
+                    <div style="font-size:10px; color:#64748b;">Xuất data ngay cả khi không có kết quả</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="cfgAlwaysOutput" ${config.alwaysOutput ? 'checked' : ''}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            
+            <div class="set-group" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:15px; padding-top:15px;">
+                <div>
+                    <div class="set-label" style="margin:0; color:#e2e8f0;">Thực thi một lần</div>
+                    <div style="font-size:10px; color:#64748b;">Chỉ chạy 1 lần dù input có nhiều mục</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="cfgExecuteOnce" ${config.executeOnce ? 'checked' : ''}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            
+            <div class="set-group" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:15px; padding-top:15px;">
+                <div>
+                    <div class="set-label" style="margin:0; color:#e2e8f0;">Thử lại nếu thất bại</div>
+                    <div style="font-size:10px; color:#64748b;">Tự động chạy lại khi bị lỗi (Retry)</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="cfgRetry" ${config.retry ? 'checked' : ''} onchange="document.getElementById('retryOptions').style.display = this.checked ? 'block' : 'none'">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            
+            <div id="retryOptions" style="display: ${config.retry ? 'block' : 'none'}; background:rgba(0,0,0,0.2); padding:10px; border-radius:6px; margin-bottom:15px;">
+                <label class="set-label">Số lần thử tối đa</label>
+                <input type="number" id="cfgRetryCount" class="set-input" value="${config.retryCount || 3}" style="margin-bottom:10px;" min="1" max="10">
+            </div>
+
+            <div class="set-group" style="padding-top:10px;">
+                <label class="set-label" style="color:#ef4444;">Khi xảy ra lỗi (On Error)</label>
+                <select id="cfgOnError" class="set-input" style="border-color:rgba(239,68,68,0.3);">
+                    <option value="stop" ${config.onError==='stop'?'selected':''}>🛑 Dừng quy trình làm việc (Stop Workflow)</option>
+                    <option value="continue" ${config.onError==='continue'?'selected':''}>➡️ Tiếp tục (Bỏ qua lỗi)</option>
+                    <option value="continue-error" ${config.onError==='continue-error'?'selected':''}>🔀 Tiếp tục (Đẩy lỗi ra nhánh phụ)</option>
+                </select>
+            </div>
+        `;
+
+        body.innerHTML = `
+            <div class="main-tabs" style="display:flex; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:20px;">
+                <div class="m-tab active" onclick="switchMainTab('params')" style="flex:1; text-align:center; padding:10px; cursor:pointer; font-size:13px; font-weight:600; color:#a78bfa; border-bottom:2px solid #a78bfa;">Thông số</div>
+                <div class="m-tab" onclick="switchMainTab('settings')" style="flex:1; text-align:center; padding:10px; cursor:pointer; font-size:13px; font-weight:600; color:#94a3b8; border-bottom:2px solid transparent;">Cài đặt</div>
+            </div>
+            <div id="tabContentParams" style="display:block;">${paramsHtml}</div>
+            <div id="tabContentSettings" style="display:none;">${settingsHtml}</div>
+        `;
+    }
+
+    function switchMainTab(tab) {
+        const tabs = document.querySelectorAll('.m-tab');
+        tabs.forEach(t => { t.style.color = '#94a3b8'; t.style.borderBottomColor = 'transparent'; t.classList.remove('active'); });
+        
+        const activeTab = event.target;
+        activeTab.style.color = '#a78bfa';
+        activeTab.style.borderBottomColor = '#a78bfa';
+        activeTab.classList.add('active');
+        
+        document.getElementById('tabContentParams').style.display = tab === 'params' ? 'block' : 'none';
+        document.getElementById('tabContentSettings').style.display = tab === 'settings' ? 'block' : 'none';
     }
 
     function switchInputMode(mode) {
-        document.querySelectorAll('.set-tab').forEach(t => t.classList.remove('active'));
-        if (event) event.target.classList.add('active');
-        document.getElementById('inputModeManual').style.display = mode === 'manual' ? 'block' : 'none';
-        document.getElementById('inputModeSheet').style.display = mode === 'sheet' ? 'block' : 'none';
+        document.querySelectorAll('#tabContentParams .set-tab').forEach(t => t.classList.remove('active'));
+        if (event && event.target) event.target.classList.add('active');
+        const m = document.getElementById('inputModeManual');
+        const s = document.getElementById('inputModeSheet');
+        if(m) m.style.display = mode === 'manual' ? 'block' : 'none';
+        if(s) s.style.display = mode === 'sheet' ? 'block' : 'none';
         if (currentEditingNodeId) {
             const node = wfNodes.find(n => n.id === currentEditingNodeId);
             if(node) {
@@ -3851,13 +3948,25 @@
         if (!node) return;
         
         if (!node.data) node.data = {};
+        if (!node.config) node.config = {};
         
-        // ONLY save data that belongs to the current node type
-        if (node.type === 'input') {
+        // Save generic config (Settings tab)
+        node.config.alwaysOutput = document.getElementById('cfgAlwaysOutput')?.checked;
+        node.config.executeOnce = document.getElementById('cfgExecuteOnce')?.checked;
+        node.config.retry = document.getElementById('cfgRetry')?.checked;
+        node.config.retryCount = parseInt(document.getElementById('cfgRetryCount')?.value || 3);
+        node.config.onError = document.getElementById('cfgOnError')?.value || 'stop';
+
+        // Save node specific params (Params tab)
+        if (node.type === 'trigger-cron') {
+            node.data.interval = document.getElementById('setCronInterval')?.value || 'days';
+            node.data.value = parseInt(document.getElementById('setCronValue')?.value || 1);
+            node.data.hour = parseInt(document.getElementById('setCronHour')?.value || 0);
+            node.data.minute = parseInt(document.getElementById('setCronMinute')?.value || 0);
+        } else if (node.type === 'input') {
             node.data.manualRaw = document.getElementById('setManualData')?.value;
             node.data.sheetUrl = document.getElementById('setSheetUrl')?.value;
             node.data.sheetRange = document.getElementById('setSheetRange')?.value;
-            // mode is handled by switchInputMode
         } else if (node.type === 'http-status') {
             node.data.timeout = parseInt(document.getElementById('setStatusTimeout')?.value || 10000);
             node.data.checkWhitePage = document.getElementById('setCheckWhitePage')?.checked;
@@ -3887,7 +3996,24 @@
             closeNodeSettings();
         }
     }
-
+    
+    // Switch css for toggle switches
+    const switchCss = `
+    .switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; }
+    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #94a3b8; transition: .4s; }
+    input:checked + .slider { background-color: #7c3aed; }
+    input:checked + .slider:before { transform: translateX(14px); background-color: white; }
+    .slider.round { border-radius: 20px; }
+    .slider.round:before { border-radius: 50%; }
+    `;
+    if (!document.getElementById('switchCss')) {
+        const style = document.createElement('style');
+        style.id = 'switchCss';
+        style.innerHTML = switchCss;
+        document.head.appendChild(style);
+    }
 </script>
 
 </div>
