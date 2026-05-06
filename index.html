@@ -847,8 +847,12 @@
     }
 
     async function callVps(ip, path) {
-        // Gọi thẳng vào VPS - VPS đã có CORS headers nên không cần trung gian
-        const res = await fetch(`http://${ip}:3000${path}`);
+        // Phải đi qua HTTPS proxy vì trang chạy trên HTTPS (Mixed Content block)
+        const vpsUrl = 'http://' + ip + ':3000' + path;
+        const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(vpsUrl);
+        const ctrl = new AbortController();
+        setTimeout(() => ctrl.abort(), 12000);
+        const res = await fetch(proxyUrl, { signal: ctrl.signal });
         return res.json();
     }
 
@@ -1694,7 +1698,9 @@
         try {
             const ctrl = new AbortController();
             setTimeout(() => ctrl.abort(), 12000);
-            const res = await fetch(`http://${ip}:3000/check-login?url=${encodeURIComponent(url)}&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`, { signal: ctrl.signal });
+            const vpsLoginUrl = 'http://' + ip + ':3000/check-login?url=' + encodeURIComponent(url) + '&user=' + encodeURIComponent(user) + '&pass=' + encodeURIComponent(pass);
+            const loginProxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(vpsLoginUrl);
+            const res = await fetch(loginProxyUrl, { signal: ctrl.signal });
             const data = await res.json();
             if (data.success) {
                 if (data.result.includes('OK')) return '<span class="status-badge status-success" style="font-size:10px;">🔑 Login OK</span>';
