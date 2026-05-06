@@ -1324,6 +1324,11 @@
         // Khôi phục Workflow đã lưu từ localStorage
         renderWorkflowList();
         updateAutomationBadge();
+        // Khôi phục tab đang làm việc (F5 trở về tab cũ)
+        const lastTab = sessionStorage.getItem('lastTab');
+        if (lastTab && document.getElementById(lastTab)) {
+            switchTab(lastTab);
+        }
     });
 
     
@@ -1345,47 +1350,46 @@ async function saveWorkflow() {
         const trigger = document.getElementById('wfTrigger').value;
         const action = document.getElementById('wfAction').value;
         const notify = document.getElementById('wfTelegram').checked;
-        const ip = document.getElementById('vpsIp').value.trim();
-
-        if (!ip) {
-            alert('Vui lòng nhập IP VPS ở Cấu hình chung!');
-            return;
-        }
 
         const btn = event.target.closest('button');
         const oldText = btn.innerHTML;
         btn.innerHTML = '⏳ Đang lưu...';
         btn.disabled = true;
 
-        try {
-            const url = 'http://' + ip + ':3000/save-workflow?trigger=' + trigger + '&action=' + action + '&notify=' + notify;
-            const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url);
-            
-            const res = await fetch(proxyUrl);
-            const data = await res.json();
+        const triggerLabels = { 'cron_8h': '⏰ 8h sáng / ngày', 'cron_4h': '⏰ Mỗi 4 tiếng', 'manual': '👉 Thủ công' };
+        const actionLabels = { 'audit_301': '🔍 Check 301 & Login', 'audit_bot': '🤖 Check Bot', 'fetch_gsc': '📈 Đồng bộ GSC' };
 
-            if (data.success) {
-                document.getElementById('wfStatus').style.display = 'block';
-                setTimeout(() => document.getElementById('wfStatus').style.display = 'none', 3000);
-                
-                // Update UI list
-                document.getElementById('wfListBody').innerHTML = `
-                    <tr>
-                        <td><strong>Auto ${action.split('_')[1].toUpperCase()}</strong></td>
-                        <td><span class="status-badge" style="background:var(--success)">${trigger}</span></td>
-                        <td>${action}</td>
-                        <td><span class="status-badge status-success">Đang chạy ngầm</span></td>
-                        <td>
-                            <button class="btn-mini" onclick="alert('Đã lưu! Chức năng này sẽ tự động chạy ngầm trên VPS.')">▶️ Chạy Ngay</button>
-                            <button class="btn-mini" style="background:var(--danger)">🗑️ Xóa</button>
-                        </td>
-                    </tr>
-                `;
-            } else {
-                alert('Lỗi từ VPS: ' + data.message);
-            }
-        } catch(e) {
-            alert('Lỗi kết nối VPS: ' + e.message);
+        const wfEntry = {
+            trigger, action, notify,
+            triggerLabel: triggerLabels[trigger],
+            actionLabel: actionLabels[action],
+            time: new Date().toISOString()
+        };
+
+        // Lưu vào localStorage ngay lập tức
+        let stored = JSON.parse(localStorage.getItem('wf_list') || '[]');
+        stored.push(wfEntry);
+        localStorage.setItem('wf_list', JSON.stringify(stored));
+
+        // Hiển thị thành công
+        document.getElementById('wfStatus').style.display = 'block';
+        setTimeout(() => document.getElementById('wfStatus').style.display = 'none', 3000);
+        renderWorkflowList();
+        updateAutomationBadge();
+
+        // Nếu có VPS, bắn lên VPS để chạy schedule (không bắt buộc)
+        const ip = document.getElementById('vpsIp').value.trim();
+        if (ip) {
+            try {
+                const url = 'http://' + ip + ':3000/save-workflow?trigger=' + trigger + '&action=' + action + '&notify=' + notify;
+                const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url);
+                const res = await fetch(proxyUrl);
+                const text = await res.text();
+                try {
+                    const data = JSON.parse(text);
+                    if (!data.success) console.warn('VPS workflow warning:', data.message);
+                } catch(e) { /* VPS trả HTML - bỏ qua */ }
+            } catch(e) { /* Mạng lỗi - đã lưu local rồi, ok */ }
         }
 
         btn.innerHTML = oldText;
@@ -1467,6 +1471,8 @@ async function saveWorkflow() {
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         document.querySelector(`[onclick="switchTab('${id}')"]`).classList.add('active');
+        // Ghi nhớ tab đang mở
+        sessionStorage.setItem('lastTab', id);
     }
 
     // --- TAB 1 LOGIC ---
