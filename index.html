@@ -225,6 +225,127 @@
         }
         .auto-overlay.open { display: block; }
 
+        
+        /* ====== WORKFLOW BUILDER ====== */
+        .wf-builder-body { display: flex; height: calc(100vh - 65px); overflow: hidden; }
+        
+        /* Palette */
+        .wf-palette {
+            width: 220px; flex-shrink: 0;
+            background: rgba(0,0,0,0.3);
+            border-right: 1px solid rgba(124,58,237,0.2);
+            overflow-y: auto; padding: 12px 8px;
+        }
+        .palette-section-title {
+            font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+            color: #64748b; padding: 6px 8px 4px; text-transform: uppercase;
+        }
+        .palette-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 10px; border-radius: 7px; margin-bottom: 4px;
+            cursor: grab; font-size: 12px; color: #e2e8f0;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+            transition: all 0.15s; user-select: none;
+        }
+        .palette-item:hover { background: rgba(124,58,237,0.15); border-color: rgba(124,58,237,0.4); transform: translateX(2px); }
+        .palette-item:active { cursor: grabbing; }
+        .palette-item .pi-icon { font-size: 16px; flex-shrink: 0; }
+        .palette-item .pi-text { line-height: 1.3; }
+        .palette-item .pi-label { font-weight: 600; font-size: 11px; }
+        .palette-item .pi-desc { font-size: 10px; color: #475569; }
+        .palette-divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 10px 0; }
+
+        /* Canvas */
+        .wf-canvas-wrap { flex: 1; position: relative; overflow: hidden; background: #080d1a; }
+        .wf-canvas-wrap::before {
+            content: ''; position: absolute; inset: 0;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+            background-size: 28px 28px;
+        }
+        #wfCanvas {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+        }
+        .wf-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        .wf-connection-line { fill: none; stroke: #7c3aed; stroke-width: 2; stroke-dasharray: none; opacity: 0.7; }
+        .wf-connection-line.temp { stroke-dasharray: 5 4; opacity: 0.5; }
+        
+        /* Blocks on canvas */
+        .wf-node {
+            position: absolute; z-index: 2;
+            background: #1a1035; border: 1.5px solid rgba(124,58,237,0.4);
+            border-radius: 10px; min-width: 160px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            cursor: move; user-select: none;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .wf-node:hover { border-color: rgba(124,58,237,0.8); box-shadow: 0 6px 30px rgba(124,58,237,0.3); }
+        .wf-node.selected { border-color: #a78bfa; box-shadow: 0 0 0 2px rgba(167,139,250,0.3); }
+        .wf-node.compound { border-color: rgba(245,158,11,0.5); }
+        .wf-node.compound:hover { border-color: rgba(245,158,11,0.9); box-shadow: 0 6px 30px rgba(245,158,11,0.25); }
+        .wf-node-header {
+            padding: 8px 12px; display: flex; align-items: center; gap: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.06); border-radius: 9px 9px 0 0;
+        }
+        .wf-node-icon { font-size: 18px; flex-shrink: 0; }
+        .wf-node-title { font-size: 12px; font-weight: 700; color: #e2e8f0; }
+        .wf-node-body { padding: 8px 12px; font-size: 11px; color: #64748b; }
+        .wf-node-del {
+            margin-left: auto; background: none; border: none; color: #475569;
+            font-size: 13px; cursor: pointer; padding: 0; line-height: 1;
+        }
+        .wf-node-del:hover { color: #ef4444; }
+
+        /* Ports */
+        .wf-ports { display: flex; justify-content: space-between; align-items: center; padding: 0 0 6px; position: relative; }
+        .wf-port {
+            width: 12px; height: 12px; border-radius: 50%;
+            background: #334155; border: 2px solid #475569;
+            cursor: crosshair; transition: all 0.15s; flex-shrink: 0;
+            position: relative;
+        }
+        .wf-port:hover { background: #7c3aed; border-color: #a78bfa; transform: scale(1.3); }
+        .port-in { margin-left: -6px; }
+        .port-out { margin-right: -6px; }
+
+        /* Toolbar */
+        .wf-toolbar-strip {
+            display: flex; gap: 8px; padding: 0 25px 0 0;
+        }
+        .wf-tool-btn {
+            padding: 6px 14px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05); color: #e2e8f0; font-size: 12px;
+            cursor: pointer; transition: all 0.15s; white-space: nowrap;
+        }
+        .wf-tool-btn:hover { background: rgba(124,58,237,0.2); border-color: #7c3aed; }
+        .wf-tool-btn.primary { background: #7c3aed; border-color: #7c3aed; font-weight: 600; }
+        .wf-tool-btn.primary:hover { background: #6d28d9; }
+        .wf-tool-btn.danger { border-color: rgba(239,68,68,0.3); color: #f87171; }
+        .wf-tool-btn.danger:hover { background: rgba(239,68,68,0.15); }
+
+        /* Empty canvas hint */
+        .wf-canvas-hint {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; color: #1e293b; pointer-events: none;
+            font-size: 14px; transition: opacity 0.3s;
+        }
+        .wf-canvas-hint .hint-icon { font-size: 48px; display: block; margin-bottom: 10px; opacity: 0.3; }
+
+        /* Saved WF list overlay */
+        .wf-saved-panel {
+            position: absolute; right: 15px; top: 15px; width: 220px;
+            background: rgba(10,5,30,0.95); border: 1px solid rgba(124,58,237,0.3);
+            border-radius: 10px; z-index: 10; overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+        .wf-saved-header { padding: 10px 14px; font-size: 11px; font-weight: 700; color: #a78bfa; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .wf-saved-item { padding: 9px 14px; font-size: 11px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; justify-content: space-between; align-items: center; }
+        .wf-saved-item:hover { background: rgba(124,58,237,0.1); color: #e2e8f0; cursor: pointer; }
+        .wf-saved-item .wf-si-actions { display: flex; gap: 4px; }
+        .wf-si-btn { background: none; border: none; font-size: 12px; cursor: pointer; padding: 2px 4px; border-radius: 4px; }
+        .wf-si-btn:hover { background: rgba(255,255,255,0.1); }
+
         </style>
 </head>
 <body>
@@ -1319,9 +1440,10 @@
     window.addEventListener('load', () => {
         loadTeleSettings();
         loadAccountsFromLocal();
-        // Khôi phục Workflow đã lưu từ localStorage
-        renderWorkflowList();
+        // Hiển thị badge workflow đã lưu
         updateAutomationBadge();
+        // Khôi phục panel nếu đang mở
+        if (sessionStorage.getItem('panelOpen') === '1') openAutomationPanel();
         // Khôi phục tab đang làm việc (F5 trở về tab cũ)
         const lastTab = sessionStorage.getItem('lastTab');
         if (lastTab && document.getElementById(lastTab)) {
@@ -1339,8 +1461,14 @@
         document.getElementById('automationPanel').classList.add('open');
         document.getElementById('autoOverlay').classList.add('open');
         document.body.style.overflow = 'hidden';
-        renderWorkflowList();
         sessionStorage.setItem('panelOpen', '1');
+        // Init builder the first time
+        if (!window._wfBuilderInited) {
+            window._wfBuilderInited = true;
+            initWorkflowBuilder();
+        } else {
+            renderSavedWfList();
+        }
     }
 
     function closeAutomationPanel() {
@@ -1350,61 +1478,338 @@
         sessionStorage.removeItem('panelOpen');
     }
 
-async function saveWorkflow() {
-        const trigger = document.getElementById('wfTrigger').value;
-        const action = document.getElementById('wfAction').value;
-        const notify = document.getElementById('wfTelegram').checked;
 
-        const btn = event.target.closest('button');
-        const oldText = btn.innerHTML;
-        btn.innerHTML = '⏳ Đang lưu...';
-        btn.disabled = true;
-
-        const triggerLabels = { 'cron_8h': '⏰ 8h sáng / ngày', 'cron_4h': '⏰ Mỗi 4 tiếng', 'manual': '👉 Thủ công' };
-        const actionLabels = { 'audit_301': '🔍 Check 301 & Login', 'audit_bot': '🤖 Check Bot', 'fetch_gsc': '📈 Đồng bộ GSC' };
-
-        const wfEntry = {
-            trigger, action, notify,
-            triggerLabel: triggerLabels[trigger],
-            actionLabel: actionLabels[action],
-            time: new Date().toISOString()
-        };
-
-        // Lưu vào localStorage ngay lập tức
-        let stored = JSON.parse(localStorage.getItem('wf_list') || '[]');
-        stored.push(wfEntry);
-        localStorage.setItem('wf_list', JSON.stringify(stored));
-
-        // Hiển thị thành công
-        document.getElementById('wfStatus').style.display = 'block';
-        setTimeout(() => document.getElementById('wfStatus').style.display = 'none', 3000);
-        renderWorkflowList();
-        updateAutomationBadge();
-
-        // Nếu có VPS, bắn lên VPS để chạy schedule (không bắt buộc)
-        const ip = document.getElementById('vpsIp').value.trim();
-        if (ip) {
-            try {
-                const url = 'http://' + ip + ':3000/save-workflow?trigger=' + trigger + '&action=' + action + '&notify=' + notify;
-                const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url);
-                const res = await fetch(proxyUrl);
-                const text = await res.text();
-                try {
-                    const data = JSON.parse(text);
-                    if (!data.success) console.warn('VPS workflow warning:', data.message);
-                } catch(e) { /* VPS trả HTML - bỏ qua */ }
-            } catch(e) { /* Mạng lỗi - đã lưu local rồi, ok */ }
-        }
-
-        btn.innerHTML = oldText;
-        btn.disabled = false;
+    // ===== WORKFLOW BUILDER ENGINE =====
+    // Workflow Builder Engine - all functions
+    const ATOMIC_BLOCKS = [
+        { type: 'input',       icon: '📥', label: 'Nhập Dữ Liệu',     color: '#3b82f6', desc: 'Danh sách URL / domain đầu vào' },
+        { type: 'gsc-auth',    icon: '🔗', label: 'Kết Nối Google',    color: '#4f46e5', desc: 'Xác thực tài khoản Google OAuth' },
+        { type: 'gsc-verify',  icon: '✅', label: 'Xác Minh Site',     color: '#7c3aed', desc: 'Xác minh quyền sở hữu trong GSC' },
+        { type: 'gsc-sitemap', icon: '🗺️', label: 'Nạp Sitemap',      color: '#8b5cf6', desc: 'Submit sitemap lên Google Search' },
+        { type: 'check-301',   icon: '🔀', label: 'Check 301',         color: '#f59e0b', desc: 'Kiểm tra redirect 301 có đúng không' },
+        { type: 'check-login', icon: '🔑', label: 'Check WP Login',    color: '#ef4444', desc: 'Kiểm tra đăng nhập WordPress' },
+        { type: 'check-bot',   icon: '🤖', label: 'Check Bot Access',  color: '#10b981', desc: 'Kiểm tra bot được phép truy cập' },
+        { type: 'fetch-gsc',   icon: '📊', label: 'Lấy Data GSC',      color: '#06b6d4', desc: 'Lấy dữ liệu click / impression' },
+        { type: 'condition',   icon: '⑂',  label: 'Điều Kiện / Lọc',  color: '#f97316', desc: 'Rẽ nhánh: Đúng → A, Sai → B' },
+        { type: 'ai-content',  icon: '✍️', label: 'AI Viết Bài',      color: '#a855f7', desc: 'Tạo nội dung SEO bằng AI' },
+        { type: 'telegram',    icon: '📩', label: 'Báo Cáo Telegram',  color: '#0088cc', desc: 'Gửi kết quả qua Telegram bot' },
+    ];
+    
+    const COMPOUND_BLOCKS = [
+        { type: 'tool-gsc',      icon: '📦', label: 'GSC Full',       color: '#1e40af', desc: 'Auth + Verify + Sitemap đầy đủ' },
+        { type: 'tool-301',      icon: '📦', label: 'Check 301 & WP', color: '#92400e', desc: '301 + WP Login check toàn hệ thống' },
+        { type: 'tool-bot',      icon: '📦', label: 'Check Bot Full', color: '#065f46', desc: 'Bot check toàn hệ thống' },
+        { type: 'tool-overview', icon: '📦', label: 'System Audit',   color: '#3730a3', desc: 'Quét tổng quan toàn bộ hệ thống' },
+    ];
+    
+    let wfNodes = [];
+    let wfEdges = [];
+    let wfNodeCount = 0;
+    let draggingPalette = null;
+    let draggingNode = null;
+    let connectingFrom = null;
+    let tempLine = null;
+    
+    function initWorkflowBuilder() {
+        renderPalette();
+        initCanvasDrop();
+        renderSavedWfList();
+        restoreCanvasFromSession();
     }
-
-
+    
+    function allBlocks() { return [...ATOMIC_BLOCKS, ...COMPOUND_BLOCKS]; }
+    
+    function renderPalette() {
+        const atomicEl = document.getElementById('atomicPaletteList');
+        const compoundEl = document.getElementById('compoundPaletteList');
+        if (!atomicEl || !compoundEl) return;
+        atomicEl.innerHTML = ATOMIC_BLOCKS.map(b =>
+            `<div class="palette-item" draggable="true" data-btype="${b.type}" data-bcat="atomic" title="${b.desc}">
+                <span class="pi-icon">${b.icon}</span>
+                <div class="pi-text"><div class="pi-label">${b.label}</div><div class="pi-desc">${b.desc.substring(0,32)}...</div></div>
+            </div>`
+        ).join('');
+        compoundEl.innerHTML = COMPOUND_BLOCKS.map(b =>
+            `<div class="palette-item" draggable="true" data-btype="${b.type}" data-bcat="compound" title="${b.desc}" style="border-color:rgba(245,158,11,0.25);background:rgba(245,158,11,0.06);">
+                <span class="pi-icon">${b.icon}</span>
+                <div class="pi-text"><div class="pi-label" style="color:#fbbf24;">${b.label}</div><div class="pi-desc">${b.desc.substring(0,32)}...</div></div>
+            </div>`
+        ).join('');
+        // Attach drag events to palette items
+        document.querySelectorAll('#atomicPaletteList .palette-item, #compoundPaletteList .palette-item').forEach(el => {
+            el.addEventListener('dragstart', e => {
+                draggingPalette = { type: el.dataset.btype, cat: el.dataset.bcat };
+                e.dataTransfer.effectAllowed = 'copy';
+            });
+        });
+    }
+    
+    function initCanvasDrop() {
+        const wrap = document.getElementById('wfCanvasWrap');
+        if (!wrap) return;
+        wrap.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+        wrap.addEventListener('drop', e => {
+            e.preventDefault();
+            if (!draggingPalette) return;
+            const rect = wrap.getBoundingClientRect();
+            const x = Math.max(0, e.clientX - rect.left - 85);
+            const y = Math.max(0, e.clientY - rect.top  - 45);
+            addNode(draggingPalette.type, draggingPalette.cat, x, y);
+            draggingPalette = null;
+            saveCanvasToSession();
+        });
+        wrap.addEventListener('mousemove', e => {
+            if (!connectingFrom || !tempLine) return;
+            const rect = wrap.getBoundingClientRect();
+            const fromNode = wfNodes.find(n => n.id === connectingFrom.nodeId);
+            if (!fromNode) return;
+            tempLine.setAttribute('d', bezierPath(fromNode.x + 170, fromNode.y + 40, e.clientX - rect.left, e.clientY - rect.top));
+        });
+        wrap.addEventListener('click', e => {
+            if (connectingFrom && !e.target.closest('.port-in')) {
+                connectingFrom = null;
+                if (tempLine) { tempLine.remove(); tempLine = null; }
+            }
+        });
+    }
+    
+    function addNode(type, cat, x, y) {
+        const def = allBlocks().find(b => b.type === type);
+        if (!def) return;
+        const id = 'node_' + (++wfNodeCount);
+        wfNodes.push({ id, type, cat, x, y, def });
+        renderNode(id);
+        hideHint();
+    }
+    
+    function renderNode(nodeId) {
+        const node = wfNodes.find(n => n.id === nodeId);
+        if (!node) return;
+        const canvas = document.getElementById('wfCanvas');
+        const isCompound = node.cat === 'compound';
+        const el = document.createElement('div');
+        el.className = 'wf-node' + (isCompound ? ' compound' : '');
+        el.id = nodeId;
+        el.style.cssText = `left:${node.x}px;top:${node.y}px;`;
+        const inPort  = node.type !== 'input'    ? `<div class="wf-port port-in"  data-nodeid="${nodeId}" data-port="in"></div>`  : '<div></div>';
+        const outPort = node.type !== 'telegram' ? `<div class="wf-port port-out" data-nodeid="${nodeId}" data-port="out"></div>` : '<div></div>';
+        el.innerHTML = `
+            <div class="wf-node-header" style="background:${node.def.color}22;">
+                <span class="wf-node-icon">${node.def.icon}</span>
+                <span class="wf-node-title">${node.def.label}</span>
+                ${isCompound ? '<span style="font-size:9px;background:rgba(245,158,11,0.25);color:#fbbf24;padding:2px 6px;border-radius:999px;margin-left:auto;">TOOL</span>' : ''}
+                <button class="wf-node-del" data-delid="${nodeId}" title="Xóa">✕</button>
+            </div>
+            <div class="wf-node-body">${node.def.desc}</div>
+            <div class="wf-ports">${inPort}${outPort}</div>`;
+        el.addEventListener('mousedown', e => {
+            if (e.target.closest('.wf-port') || e.target.closest('.wf-node-del')) return;
+            e.preventDefault();
+            draggingNode = { id: nodeId, startX: node.x, startY: node.y, mx: e.clientX, my: e.clientY };
+            document.addEventListener('mousemove', onNodeDrag);
+            document.addEventListener('mouseup', onNodeDragEnd);
+        });
+        el.querySelector('.wf-node-del').addEventListener('click', () => deleteNode(nodeId));
+        el.querySelectorAll('.wf-port').forEach(p => p.addEventListener('click', e => onPortClick(e, nodeId, p.dataset.port)));
+        canvas.appendChild(el);
+    }
+    
+    function onNodeDrag(e) {
+        if (!draggingNode) return;
+        const node = wfNodes.find(n => n.id === draggingNode.id);
+        if (!node) return;
+        node.x = Math.max(0, draggingNode.startX + e.clientX - draggingNode.mx);
+        node.y = Math.max(0, draggingNode.startY + e.clientY - draggingNode.my);
+        const el = document.getElementById(draggingNode.id);
+        if (el) { el.style.left = node.x + 'px'; el.style.top = node.y + 'px'; }
+        renderConnections();
+    }
+    
+    function onNodeDragEnd() {
+        draggingNode = null;
+        document.removeEventListener('mousemove', onNodeDrag);
+        document.removeEventListener('mouseup', onNodeDragEnd);
+        saveCanvasToSession();
+    }
+    
+    function deleteNode(id) {
+        wfNodes = wfNodes.filter(n => n.id !== id);
+        wfEdges = wfEdges.filter(e => e.from !== id && e.to !== id);
+        const el = document.getElementById(id);
+        if (el) el.remove();
+        renderConnections();
+        if (wfNodes.length === 0) showHint();
+        saveCanvasToSession();
+    }
+    
+    function onPortClick(e, nodeId, portType) {
+        e.stopPropagation();
+        if (portType === 'out') {
+            connectingFrom = { nodeId };
+            const svg = document.getElementById('wfSvg');
+            if (tempLine) tempLine.remove();
+            tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            tempLine.classList.add('wf-connection-line', 'temp');
+            svg.appendChild(tempLine);
+        } else if (portType === 'in' && connectingFrom) {
+            if (connectingFrom.nodeId !== nodeId) {
+                if (!wfEdges.find(ex => ex.from === connectingFrom.nodeId && ex.to === nodeId)) {
+                    wfEdges.push({ from: connectingFrom.nodeId, to: nodeId });
+                    renderConnections();
+                    saveCanvasToSession();
+                }
+            }
+            connectingFrom = null;
+            if (tempLine) { tempLine.remove(); tempLine = null; }
+        }
+    }
+    
+    function renderConnections() {
+        const svg = document.getElementById('wfSvg');
+        if (!svg) return;
+        svg.querySelectorAll('.wf-connection-line:not(.temp)').forEach(l => l.remove());
+        wfEdges.forEach(edge => {
+            const f = wfNodes.find(n => n.id === edge.from);
+            const t = wfNodes.find(n => n.id === edge.to);
+            if (!f || !t) return;
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.classList.add('wf-connection-line');
+            path.setAttribute('d', bezierPath(f.x + 170, f.y + 40, t.x, t.y + 40));
+            svg.insertBefore(path, svg.firstChild);
+        });
+    }
+    
+    function bezierPath(x1, y1, x2, y2) {
+        const dx = Math.abs(x2 - x1) * 0.5;
+        return `M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;
+    }
+    
+    function hideHint() { const h = document.getElementById('wfHint'); if(h) h.style.opacity = '0'; }
+    function showHint()  { const h = document.getElementById('wfHint'); if(h) h.style.opacity = '1'; }
+    
+    function clearCanvas() {
+        if (wfNodes.length > 0 && !confirm('Xóa toàn bộ canvas?')) return;
+        wfNodes = []; wfEdges = []; wfNodeCount = 0; connectingFrom = null;
+        if (tempLine) { tempLine.remove(); tempLine = null; }
+        document.querySelectorAll('#wfCanvas .wf-node').forEach(el => el.remove());
+        const svg = document.getElementById('wfSvg');
+        if (svg) svg.innerHTML = '';
+        showHint();
+        saveCanvasToSession();
+    }
+    
+    function saveCurrentWorkflow() {
+        const nameEl = document.getElementById('wfNameInput');
+        const name = (nameEl ? nameEl.value.trim() : '') || ('Workflow ' + new Date().toLocaleTimeString('vi-VN'));
+        if (wfNodes.length === 0) { alert('Canvas đang trống! Thêm ít nhất 1 block trước.'); return; }
+        const wf = { id: Date.now(), name, nodes: wfNodes.map(n=>({id:n.id,type:n.type,cat:n.cat,x:n.x,y:n.y})), edges: wfEdges, savedAt: new Date().toISOString() };
+        let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        list.unshift(wf);
+        if (list.length > 20) list = list.slice(0, 20);
+        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        renderSavedWfList();
+        updateAutomationBadge();
+        if (nameEl) nameEl.value = '';
+        alert('Đã lưu: ' + name);
+    }
+    
+    function renderSavedWfList() {
+        const el = document.getElementById('savedWfList');
+        if (!el) return;
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        if (!list.length) { el.innerHTML = '<div style="padding:12px 14px;font-size:11px;color:#475569;">Chưa có workflow nào</div>'; return; }
+        el.innerHTML = list.map((wf, i) =>
+            `<div class="wf-saved-item">
+                <span onclick="loadWorkflow(${i})" style="flex:1;cursor:pointer;" title="Load">${wf.name}</span>
+                <div class="wf-si-actions">
+                    <button class="wf-si-btn" onclick="loadWorkflow(${i})">📂</button>
+                    <button class="wf-si-btn" onclick="deleteWorkflowByIdx(${i})" style="color:#f87171;">🗑️</button>
+                </div>
+            </div>`
+        ).join('');
+    }
+    
+    function loadWorkflow(idx) {
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        const wf = list[idx];
+        if (!wf) return;
+        clearCanvas();
+        wf.nodes.forEach(n => {
+            const def = allBlocks().find(b => b.type === n.type);
+            if (!def) return;
+            wfNodes.push({ ...n, def });
+            wfNodeCount = Math.max(wfNodeCount, parseInt(n.id.split('_')[1]) || 0);
+            renderNode(n.id);
+        });
+        wfEdges = wf.edges || [];
+        renderConnections();
+        if (wfNodes.length > 0) hideHint();
+        const nameEl = document.getElementById('wfNameInput');
+        if (nameEl) nameEl.value = wf.name;
+        saveCanvasToSession();
+    }
+    
+    function deleteWorkflowByIdx(idx) {
+        let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        list.splice(idx, 1);
+        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        renderSavedWfList();
+        updateAutomationBadge();
+    }
+    
+    function runCurrentWorkflow() {
+        if (wfNodes.length === 0) { alert('Canvas đang trống!'); return; }
+        const ordered = getExecutionOrder();
+        let msg = 'Thu tu thuc thi:\n\n';
+        ordered.forEach((id, i) => {
+            const n = wfNodes.find(x => x.id === id);
+            if (n) msg += (i+1) + '. ' + n.def.label + '\n';
+        });
+        msg += '\nChuc nang chay thuc te se duoc tich hop o buoc tiep theo!';
+        alert(msg);
+    }
+    
+    function getExecutionOrder() {
+        const inDegree = {};
+        wfNodes.forEach(n => inDegree[n.id] = 0);
+        wfEdges.forEach(e => { inDegree[e.to] = (inDegree[e.to] || 0) + 1; });
+        const queue = wfNodes.filter(n => !inDegree[n.id]).map(n => n.id);
+        const result = [];
+        while (queue.length) {
+            const cur = queue.shift();
+            result.push(cur);
+            wfEdges.filter(e => e.from === cur).forEach(e => { if (--inDegree[e.to] === 0) queue.push(e.to); });
+        }
+        return result;
+    }
+    
+    function saveCanvasToSession() {
+        sessionStorage.setItem('wf_canvas', JSON.stringify({
+            nodes: wfNodes.map(n => ({ id:n.id, type:n.type, cat:n.cat, x:n.x, y:n.y })),
+            edges: wfEdges, count: wfNodeCount
+        }));
+    }
+    
+    function restoreCanvasFromSession() {
+        try {
+            const raw = sessionStorage.getItem('wf_canvas');
+            if (!raw) return;
+            const { nodes, edges, count } = JSON.parse(raw);
+            wfNodeCount = count || 0;
+            wfEdges = edges || [];
+            (nodes || []).forEach(n => {
+                const def = allBlocks().find(b => b.type === n.type);
+                if (!def) return;
+                wfNodes.push({ ...n, def });
+                renderNode(n.id);
+            });
+            renderConnections();
+            if (wfNodes.length > 0) hideHint();
+        } catch(e) { console.warn('Canvas restore failed', e); }
+    }
     
     function updateAutomationBadge() {
-        const stored = JSON.parse(localStorage.getItem('wf_list') || '[]');
-        // Gắn badge vào wrapper chứ không phải nút để không làm hỏng position:fixed
+        const stored = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
         const old = document.getElementById('wfBadge');
         if (old) old.remove();
         if (stored.length > 0) {
@@ -1417,58 +1822,8 @@ async function saveWorkflow() {
             wrapper.appendChild(badge);
         }
     }
-
-    function renderWorkflowList() {
-        const el = document.getElementById('wfListBody');
-        if (!el) return;
-        const stored = JSON.parse(localStorage.getItem('wf_list') || '[]');
-        if (!stored.length) {
-            el.innerHTML = '<div style="text-align:center; padding:20px; color:#475569; font-size:12px;">Chưa có workflow nào. Tạo mới ở trên!</div>';
-            return;
-        }
-        el.innerHTML = stored.map((wf, i) => {
-            const triggerLabels = { 'cron_8h': '⏰ 8h sáng / ngày', 'cron_4h': '⏰ Mỗi 4 tiếng', 'manual': '👉 Thủ công' };
-            const actionLabels = { 'audit_301': '🔍 Check 301 & Login', 'audit_bot': '🤖 Check Bot', 'fetch_gsc': '📈 Đồng bộ GSC' };
-            const trigLabel = wf.triggerLabel || triggerLabels[wf.trigger] || wf.trigger;
-            const actLabel = wf.actionLabel || actionLabels[wf.action] || wf.action;
-            return `
-            <div style="display:grid; grid-template-columns:2fr 1.5fr 1fr; gap:8px; align-items:center; padding:12px 15px; background:rgba(16,185,129,0.05); border-radius:8px; margin-bottom:8px; border-left:3px solid #10b981; font-size:12px;">
-                <div>
-                    <div style="font-weight:600; font-size:12px; color:#e2e8f0;">${actLabel}</div>
-                    <div style="font-size:10px; color:#475569; margin-top:2px;">${new Date(wf.time).toLocaleString('vi-VN')}</div>
-                </div>
-                <span style="font-size:10px; padding:3px 8px; border-radius:999px; background:rgba(124,58,237,0.2); color:#c4b5fd; white-space:nowrap;">${trigLabel}</span>
-                <div style="display:flex; gap:5px; justify-content:flex-end;">
-                    <button onclick="runWorkflowNow('${wf.action}')" style="background:rgba(16,185,129,0.15); border:none; border-radius:5px; color:#34d399; font-size:11px; padding:4px 8px; cursor:pointer;">▶️ Chạy</button>
-                    <button onclick="deleteWorkflow(${i})" style="background:rgba(239,68,68,0.15); border:none; border-radius:5px; color:#f87171; font-size:11px; padding:4px 8px; cursor:pointer;">🗑️</button>
-                </div>
-            </div>
-            `;
-        }).join('');
-    }
-
-    function deleteWorkflow(idx) {
-        let stored = JSON.parse(localStorage.getItem('wf_list') || '[]');
-        stored.splice(idx, 1);
-        localStorage.setItem('wf_list', JSON.stringify(stored));
-        renderWorkflowList();
-        updateAutomationBadge();
-    }
-
-    function runWorkflowNow(action) {
-        const actions = {
-            'audit_301': () => { closeAutomationPanel(); switchTab('tab2'); document.querySelector('[onclick="startCheck()"]')?.click(); },
-            'audit_bot': () => { closeAutomationPanel(); switchTab('tab4'); document.querySelector('[onclick="startBotCheck()"]')?.click(); },
-            'fetch_gsc': () => { closeAutomationPanel(); switchTab('tab0'); document.getElementById('btnRunOverview')?.click(); }
-        };
-        if (actions[action]) {
-            actions[action]();
-        } else {
-            alert('Workflow không hỗ trợ chạy thủ công từ đây!');
-        }
-    }
-
     
+
     function switchTab(id) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -2907,8 +3262,13 @@ async function saveWorkflow() {
     <!-- Automation Sliding Panel -->
     <div id="automationPanel">
         <div class="auto-panel-header">
-            <h2>⚙️ Trung Tâm Điều Khiển <span style="font-size:11px; color:#a78bfa; margin-left:5px;">Beta</span></h2>
-            <button onclick="closeAutomationPanel()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer; padding:5px;">✕</button>
+            <h2 style="font-size:14px;">⚙️ Workflow Builder <span style="font-size:10px; color:#a78bfa; margin-left:5px; background:rgba(124,58,237,0.2); padding:2px 7px; border-radius:99px;">Beta</span></h2>
+            <div class="wf-toolbar-strip">
+                <button class="wf-tool-btn" onclick="clearCanvas()">🗑️ Xóa Canvas</button>
+                <button class="wf-tool-btn" onclick="saveCurrentWorkflow()">💾 Lưu WF</button>
+                <button class="wf-tool-btn primary" onclick="runCurrentWorkflow()">▶️ Chạy Ngay</button>
+                <button onclick="closeAutomationPanel()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer; padding:5px; margin-left:5px;">✕</button>
+            </div>
         </div>
         <div class="auto-panel-body">
             <div style="max-width: 800px; margin: 0 auto;">
