@@ -231,10 +231,13 @@
         
         /* Palette */
         .wf-palette {
-            width: 220px; flex-shrink: 0;
-            background: rgba(0,0,0,0.3);
-            border-right: 1px solid rgba(124,58,237,0.2);
+            width: 230px; flex-shrink: 0;
+            background: rgba(10,5,30,0.8);
+            border-right: 1px solid rgba(124,58,237,0.25);
             overflow-y: auto; padding: 12px 8px;
+            margin: 8px 0 8px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(124,58,237,0.2);
         }
         .palette-section-title {
             font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
@@ -257,7 +260,19 @@
         .palette-divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 10px 0; }
 
         /* Canvas */
-        .wf-canvas-wrap { flex: 1; position: relative; overflow: hidden; background: #080d1a; }
+        .wf-canvas-wrap {
+            flex: 1; position: relative; overflow: hidden;
+            background: #080d1a;
+            border: 2px dashed rgba(124,58,237,0.15);
+            border-radius: 0 0 12px 0;
+            margin: 8px 8px 8px 0;
+            border-radius: 12px;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .wf-canvas-wrap.drag-over {
+            border-color: rgba(124,58,237,0.7) !important;
+            background: #0d0a20 !important;
+        }
         .wf-canvas-wrap::before {
             content: ''; position: absolute; inset: 0;
             background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
@@ -327,10 +342,11 @@
         /* Empty canvas hint */
         .wf-canvas-hint {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            text-align: center; color: #1e293b; pointer-events: none;
-            font-size: 14px; transition: opacity 0.3s;
+            text-align: center; color: rgba(100,116,139,0.6); pointer-events: none;
+            font-size: 13px; transition: opacity 0.3s; width: 280px;
         }
-        .wf-canvas-hint .hint-icon { font-size: 48px; display: block; margin-bottom: 10px; opacity: 0.3; }
+        .wf-canvas-hint .hint-icon { font-size: 52px; display: block; margin-bottom: 12px; filter: grayscale(1); }
+        .wf-canvas-hint strong { color: #7c3aed; }
 
         /* Saved WF list overlay */
         .wf-saved-panel {
@@ -1547,13 +1563,22 @@
     function initCanvasDrop() {
         const wrap = document.getElementById('wfCanvasWrap');
         if (!wrap) return;
-        wrap.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+        wrap.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            wrap.classList.add('drag-over');
+        });
+        wrap.addEventListener('dragleave', e => {
+            if (!wrap.contains(e.relatedTarget)) wrap.classList.remove('drag-over');
+        });
         wrap.addEventListener('drop', e => {
             e.preventDefault();
+            wrap.classList.remove('drag-over');
             if (!draggingPalette) return;
-            const rect = wrap.getBoundingClientRect();
-            const x = Math.max(0, e.clientX - rect.left - 85);
-            const y = Math.max(0, e.clientY - rect.top  - 45);
+            const canvas = document.getElementById('wfCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.max(10, e.clientX - rect.left - 85);
+            const y = Math.max(10, e.clientY - rect.top  - 40);
             addNode(draggingPalette.type, draggingPalette.cat, x, y);
             draggingPalette = null;
             saveCanvasToSession();
@@ -3286,7 +3311,8 @@
                 <svg class="wf-svg" id="wfSvg"></svg>
                 <div class="wf-canvas-hint" id="wfHint">
                     <span class="hint-icon">🎨</span>
-                    Kéo block từ bảng trái vào đây để xây dựng quy trình
+                    <strong>Kéo block từ bảng trái vào đây</strong><br>
+                    <span style="font-size:11px;color:#334155;">Nối các block bằng cách click ● (output) → ● (input)</span>
                 </div>
             </div>
             <!-- Saved Workflows -->
