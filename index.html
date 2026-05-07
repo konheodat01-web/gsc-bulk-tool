@@ -1948,7 +1948,8 @@
     }
     
     function saveCurrentWorkflow() {
-        const nameEl = document.getElementById('wfNameInput');
+    if (currentEditingNodeId) saveNodeSettings(); // AUTO SAVE BEFORE SAVING WORKFLOW
+    const nameEl = document.getElementById('wfNameInput');
         const name = (nameEl ? nameEl.value.trim() : '') || ('Workflow ' + new Date().toLocaleTimeString('vi-VN'));
         if (wfNodes.length === 0) { alert('Canvas đang trống! Thêm ít nhất 1 block trước.'); return; }
         const wf = { id: Date.now(), name, nodes: wfNodes.map(n=>({id:n.id,type:n.type,cat:n.cat,x:n.x,y:n.y,data:n.data,config:n.config})), edges: wfEdges, savedAt: new Date().toISOString() };
@@ -3979,7 +3980,8 @@
     }
 
     function saveCurrentWorkflow() {
-        const nameEl = document.getElementById('wfNameInput');
+    if (currentEditingNodeId) saveNodeSettings(); // AUTO SAVE BEFORE SAVING WORKFLOW
+    const nameEl = document.getElementById('wfNameInput');
         const name = (nameEl ? nameEl.value.trim() : '') || 'Quy trình chưa đặt tên';
         
         const wf = { id: Date.now(), name, nodes: wfNodes.map(n=>({id:n.id,type:n.type,cat:n.cat,x:n.x,y:n.y,data:n.data,config:n.config})), edges: wfEdges, savedAt: new Date().toISOString() };
