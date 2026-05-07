@@ -1799,7 +1799,7 @@
         el.innerHTML = `
             <div class="wf-node-header" style="background:${node.def.color}22;">
                 <span class="wf-node-icon">${node.def.icon}</span>
-                <span class="wf-node-title">${node.def.label}</span>
+                <span class="wf-node-title">${(node.config && node.config.customName) ? node.config.customName : node.def.label}</span>
                 ${isCompound ? '<span style="font-size:9px;background:rgba(245,158,11,0.25);color:#fbbf24;padding:2px 6px;border-radius:999px;margin-left:auto;">TOOL</span>' : ''}
                 <button class="wf-node-del" data-delid="${nodeId}" title="Xóa">✕</button>
             </div>
@@ -4074,6 +4074,11 @@
 
         // Generic settings HTML (Cài đặt chung cho mọi Node)
         const settingsHtml = `
+            <div class="set-group" style="padding-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.05); margin-bottom:15px;">
+                <label class="set-label" style="color:#e2e8f0; margin-bottom:6px; display:block;">Đổi Tên Node (Tên hiển thị)</label>
+                <input type="text" id="setNodeCustomName" class="set-input" placeholder="VD: ${node.def.label} 1" value="${config.customName || ''}">
+            </div>
+            
             <div class="set-group" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:15px;">
                 <div>
                     <div class="set-label" style="margin:0; color:#e2e8f0;">Luôn xuất dữ liệu</div>
@@ -4170,6 +4175,10 @@
         if (!node.config) node.config = {};
         
         // Save generic config (Settings tab)
+        const customNameInput = document.getElementById('setNodeCustomName');
+        if (customNameInput) {
+            node.config.customName = customNameInput.value.trim();
+        }
         node.config.alwaysOutput = document.getElementById('cfgAlwaysOutput')?.checked;
         node.config.executeOnce = document.getElementById('cfgExecuteOnce')?.checked;
         node.config.retry = document.getElementById('cfgRetry')?.checked;
@@ -4201,6 +4210,16 @@
         } else if (node.type === 'ai-content') {
             node.data.model = document.getElementById('setAiModel')?.value;
             node.data.prompt = document.getElementById('setAiPrompt')?.value;
+        }
+        
+        
+        // Update Title on canvas immediately
+        const nodeEl = document.getElementById(node.id);
+        if (nodeEl) {
+            const titleEl = nodeEl.querySelector('.wf-node-title');
+            if (titleEl) {
+                titleEl.textContent = node.config.customName || node.def.label;
+            }
         }
         
         saveCanvasToSession();
@@ -4446,32 +4465,28 @@ ${appState}`;
 
             // 3. Call API
             
-            // Auto-detect available model
-            let targetModel = 'gemini-1.5-pro'; // Default
+            // API Fetch with Fallback
+            const attemptFetch = async (modelName) => {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(apiPayload)
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error.message);
+                return data.candidates[0].content.parts[0].text;
+            };
+
+            let replyText = "";
             try {
-                const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-                const modelsData = await modelsRes.json();
-                if (modelsData.models) {
-                    const availableGemini = modelsData.models.filter(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
-                    if (availableGemini.length > 0) {
-                        // Prefer 1.5 pro, then 1.5 flash, then whatever is available
-                        const pro = availableGemini.find(m => m.name.includes('1.5-pro'));
-                        const flash = availableGemini.find(m => m.name.includes('1.5-flash'));
-                        targetModel = (pro || flash || availableGemini[0]).name.split('/')[1];
-                    }
+                replyText = await attemptFetch('gemini-1.5-pro');
+            } catch (errPro) {
+                console.warn("Pro model failed (possibly 503), trying flash...", errPro);
+                try {
+                    replyText = await attemptFetch('gemini-1.5-flash');
+                } catch (errFlash) {
+                    throw new Error("Cả 2 model Pro và Flash đều đang bận (High Demand) hoặc lỗi: " + errFlash.message);
                 }
-            } catch(e) { console.warn("Could not list models, falling back to default", e); }
-
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`, {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(apiPayload)
-            });
-
-            
-            const data = await res.json();
-            if(data.error) throw new Error(data.error.message);
-            
-            const replyText = data.candidates[0].content.parts[0].text;
+            }
             
             // Remove loading div and add real reply
             loadingDiv.remove();
