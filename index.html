@@ -4147,9 +4147,16 @@
                     <div style="font-size:10px; color:#64748b; margin-top:5px;">Code chạy độc lập trên trình duyệt. Hãy cẩn thận khi dùng vòng lặp vô hạn.</div>
                 </div>
             `;
+        } else if (node.type === 'update-sheet') {
+            paramsHtml = `
+            <div class="set-group">
+                <label class="set-label">Link Google Sheet:</label>
+                <input type="text" id="setUpdateSheetUrl" class="set-input" placeholder="https://docs.google.com/spreadsheets/d/..." value="${data.sheetUrl || ''}">
+            </div>
+            `;
         } else if (node.type === 'ai-content') {
-             paramsHtml = `
-                <div class="set-group">
+            paramsHtml = `
+            <div class="set-group">
                     <label class="set-label">Model AI:</label>
                     <select id="setAiModel" class="set-input">
                         <option value="gpt-4o" ${data.model==='gpt-4o'?'selected':''}>GPT-4o (Khuyên dùng)</option>
