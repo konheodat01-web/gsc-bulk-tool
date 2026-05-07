@@ -429,6 +429,7 @@
         .btn-save-settings:hover { background: #6d28d9; }
 
         </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.9.0/jsrsasign-all-min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -953,6 +954,50 @@
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
+
+    // --- BỔ SUNG: XÁC THỰC SERVICE ACCOUNT KHÔNG CẦN POPUP ---
+    async function getGoogleToken() {
+        // Ưu tiên dùng Service Account nếu sếp đã dán
+        const saJson = document.getElementById('vpsGoogleJson')?.value?.trim();
+        if (saJson) {
+            try {
+                const creds = JSON.parse(saJson);
+                const header = { alg: 'RS256', typ: 'JWT' };
+                const iat = KJUR.jws.IntDate.get('now');
+                const exp = KJUR.jws.IntDate.get('now + 1hour');
+                const payload = {
+                    iss: creds.client_email,
+                    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/webmasters',
+                    aud: creds.token_uri,
+                    exp: exp,
+                    iat: iat
+                };
+                
+                const sHeader = JSON.stringify(header);
+                const sPayload = JSON.stringify(payload);
+                const sJWT = KJUR.jws.JWS.sign("RS256", sHeader, sPayload, creds.private_key);
+                
+                const res = await fetch(creds.token_uri, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${sJWT}`
+                });
+                const data = await res.json();
+                if (data.access_token) {
+                    console.log("✅ Đã lấy Token ngầm thành công bằng Service Account!");
+                    return data.access_token;
+                }
+                throw new Error("Không lấy được Token: " + JSON.stringify(data));
+            } catch (err) {
+                console.error("Lỗi xác thực Service Account:", err);
+                // Fallback nếu lỗi
+            }
+        }
+        
+        // Nếu không có Service Account thì dùng token cũ (từ Popup)
+        return localStorage.getItem('google_oauth_token');
+    }
+
 
     function getActiveLocationName() {
         const autoPanel = document.getElementById('automationPanel');
