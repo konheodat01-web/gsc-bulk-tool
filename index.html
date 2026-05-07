@@ -3914,9 +3914,7 @@
         if(btn) {
             const old = btn.innerHTML;
             btn.innerHTML = '✅ Đã Lưu!';
-            setTimeout(() => { btn.innerHTML = old; backToLibrary(); }, 800);
-        } else {
-            backToLibrary();
+            setTimeout(() => { btn.innerHTML = old; }, 800);
         }
     }
 
