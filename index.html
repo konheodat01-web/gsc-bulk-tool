@@ -4367,20 +4367,19 @@
 
     function loadChatHistory() {
         try {
-            const saved = localStorage.getItem('global_chat_history');
-            if (saved) {
-                chatHistory = JSON.parse(saved);
-                const container = document.getElementById('managerChatMessages');
-                // Keep the first welcome message
-                const welcomeMsg = container.children[0];
-                container.innerHTML = '';
-                if(welcomeMsg) container.appendChild(welcomeMsg);
-                
-                chatHistory.forEach(msg => {
-                    addChatMessage(msg.role, msg.text, false);
-                });
+            const saved = localStorage.getItem('manager_chat_history');
+            const container = document.getElementById('managerChatMessages');
+            if (saved && container) {
+                const parsed = JSON.parse(saved);
+                if (parsed && parsed.length > 0) {
+                    chatHistory = parsed;
+                    container.innerHTML = ''; // Clear default message
+                    chatHistory.forEach(msg => {
+                        addChatMessage(msg.role, msg.text, false);
+                    });
+                }
             }
-        } catch(e) {}
+        } catch(e) { console.error("Error loading chat history:", e); }
     }
 
     function saveChatHistory() {
@@ -4471,18 +4470,28 @@ ${appState}`;
                     const mRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
                     const mData = await mRes.json();
                     if (mData.models) {
-                        window._availableModels = mData.models.map(m => m.name.split('/')[1]);
+                        window._availableModels = mData.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')).map(m => m.name.split('/')[1]);
+                        console.log("Available Gemini Models:", window._availableModels);
                     }
                 } catch(e) { console.error("ListModels failed", e); }
             }
 
             const attemptFetch = async (preferredModel) => {
-                // Tìm model thực tế khớp với cái mình muốn
-                let actualModel = "gemini-1.5-flash"; // Fallback cứng
-                if (window._availableModels) {
+                let actualModel = "gemini-pro"; // Ultimate fallback (v1.0)
+                if (window._availableModels && window._availableModels.length > 0) {
                     const match = window._availableModels.find(m => m.includes(preferredModel));
-                    if (match) actualModel = match;
+                    if (match) {
+                        actualModel = match;
+                    } else {
+                        actualModel = window._availableModels.find(m => m.includes('gemini')) || window._availableModels[0];
+                    }
+                } else if (preferredModel.includes('flash')) {
+                    actualModel = 'gemini-1.5-flash-latest';
+                } else {
+                    actualModel = 'gemini-1.5-pro-latest';
                 }
+                
+                console.log("Using model:", actualModel);
                 
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${actualModel}:generateContent?key=${apiKey}`, {
                     method: "POST", headers: { "Content-Type": "application/json" },
@@ -4495,15 +4504,18 @@ ${appState}`;
 
             let replyText = "";
             try {
-                // Thử Pro trước
                 replyText = await attemptFetch('1.5-pro');
             } catch (errPro) {
                 console.warn("Pro model failed, trying flash...", errPro);
                 try {
-                    // Thử Flash sau
                     replyText = await attemptFetch('1.5-flash');
                 } catch (errFlash) {
-                    throw new Error("Cả 2 model Pro và Flash đều đang bận (High Demand) hoặc lỗi: " + errFlash.message);
+                    console.warn("Flash model failed, trying basic gemini-pro...", errFlash);
+                    try {
+                        replyText = await attemptFetch('gemini-pro');
+                    } catch (errBasic) {
+                        throw new Error("Tất cả các model đều đang bị lỗi hoặc từ chối kết nối: " + errBasic.message);
+                    }
                 }
             }
             // Remove loading div and add real reply
