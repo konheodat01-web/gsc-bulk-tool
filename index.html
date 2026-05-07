@@ -2023,6 +2023,13 @@
     setInterval(updateAppBlueprintCache, 60000); // Cập nhật mỗi phút để bắt thay đổi
 
     function switchTab(id) {
+        setTimeout(() => {
+            const activeTabEl = document.querySelector('.tab-btn.active');
+            if (activeTabEl) {
+                const loc = document.getElementById('aiCurrentLocation');
+                if (loc) loc.innerHTML = '📍 Đang ở: ' + activeTabEl.innerText.trim();
+            }
+        }, 50);
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
@@ -4387,36 +4394,28 @@ Dữ liệu UI/chức năng trên màn hình hiện tại: ${tabData}
             }
 
             // 2. Build Prompt Payload
-            let contents = [];
-            
-            // System instructions (prepended to history)
-            const sysPrompt = `Bạn là một trợ lý AI nhúng trong ứng dụng tự động hóa SEO. Luôn xưng hô "Sếp - Em" thân thiện. 
-Ngữ cảnh hệ thống: ${appState}
-
+            const sysPrompt = `Bạn là một trợ lý AI nhúng trong ứng dụng tự động hóa SEO. Luôn xưng hô "Sếp - Em" thân thiện.
 Kỹ năng cá nhân của bạn (do user huấn luyện):
-${skills}`;
-            
-            // Add history
-            chatHistory.forEach(msg => {
-                if (msg.role === 'ai') {
-                    contents.push({ role: 'model', parts: [{ text: msg.text }] });
-                } else if (msg.role === 'user') {
-                    contents.push({ role: 'user', parts: [{ text: msg.text }] });
-                }
-            });
+${skills}
 
-            // Make sure the first message in contents is user. If not, insert a dummy.
+${appState}`;
+
+            // Build contents perfectly mapped from history (which already includes the latest user message)
+            let contents = chatHistory.map(msg => ({
+                role: msg.role === 'ai' ? 'model' : 'user',
+                parts: [{ text: msg.text }]
+            }));
+            
+            // Ensure first message is user
             if (contents.length > 0 && contents[0].role === 'model') {
                 contents.unshift({ role: 'user', parts: [{ text: 'Bắt đầu cuộc hội thoại.' }] });
             }
 
-            // If empty, start with sys prompt inside user turn
-            if (contents.length === 0) {
-                contents.push({ role: 'user', parts: [{ text: `[SYSTEM INSTRUCTION]\n${sysPrompt}\n[USER MESSAGE]\n${text}` }] });
-            } else {
-                // Otherwise, append the latest user message
-                contents.push({ role: 'user', parts: [{ text: `[SYSTEM CONTEXT: ${appState}]\n\n${text}` }] });
-            }
+            // Payload structure using systemInstruction for Gemini 1.5
+            const apiPayload = {
+                systemInstruction: { parts: [{ text: sysPrompt }] },
+                contents: contents
+            };
 
             // 3. Call API
             
@@ -4438,7 +4437,7 @@ ${skills}`;
 
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: contents })
+                body: JSON.stringify(apiPayload)
             });
 
             
