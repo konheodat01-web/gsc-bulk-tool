@@ -4441,11 +4441,11 @@ ${skills}`;
     const oldSaveCanvas = window.saveCanvasToSession;
     window.saveCanvasToSession = function() {
         if(oldSaveCanvas) oldSaveCanvas();
-        checkManagerPresence();
+        
     };
     
     // Initial check
-    setTimeout(checkManagerPresence, 1000); loadChatHistory();
+     loadChatHistory();
 
     
     function switchSettingTab(tab) {
