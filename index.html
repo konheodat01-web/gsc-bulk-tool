@@ -3715,7 +3715,21 @@
         const data = node.data || {};
         let codeStr = data.code || 'return items;';
         
-        // --- AUTO CLEANUP: Remove accidental HTML/Markdown tags ---
+        // Auto-wrap single-item code from AI assistant
+    if (codeStr.includes('item.') && !codeStr.includes('items.map') && !codeStr.includes('for (')) {
+        codeStr = `
+            const results = [];
+            for (let item of items) {
+                const processItem = async (item) => {
+                    ${codeStr}
+                };
+                results.push(await processItem(item));
+            }
+            return results;
+        `;
+    }
+    
+    // --- AUTO CLEANUP: Remove accidental HTML/Markdown tags ---`;
         codeStr = codeStr.replace(/<script[^>]*>/gi, '').replace(/<\/script>/gi, '');
         codeStr = codeStr.replace(/<pre[^>]*>/gi, '').replace(/<\/pre>/gi, '');
         codeStr = codeStr.replace(/<code[^>]*>/gi, '').replace(/<\/code>/gi, '');
