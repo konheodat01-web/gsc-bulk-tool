@@ -4322,23 +4322,35 @@
             
             // 1. Gather Context
             let activeTabName = 'Không rõ';
+            let tabData = '';
             const wfOverlay = document.getElementById('wfAppOverlay');
             if (wfOverlay && wfOverlay.style.display === 'flex') {
                 activeTabName = 'Workflow Builder';
             } else {
                 const activeTabEl = document.querySelector('.tab-btn.active');
                 if (activeTabEl) activeTabName = activeTabEl.innerText.trim();
+                const activeContentEl = document.querySelector('.tab-content.active');
+                if (activeContentEl) {
+                    // Get all text and input placeholders to give AI full context of the UI
+                    let texts = [];
+                    activeContentEl.querySelectorAll('label, h3, h4, button, th, td').forEach(el => texts.push(el.innerText.trim()));
+                    activeContentEl.querySelectorAll('input, textarea').forEach(el => texts.push(el.placeholder || el.value || ''));
+                    tabData = texts.filter(t => t).join(' | ').substring(0, 3000);
+                }
             }
             
             const skills = localStorage.getItem('ai_skills') || '';
-            let appState = `Người dùng đang ở chức năng/trang: [${activeTabName}]. `;
+            let appState = `Thông tin ứng dụng: "GSC Bulk & SEO Automation Pro - Hệ thống quản lý PBN đa luồng".
+Người dùng đang mở chức năng: [${activeTabName}]. `;
             
             if (activeTabName === 'Workflow Builder') {
                 const tools = ATOMIC_BLOCKS.map(b => b.label).join(', ');
                 const nodesCount = typeof wfNodes !== 'undefined' ? wfNodes.length : 0;
-                appState += `Các block công cụ (tools) sếp CÓ THỂ sử dụng để kéo thả: ${tools}. Số lượng block đang có trên bản vẽ (Canvas) hiện tại: ${nodesCount}.`;
+                appState += `Các block (tools) kéo thả: ${tools}. Số block trên Canvas: ${nodesCount}.`;
             } else {
-                appState += "Nếu người dùng hỏi về Workflow Builder, hãy bảo họ click vào nút 'Workflow Builder' ở đâu đó để mở trang.";
+                appState += `
+Dữ liệu UI/chức năng trên màn hình hiện tại: ${tabData}
+(Hãy dựa vào thông tin UI thực tế này để giải thích tính năng nếu sếp hỏi "trang này để làm gì?").`;
             }
 
             // 2. Build Prompt Payload
