@@ -4465,9 +4465,26 @@ ${appState}`;
 
             // 3. Call API
             
-            // API Fetch with Fallback
-            const attemptFetch = async (modelName) => {
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+            // Hàm tìm model khả dụng (Cache lại để đỡ tốn request)
+            if (!window._availableModels) {
+                try {
+                    const mRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                    const mData = await mRes.json();
+                    if (mData.models) {
+                        window._availableModels = mData.models.map(m => m.name.split('/')[1]);
+                    }
+                } catch(e) { console.error("ListModels failed", e); }
+            }
+
+            const attemptFetch = async (preferredModel) => {
+                // Tìm model thực tế khớp với cái mình muốn
+                let actualModel = "gemini-1.5-flash"; // Fallback cứng
+                if (window._availableModels) {
+                    const match = window._availableModels.find(m => m.includes(preferredModel));
+                    if (match) actualModel = match;
+                }
+                
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${actualModel}:generateContent?key=${apiKey}`, {
                     method: "POST", headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(apiPayload)
                 });
@@ -4478,16 +4495,17 @@ ${appState}`;
 
             let replyText = "";
             try {
-                replyText = await attemptFetch('gemini-1.5-pro');
+                // Thử Pro trước
+                replyText = await attemptFetch('1.5-pro');
             } catch (errPro) {
-                console.warn("Pro model failed (possibly 503), trying flash...", errPro);
+                console.warn("Pro model failed, trying flash...", errPro);
                 try {
-                    replyText = await attemptFetch('gemini-1.5-flash');
+                    // Thử Flash sau
+                    replyText = await attemptFetch('1.5-flash');
                 } catch (errFlash) {
                     throw new Error("Cả 2 model Pro và Flash đều đang bận (High Demand) hoặc lỗi: " + errFlash.message);
                 }
             }
-            
             // Remove loading div and add real reply
             loadingDiv.remove();
             addChatMessage('ai', replyText, true);
