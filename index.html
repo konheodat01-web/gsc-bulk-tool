@@ -4273,7 +4273,29 @@
         }
     }
 
+    
+    let chatHistory = [];
+
+    function loadChatHistory() {
+        try {
+            const saved = localStorage.getItem('global_chat_history');
+            if (saved) {
+                chatHistory = JSON.parse(saved);
+                const container = document.getElementById('managerChatMessages');
+                // Keep the first welcome message
+                const welcomeMsg = container.children[0];
+                container.innerHTML = '';
+                if(welcomeMsg) container.appendChild(welcomeMsg);
+                
+                chatHistory.forEach(msg => {
+                    addChatMessage(msg.role, msg.text, false);
+                });
+            }
+        } catch(e) {}
+    }
+
     function saveChatHistory() {
+
         localStorage.setItem('global_chat_history', JSON.stringify(chatHistory));
     }
 
