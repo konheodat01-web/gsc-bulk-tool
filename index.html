@@ -4279,10 +4279,10 @@
             setTimeout(() => {
                 btn.textContent = oldText;
                 btn.style.background = "";
-                closeNodeSettings();
+                // KHÔNG ĐÓNG MODAL ĐỂ SẾP CÒN EDIT TIẾP
             }, 600);
         } else {
-            closeNodeSettings();
+            // KHÔNG ĐÓNG MODAL
         }
     }
     
@@ -4666,6 +4666,12 @@ ${appState}`;
     
     // Initial check
      loadChatHistory();
+     setTimeout(() => {
+         const savedJson = localStorage.getItem('vps_google_json');
+         if (savedJson && document.getElementById('vpsGoogleJson')) {
+             document.getElementById('vpsGoogleJson').value = savedJson;
+         }
+     }, 500);
 
     
     function switchSettingTab(tab) {
