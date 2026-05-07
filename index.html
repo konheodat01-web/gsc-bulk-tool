@@ -955,8 +955,8 @@
 <script>
 
     function getActiveLocationName() {
-        const wfOverlay = document.getElementById('wfAppOverlay');
-        if (wfOverlay && wfOverlay.style.display === 'flex') {
+        const autoPanel = document.getElementById('automationPanel');
+        if (autoPanel && autoPanel.classList.contains('open')) {
             const libView = document.getElementById('wfLibraryView');
             const builderView = document.getElementById('wfBuilderView');
             if (libView && libView.classList.contains('active')) return 'Workflow Library';
