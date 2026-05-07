@@ -3598,7 +3598,15 @@
     async function execCustomCodeNode(node, inputData) {
         if (!inputData) return [];
         const data = node.data || {};
-        const codeStr = data.code || 'return items;';
+        let codeStr = data.code || 'return items;';
+        
+        // --- AUTO CLEANUP: Remove accidental HTML/Markdown tags ---
+        codeStr = codeStr.replace(/<script[^>]*>/gi, '').replace(/<\/script>/gi, '');
+        codeStr = codeStr.replace(/<pre[^>]*>/gi, '').replace(/<\/pre>/gi, '');
+        codeStr = codeStr.replace(/<code[^>]*>/gi, '').replace(/<\/code>/gi, '');
+        codeStr = codeStr.replace(/```javascript/gi, '').replace(/```/g, '');
+        codeStr = codeStr.trim();
+        // ---------------------------------------------------------
         
         try {
             // Create a function from the user code string.
