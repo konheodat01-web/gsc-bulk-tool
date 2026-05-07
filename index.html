@@ -1794,7 +1794,7 @@
         el.className = 'wf-node' + (isCompound ? ' compound' : '');
         el.id = nodeId;
         el.style.cssText = `left:${node.x}px;top:${node.y}px;`;
-        const inPort  = node.type !== 'input'    ? `<div class="wf-port port-in"  data-nodeid="${nodeId}" data-port="in"></div>`  : '<div></div>';
+        const inPort  = !node.type.includes('trigger') ? `<div class="wf-port port-in"  data-nodeid="${nodeId}" data-port="in"></div>`  : '<div></div>';
         const outPort = node.type !== 'telegram' ? `<div class="wf-port port-out" data-nodeid="${nodeId}" data-port="out"></div>` : '<div></div>';
         el.innerHTML = `
             <div class="wf-node-header" style="background:${node.def.color}22;">
