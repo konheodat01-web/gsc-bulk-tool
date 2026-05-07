@@ -4421,7 +4421,17 @@
             <!-- LEFT PALETTE -->
             <div class="wf-palette" id="wfPalette">
                 <div class="palette-section-title">🧩 Viên Gạch Nhỏ</div>
+                
                 <div id="atomicPaletteList"></div>
+                <!-- Custom Blocks Section -->
+                <div style="font-size:11px; font-weight:700; color:#ec4899; margin: 15px 0 5px 5px; text-transform:uppercase; letter-spacing:0.5px;">⭐ Viên Gạch Của Tôi</div>
+                <div id="userBlockPaletteList"></div>
+                <div style="padding: 12px 5px 15px 5px;">
+                    <button onclick="openBlockFactory(null)" style="width:100%; background:linear-gradient(135deg, rgba(236,72,153,0.2), rgba(168,85,247,0.2)); border:1px dashed rgba(236,72,153,0.5); color:#f9a8d4; padding:10px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg, rgba(236,72,153,0.3), rgba(168,85,247,0.3))'" onmouseout="this.style.background='linear-gradient(135deg, rgba(236,72,153,0.2), rgba(168,85,247,0.2))'">
+                        ➕ Tạo Viên Gạch Mới
+                    </button>
+                </div>
+
                 <hr class="palette-divider">
                 <div class="palette-section-title">📦 Khối Lắp Sẵn</div>
                 <div id="compoundPaletteList"></div>
@@ -4436,13 +4446,7 @@
                         <strong>Kéo block từ bảng trái vào đây</strong><br>
                         <span style="font-size:11px;color:#334155;">Nối các block bằng cách click ● (output) → ● (input)</span>
                     </div>
-            <div style="font-size:11px; font-weight:700; color:#ec4899; margin: 15px 0 5px 5px; text-transform:uppercase; letter-spacing:0.5px;">⭐ Viên Gạch Của Tôi</div>
-            <div id="userBlockPaletteList"></div>
-            <div style="padding: 12px 5px 5px 5px;">
-                <button onclick="openBlockFactory(null)" style="width:100%; background:linear-gradient(135deg, rgba(236,72,153,0.2), rgba(168,85,247,0.2)); border:1px dashed rgba(236,72,153,0.5); color:#f9a8d4; padding:10px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg, rgba(236,72,153,0.3), rgba(168,85,247,0.3))'" onmouseout="this.style.background='linear-gradient(135deg, rgba(236,72,153,0.2), rgba(168,85,247,0.2))'">
-                    ➕ Tạo Viên Gạch Mới
-                </button>
-            </div>
+
                 </div>
                 <!-- Toolbar overlay on canvas -->
                 <div style="position:absolute; top:15px; left:15px; display:flex; gap:10px;">
