@@ -3528,6 +3528,7 @@
     
     // --- WORKFLOW EXECUTION ENGINE ---
     async function runCurrentWorkflow() {
+        if (typeof currentEditingNodeId !== 'undefined' && currentEditingNodeId) saveNodeSettings(); // AUTO SAVE
         if (wfNodes.length === 0) { alert('Canvas đang trống!'); return; }
         
         const orderedIds = getExecutionOrder();
@@ -3973,6 +3974,7 @@
     };
 
     function openNodeSettings(nodeId) {
+        if (currentEditingNodeId && currentEditingNodeId !== nodeId) saveNodeSettings(); // AUTO SAVE PREVIOUS
         const node = wfNodes.find(n => n.id === nodeId);
         if (!node) return;
         currentEditingNodeId = nodeId;
@@ -3987,6 +3989,7 @@
     }
 
     function closeNodeSettings() {
+        if (currentEditingNodeId) saveNodeSettings(); // AUTO SAVE
         document.getElementById('wfSettingsSidebar').classList.remove('open');
         currentEditingNodeId = null;
     }
