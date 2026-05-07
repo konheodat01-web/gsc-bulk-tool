@@ -953,6 +953,34 @@
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
+
+    function getActiveLocationName() {
+        const wfOverlay = document.getElementById('wfAppOverlay');
+        if (wfOverlay && wfOverlay.style.display === 'flex') {
+            const libView = document.getElementById('wfLibraryView');
+            const builderView = document.getElementById('wfBuilderView');
+            if (libView && libView.classList.contains('active')) return 'Workflow Library';
+            if (builderView && builderView.classList.contains('active')) return 'Workflow Builder (Canvas)';
+            return 'Workflow Builder';
+        }
+        
+        const settingsOverlay = document.getElementById('globalSettingsOverlay');
+        if (settingsOverlay && settingsOverlay.style.display === 'flex') return 'Hệ Thống Cài Đặt';
+        
+        const activeTabEl = document.querySelector('.tab-btn.active');
+        if (activeTabEl) return activeTabEl.innerText.trim();
+        
+        return 'Tổng Quan';
+    }
+
+    function updateAiLocationUI() {
+        const loc = document.getElementById('aiCurrentLocation');
+        if (loc) loc.innerText = getActiveLocationName();
+    }
+    
+    // Auto update every 500ms so it catches modal opens, tab switches, etc without manually hooking everything
+    setInterval(updateAiLocationUI, 500);
+
     async function importFromSheet(targetTextareaId) {
         if (!activeAccountEmails || activeAccountEmails.length === 0) {
             return alert('Vui lòng qua Bước 1 để thêm hoặc chọn Tài khoản Google trước! Tool cần quyền để đọc Sheet.');
