@@ -477,7 +477,7 @@
             </div>
             <div class="input-group" style="margin-top:10px;">
                 <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">🔑 Google Service Account JSON (Dán nội dung file JSON vào đây):</label>
-                <textarea id="vpsGoogleJson" placeholder='{"type": "service_account", ...}' style="width:100%; height:60px; border:1px solid var(--border); padding:8px; font-size:10px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box; font-family:monospace;"></textarea>
+                <textarea id="vpsGoogleJson" oninput="localStorage.setItem('vps_google_json', this.value)" placeholder='{"type": "service_account", ...}' style="width:100%; height:60px; border:1px solid var(--border); padding:8px; font-size:10px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box; font-family:monospace;"></textarea>
                 <button onclick="syncCredentialsToVps()" style="width:100%; margin-top:5px; background:rgba(255,255,255,0.05); border:1px solid var(--border); padding:5px; border-radius:6px; color:var(--text); font-size:11px; cursor:pointer;">💾 Lưu Chìa Khóa Lên VPS</button>
             </div>
             <div style="display:flex; gap:10px; margin-top:10px;">
