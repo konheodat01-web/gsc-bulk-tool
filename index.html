@@ -3560,6 +3560,8 @@
                     flowData = await execCustomCodeNode(node, flowData);
                 } else if (node.type === 'telegram') {
                     await execTelegramNode(node, flowData);
+                } else if (node.type === 'update-sheet') {
+                    flowData = await execUpdateSheetNode(node, flowData);
                 }
                 
                 // Un-highlight
