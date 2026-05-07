@@ -4288,7 +4288,15 @@
         try {
             // Re-use the execution logic of the manager node
             const items = [{ url: text }]; // Pass chat text as input
-            const result = await execCustomCodeNode(managerNode, items);
+            let tempNode = managerNode;
+            if (managerNode.cat === 'user') {
+                const userBlocks = getUserBlocks();
+                const userBlockDef = userBlocks.find(b => b.type === managerNode.type);
+                if (userBlockDef && userBlockDef.code) {
+                    tempNode = { ...managerNode, data: { ...managerNode.data, code: userBlockDef.code } };
+                }
+            }
+            const result = await execCustomCodeNode(tempNode, items);
             
             // The showAiReply was modified in previous steps to show a modal, 
             // let's update it to also add to this chat.
