@@ -4448,13 +4448,16 @@ ${skills}
 
 ${appState}`;
 
-            // Build contents perfectly mapped from history (which already includes the latest user message)
-            let contents = chatHistory.map(msg => ({
+            // Tối ưu hóa: Chỉ gửi 10 tin nhắn gần nhất để tiết kiệm Token và tránh lỗi 429
+            const MAX_HISTORY = 10;
+            const recentHistory = chatHistory.slice(-MAX_HISTORY);
+            
+            let contents = recentHistory.map(msg => ({
                 role: msg.role === 'ai' ? 'model' : 'user',
                 parts: [{ text: msg.text }]
             }));
             
-            // Ensure first message is user
+            // Đảm bảo tin nhắn đầu tiên luôn là user (Yêu cầu bắt buộc của Gemini)
             if (contents.length > 0 && contents[0].role === 'model') {
                 contents.unshift({ role: 'user', parts: [{ text: 'Bắt đầu cuộc hội thoại.' }] });
             }
@@ -4486,13 +4489,17 @@ ${appState}`;
                 replyText = data.message.content;
             } else {
                 // GEMINI LOGIC
-                // Hàm tìm model khả dụng (Cache lại để đỡ tốn request)
-                if (!window._availableModels) {
+                // Tối ưu hóa: Lưu Cache Models vào LocalStorage để không tốn Request
+                let cachedModels = localStorage.getItem('sys_gemini_models');
+                if (cachedModels) {
+                    window._availableModels = JSON.parse(cachedModels);
+                } else {
                     try {
                         const mRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
                         const mData = await mRes.json();
                         if (mData.models) {
                             window._availableModels = mData.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')).map(m => m.name.split('/')[1]);
+                            localStorage.setItem('sys_gemini_models', JSON.stringify(window._availableModels));
                         }
                     } catch(e) { console.error("ListModels failed", e); }
                 }
@@ -4510,7 +4517,18 @@ ${appState}`;
                         method: "POST", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(apiPayload)
                     });
+                    
                     const data = await res.json();
+                    
+                    // Bắt lỗi 429 và định dạng lại cho thân thiện
+                    if (res.status === 429) {
+                        const match = data.error?.message?.match(/Please retry in ([0-9.]+)s/);
+                        if (match) {
+                            throw new Error(`Quá tải rồi sếp! Google bắt sếp "nghỉ tay" ${Math.round(match[1])} giây. Lát sếp hỏi lại nhé!`);
+                        }
+                        throw new Error("Hết lượt hỏi miễn phí trong phút này! Sếp đợi khoảng 1 phút rồi thử lại nhé.");
+                    }
+                    
                     if (data.error) throw new Error(data.error.message);
                     return data.candidates[0].content.parts[0].text;
                 };
@@ -4518,14 +4536,17 @@ ${appState}`;
                 try {
                     replyText = await attemptFetch('1.5-pro');
                 } catch (errPro) {
+                    if (errPro.message.includes('Quá tải') || errPro.message.includes('Hết lượt')) throw errPro; // Bỏ qua fallback nếu lỗi 429
                     console.warn("Pro model failed, trying flash...", errPro);
                     try {
                         replyText = await attemptFetch('1.5-flash');
                     } catch (errFlash) {
+                        if (errFlash.message.includes('Quá tải') || errFlash.message.includes('Hết lượt')) throw errFlash;
                         console.warn("Flash model failed, trying basic gemini-pro...", errFlash);
                         try {
                             replyText = await attemptFetch('gemini-pro');
                         } catch (errBasic) {
+                            if (errBasic.message.includes('Quá tải') || errBasic.message.includes('Hết lượt')) throw errBasic;
                             throw new Error("Tất cả các model đều đang bị lỗi hoặc từ chối kết nối: " + errBasic.message);
                         }
                     }
