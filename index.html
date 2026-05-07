@@ -4389,38 +4389,37 @@
         try {
             
             // 1. Gather Context
-            let activeTabName = 'Không rõ';
-            let tabData = '';
-            const wfOverlay = document.getElementById('wfAppOverlay');
-            if (wfOverlay && wfOverlay.style.display === 'flex') {
-                activeTabName = 'Workflow Builder';
-            } else {
-                const activeTabEl = document.querySelector('.tab-btn.active');
-                if (activeTabEl) activeTabName = activeTabEl.innerText.trim();
-                const activeContentEl = document.querySelector('.tab-content.active');
-                if (activeContentEl) {
-                    // Get all text and input placeholders to give AI full context of the UI
-                    let texts = [];
-                    activeContentEl.querySelectorAll('label, h3, h4, button, th, td').forEach(el => texts.push(el.innerText.trim()));
-                    activeContentEl.querySelectorAll('input, textarea').forEach(el => texts.push(el.placeholder || el.value || ''));
-                    tabData = texts.filter(t => t).join(' | ').substring(0, 3000);
-                }
-            }
+            let activeTabName = getActiveLocationName();
+            
+            // Lấy sổ tay hệ thống
+            let appBlueprint = "";
+            try {
+                const blueprintObj = JSON.parse(localStorage.getItem('ai_app_blueprint') || '{}');
+                appBlueprint = Object.entries(blueprintObj).map(([k, v]) => `+ Tab/Khu vực [${k}]: ${v}`).join('\n');
+            } catch(e) {}
             
             const skills = localStorage.getItem('ai_skills') || '';
-            let appState = `Thông tin ứng dụng: "GSC Bulk & SEO Automation Pro - Hệ thống quản lý PBN đa luồng".
-Người dùng đang mở chức năng: [${activeTabName}]. `;
+            let appState = `Thông tin ứng dụng: "GSC Bulk & SEO Automation Pro - Hệ thống quản lý PBN".\n\n`;
+            appState += `[SỔ TAY GHI CHÚ TOÀN BỘ TÍNH NĂNG CỦA TOOL]\n${appBlueprint}\n\n`;
+            appState += `Người dùng đang mở chức năng/vị trí hiện tại là: [${activeTabName}].\n`;
+            appState += `(Lưu ý: Hệ thống trang bị tính năng "Location Tracker" (Định vị AI), giúp bạn luôn biết Sếp đang đứng ở tab/tính năng nào để tư vấn chính xác. Hãy xác nhận bạn biết vị trí này).\n`;
+            appState += `(Hãy sử dụng Sổ tay ghi chú phía trên để trả lời mọi câu hỏi về tính năng thay vì phải hỏi lại).\n`;
             
-            if (activeTabName === 'Workflow Builder') {
-                const tools = ATOMIC_BLOCKS.map(b => b.label).join(', ');
+            // Workflow context
+            if (activeTabName.includes('Workflow Builder (Canvas)')) {
                 const nodesCount = typeof wfNodes !== 'undefined' ? wfNodes.length : 0;
-                appState += `Các block (tools) kéo thả: ${tools}. Số block trên Canvas: ${nodesCount}.`;
-            } else {
-                appState += `
-Dữ liệu UI/chức năng trên màn hình hiện tại: ${tabData}
-(Hãy dựa vào thông tin UI thực tế này để giải thích tính năng nếu sếp hỏi "trang này để làm gì?").`;
+                let wfContext = "";
+                if (nodesCount > 0) {
+                    const nodesInfo = wfNodes.map(n => `- Node ${n.def.label} (ID: ${n.id})`).join('\n');
+                    wfContext = `\n[CHI TIẾT WORKFLOW TRÊN CANVAS]\nSếp đang có ${nodesCount} nodes trên bản vẽ:\n${nodesInfo}\n`;
+                } else {
+                    wfContext = "\nBản vẽ đang trống.\n";
+                }
+                appState += wfContext;
+            } else if (activeTabName.includes('Workflow Library')) {
+                appState += "\nSếp đang ở sảnh ngoài quản lý danh sách các quy trình.\n";
             }
-
+            
             // 2. Build Prompt Payload
             const sysPrompt = `Bạn là một trợ lý AI nhúng trong ứng dụng tự động hóa SEO. Luôn xưng hô "Sếp - Em" thân thiện.
 Kỹ năng cá nhân của bạn (do user huấn luyện):
