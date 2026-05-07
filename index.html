@@ -4261,34 +4261,18 @@
         content.scrollTop = content.scrollHeight;
     };
 
+    
     function toggleManagerChat(show) {
         const sidebar = document.getElementById('managerChatSidebar');
-        if (!sidebar) return;
-        sidebar.style.display = show ? 'flex' : 'none';
-        if (show) document.getElementById('managerChatInput').focus();
+        if (sidebar) {
+            sidebar.style.right = show ? '0px' : '-450px';
+        }
+        if (show) {
+            document.getElementById('managerChatBubble').style.animation = 'none';
+            setTimeout(() => document.getElementById('managerChatInput').focus(), 300);
+        }
     }
-
-    function checkManagerPresence() { const b = document.getElementById("managerChatBubble"); if(b) b.style.display="flex"; }
-
-    
-    let chatHistory = [];
-
-    function loadChatHistory() {
-        try {
-            const saved = localStorage.getItem('global_chat_history');
-            if (saved) {
-                chatHistory = JSON.parse(saved);
-                const container = document.getElementById('managerChatMessages');
-                // Keep the first welcome message
-                const welcomeMsg = container.children[0];
-                container.innerHTML = '';
-                if(welcomeMsg) container.appendChild(welcomeMsg);
-                
-                chatHistory.forEach(msg => {
-                    addChatMessage(msg.role, msg.text, false);
-                });
-            }
-        } catch(e) {}
+ catch(e) {}
     }
 
     function saveChatHistory() {
@@ -4313,15 +4297,26 @@
         const loadingDiv = document.getElementById('managerChatMessages').lastChild;
         
         try {
+            
             // 1. Gather Context
-            const activeTabName = document.querySelector('.menu-item.active')?.innerText.trim() || 'Không rõ';
+            let activeTabName = 'Không rõ';
+            const wfOverlay = document.getElementById('wfAppOverlay');
+            if (wfOverlay && wfOverlay.style.display === 'flex') {
+                activeTabName = 'Workflow Builder';
+            } else {
+                const activeTabEl = document.querySelector('.tab-btn.active');
+                if (activeTabEl) activeTabName = activeTabEl.innerText.trim();
+            }
+            
             const skills = localStorage.getItem('ai_skills') || '';
-            let appState = `Người dùng đang ở trang: ${activeTabName}. `;
+            let appState = `Người dùng đang ở chức năng/trang: [${activeTabName}]. `;
             
             if (activeTabName === 'Workflow Builder') {
                 const tools = ATOMIC_BLOCKS.map(b => b.label).join(', ');
                 const nodesCount = typeof wfNodes !== 'undefined' ? wfNodes.length : 0;
-                appState += `Các công cụ (tools) đang có trên hệ thống: ${tools}. Số block trên Canvas hiện tại: ${nodesCount}.`;
+                appState += `Các block công cụ (tools) sếp CÓ THỂ sử dụng để kéo thả: ${tools}. Số lượng block đang có trên bản vẽ (Canvas) hiện tại: ${nodesCount}.`;
+            } else {
+                appState += "Nếu người dùng hỏi về Workflow Builder, hãy bảo họ click vào nút 'Workflow Builder' ở đâu đó để mở trang.";
             }
 
             // 2. Build Prompt Payload
@@ -4710,7 +4705,7 @@ return items.map(item => {
     </div>
 
     <!-- CHAT BUBBLE TRIGGER -->
-    <div id="managerChatBubble" onclick="toggleManagerChat(true)" style="display:flex; position:fixed; bottom:30px; right:30px; width:60px; height:60px; background:linear-gradient(135deg, #8b5cf6, #d946ef); border-radius:20px; box-shadow:0 10px 25px rgba(139,92,246,0.4); z-index:10000; cursor:pointer; display:none; align-items:center; justify-content:center; font-size:28px; animation: pulse 2s infinite;">
+    <div id="managerChatBubble" onclick="toggleManagerChat(true)" style="display:flex; position:fixed; bottom:120px; right:30px; width:60px; height:60px; background:linear-gradient(135deg, #8b5cf6, #d946ef); border-radius:20px; box-shadow:0 10px 25px rgba(139,92,246,0.4); z-index:10000; cursor:pointer; display:none; align-items:center; justify-content:center; font-size:28px; animation: pulse 2s infinite;">
         🧠
     </div>
 
