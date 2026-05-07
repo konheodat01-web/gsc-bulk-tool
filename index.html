@@ -3593,9 +3593,14 @@
             if (!sheetIdMatch) throw new Error('Link Google Sheet không hợp lệ');
             const sheetId = sheetIdMatch[1];
             const range = data.sheetRange || 'A2:E100';
-            const apiKey = GOOGLE_API_KEY; // Global variable
-            
-            const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`);
+            const token = await getGoogleToken();
+        if (!token) throw new Error('Chưa kết nối Google! Cần Service Account hoặc OAuth.');
+        
+        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
             const json = await res.json();
             if (!json.values) throw new Error('Không lấy được dữ liệu từ Sheet (Có thể chưa Share Public?)');
             
