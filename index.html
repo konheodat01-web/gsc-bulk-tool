@@ -3544,8 +3544,11 @@
             let flowData = []; // Array of objects { url, adminPath, user, pass, results... }
 
             for (const nodeId of orderedIds) {
-                const node = wfNodes.find(n => n.id === nodeId);
-                if (!node) continue;
+            const node = wfNodes.find(n => n.id === nodeId);
+            if (!node) continue;
+            console.log('[WFL] ----------------------------------------');
+            console.log('[WFL] Đang chạy Node:', node.type, '| ID:', node.id);
+            console.log('[WFL] Dữ liệu đầu vào (flowData) hiện tại:', JSON.parse(JSON.stringify(flowData)));
 
                 // Highlight node
                 const nodeEl = document.getElementById(nodeId);
@@ -3571,7 +3574,8 @@
 
             alert('✅ Quy trình đã hoàn thành!');
         } catch (err) {
-            console.error('Workflow Execution Error:', err);
+            console.error('[WFL LỖI TỔNG] Workflow Execution Error:', err);
+            console.error(err.stack);
             alert('❌ Lỗi quy trình: ' + err.message);
         } finally {
             btn.innerHTML = oldText;
@@ -3762,7 +3766,11 @@
     }
 
     async function execUpdateSheetNode(node, inputData) {
-        if (!inputData || inputData.length === 0) return inputData;
+        console.log('[execUpdateSheetNode] Bắt đầu. Tham số inputData:', inputData);
+        if (!inputData || inputData.length === 0) {
+             console.log('[execUpdateSheetNode] inputData rỗng, bỏ qua ghi sheet.');
+             return inputData;
+        }
         const data = node.data || {};
         if (!data.sheetUrl) throw new Error('Chưa cấu hình Link Sheet trong nút Cập nhật Sheet. Vui lòng nhấp đúp vào nút để nhập link!');
         
@@ -3770,12 +3778,17 @@
         if (!sheetIdMatch) throw new Error('Link Sheet không hợp lệ');
         const sheetId = sheetIdMatch[1];
         
+        console.log('[execUpdateSheetNode] Đang lấy Google Token...');
         const token = await getGoogleToken();
         if (!token) throw new Error('Chưa kết nối Google! Cần Service Account hoặc OAuth.');
+        console.log('[execUpdateSheetNode] Đã lấy được Token:', token.substring(0, 15) + '...');
 
         // Map data to C, D, E
         const values = inputData.map(item => [item.C || '', item.D || '', item.E || '']);
         const range = `C2:E${2 + values.length - 1}`;
+        console.log('[execUpdateSheetNode] Dữ liệu sẽ ghi (values):', values);
+        console.log('[execUpdateSheetNode] Range:', range);
+        console.log('[execUpdateSheetNode] Cấu hình từ node:', data);
         
         const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?valueInputOption=USER_ENTERED`, {
             method: 'PUT',
@@ -3788,8 +3801,11 @@
         
         if (!res.ok) {
             const err = await res.json();
+            console.error('[execUpdateSheetNode] Lỗi từ API Google:', err);
             throw new Error('Lỗi ghi Sheet: ' + (err.error?.message || res.statusText));
         }
+        const resJson = await res.json();
+        console.log('[execUpdateSheetNode] Ghi Sheet thành công. Phản hồi:', resJson);
         
         return inputData;
     }
