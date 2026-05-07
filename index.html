@@ -4357,10 +4357,28 @@ ${skills}`;
             }
 
             // 3. Call API
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
+            
+            // Auto-detect available model
+            let targetModel = 'gemini-1.5-pro'; // Default
+            try {
+                const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                const modelsData = await modelsRes.json();
+                if (modelsData.models) {
+                    const availableGemini = modelsData.models.filter(m => m.name.includes('gemini') && m.supportedGenerationMethods.includes('generateContent'));
+                    if (availableGemini.length > 0) {
+                        // Prefer 1.5 pro, then 1.5 flash, then whatever is available
+                        const pro = availableGemini.find(m => m.name.includes('1.5-pro'));
+                        const flash = availableGemini.find(m => m.name.includes('1.5-flash'));
+                        targetModel = (pro || flash || availableGemini[0]).name.split('/')[1];
+                    }
+                }
+            } catch(e) { console.warn("Could not list models, falling back to default", e); }
+
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${targetModel}:generateContent?key=${apiKey}`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ contents: contents })
             });
+
             
             const data = await res.json();
             if(data.error) throw new Error(data.error.message);
