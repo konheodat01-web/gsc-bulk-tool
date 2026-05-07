@@ -3759,6 +3759,39 @@
         }
     }
 
+    async function execUpdateSheetNode(node, inputData) {
+        if (!inputData || inputData.length === 0) return inputData;
+        const data = node.data || {};
+        if (!data.sheetUrl) throw new Error('Chưa cấu hình Link Sheet trong nút Cập nhật Sheet. Vui lòng nhấp đúp vào nút để nhập link!');
+        
+        const sheetIdMatch = data.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if (!sheetIdMatch) throw new Error('Link Sheet không hợp lệ');
+        const sheetId = sheetIdMatch[1];
+        
+        const token = await getGoogleToken();
+        if (!token) throw new Error('Chưa kết nối Google! Cần Service Account hoặc OAuth.');
+
+        // Map data to C, D, E
+        const values = inputData.map(item => [item.C || '', item.D || '', item.E || '']);
+        const range = `C2:E${2 + values.length - 1}`;
+        
+        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?valueInputOption=USER_ENTERED`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ values })
+        });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error('Lỗi ghi Sheet: ' + (err.error?.message || res.statusText));
+        }
+        
+        return inputData;
+    }
+
     async function execTelegramNode(node, inputData) {
         if (!inputData || inputData.length === 0) return;
         const data = node.data || {};
@@ -4268,6 +4301,8 @@
             node.data.prompt = document.getElementById('setVisionPrompt')?.value;
         } else if (node.type === 'custom-code') {
             node.data.code = document.getElementById('setCustomCode')?.value;
+        } else if (node.type === 'update-sheet') {
+            node.data.sheetUrl = document.getElementById('setUpdateSheetUrl')?.value;
         } else if (node.type === 'ai-content') {
             node.data.model = document.getElementById('setAiModel')?.value;
             node.data.prompt = document.getElementById('setAiPrompt')?.value;
