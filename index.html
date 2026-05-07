@@ -3599,25 +3599,40 @@
             const json = await res.json();
             if (!json.values) throw new Error('Không lấy được dữ liệu từ Sheet (Có thể chưa Share Public?)');
             
-            return json.values.map(row => ({
-                url: (row[0] || '').trim(),
-                adminPath: (row[1] || '').trim(),
-                user: (row[2] || '').trim(),
-                pass: (row[3] || '').trim()
-            })).filter(r => r.url);
+            // Trả về dữ liệu thô kèm theo mapping để dễ dùng trong nút JS (cột A, B, C, D...)
+            return json.values.map((row, idx) => {
+                const obj = { _rowIdx: idx };
+                row.forEach((val, i) => {
+                    const colName = String.fromCharCode(65 + i);
+                    obj[colName] = (val || '').trim();
+                });
+                
+                // Keep backward compatibility
+                obj.url = obj.A || '';
+                obj.adminPath = obj.B || '';
+                obj.user = obj.C || '';
+                obj.pass = obj.D || '';
+                
+                return obj;
+            }).filter(r => r.A || r.url);
         } else {
             // Manual mode
             raw = data.manualRaw || '';
             const lines = raw.split('\n').filter(l => l.trim());
-            return lines.map(line => {
-                const parts = line.split('|').map(p => p.trim());
-                return {
-                    url: parts[0] || '',
-                    adminPath: parts[1] || '',
-                    user: parts[2] || '',
-                    pass: parts[3] || ''
-                };
-            }).filter(r => r.url);
+            return lines.map((line, idx) => {
+            const parts = line.split('|').map(p => p.trim());
+            const obj = { _rowIdx: idx };
+            parts.forEach((val, i) => {
+                const colName = String.fromCharCode(65 + i);
+                obj[colName] = val;
+            });
+            // Keep backward compatibility
+            obj.url = obj.A || '';
+            obj.adminPath = obj.B || '';
+            obj.user = obj.C || '';
+            obj.pass = obj.D || '';
+            return obj;
+        }).filter(r => r.A || r.url);
         }
     }
 
