@@ -4347,6 +4347,22 @@
     
     // Initial check
     setTimeout(checkManagerPresence, 1000);
+
+    function toggleGlobalSettings(show) {
+        const overlay = document.getElementById('globalSettingsOverlay');
+        if (!overlay) return;
+        overlay.style.display = show ? 'flex' : 'none';
+        if (show) {
+            document.getElementById('globalGeminiKey').value = localStorage.getItem('gemini_api_key') || '';
+        }
+    }
+
+    function saveGlobalSettings() {
+        const key = document.getElementById('globalGeminiKey').value.trim();
+        localStorage.setItem('gemini_api_key', key);
+        toggleGlobalSettings(false);
+        alert('✅ Đã lưu cấu hình API Key!');
+    }
 </script>
 
 </div>
@@ -4569,6 +4585,42 @@ return items.map(item => {
 
     <style>
     @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(139,92,246,0.7); } 70% { box-shadow: 0 0 0 15px rgba(139,92,246,0); } 100% { box-shadow: 0 0 0 0 rgba(139,92,246,0); } }
+    </style>
+
+
+    <!-- GLOBAL SETTINGS MODAL -->
+    <div id="globalSettingsOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(8px); z-index:20000; align-items:center; justify-content:center;">
+        <div style="background:#1e293b; width:450px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); overflow:hidden; animation: zoomIn 0.3s ease;">
+            <div style="padding:24px; background:linear-gradient(135deg, #1e293b, #0f172a); border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:36px; height:36px; background:rgba(139,92,246,0.1); border-radius:10px; display:flex; align-items:center; justify-content:center; color:#8b5cf6;">⚙️</div>
+                    <h2 style="margin:0; font-size:18px; color:white; font-weight:700;">Cài Đặt Hệ Thống</h2>
+                </div>
+                <button onclick="toggleGlobalSettings(false)" style="background:none; border:none; color:#64748b; cursor:pointer; font-size:20px;">✕</button>
+            </div>
+            <div style="padding:24px;">
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; color:#94a3b8; font-size:12px; font-weight:600; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Google Gemini API Key</label>
+                    <input type="password" id="globalGeminiKey" placeholder="AIzaSy..." style="width:100%; background:#0f172a; border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:12px 16px; color:white; font-size:14px; outline:none; transition:all 0.2s; box-sizing:border-box;">
+                    <p style="font-size:11px; color:#475569; margin-top:8px;">Lấy Key miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#8b5cf6; text-decoration:none;">Google AI Studio</a>. Key này dùng cho Nhạc Trưởng và AI Content.</p>
+                </div>
+                
+                <div style="display:flex; gap:12px; margin-top:32px;">
+                    <button onclick="toggleGlobalSettings(false)" style="flex:1; background:rgba(255,255,255,0.05); color:white; border:none; padding:12px; border-radius:12px; font-weight:600; cursor:pointer; transition:0.2s;">Hủy</button>
+                    <button onclick="saveGlobalSettings()" style="flex:1; background:#8b5cf6; color:white; border:none; padding:12px; border-radius:12px; font-weight:600; cursor:pointer; box-shadow:0 10px 15px -3px rgba(139,92,246,0.4); transition:0.2s;">Lưu Cấu Hình</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING GEAR ICON -->
+    <div id="floatingSettingsBtn" onclick="toggleGlobalSettings(true)" style="position:fixed; top:20px; right:70px; width:42px; height:42px; background:rgba(30,41,59,0.7); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.1); border-radius:12px; display:flex; align-items:center; justify-content:center; color:#94a3b8; cursor:pointer; z-index:9999; transition:all 0.2s; box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+        <span style="font-size:20px;">⚙️</span>
+    </div>
+
+    <style>
+    @keyframes zoomIn { from { transform:scale(0.9); opacity:0; } to { transform:scale(1); opacity:1; } }
+    #floatingSettingsBtn:hover { background:rgba(139,92,246,0.1); color:#8b5cf6; border-color:rgba(139,92,246,0.3); transform:rotate(45deg); }
     </style>
 
 </body>
