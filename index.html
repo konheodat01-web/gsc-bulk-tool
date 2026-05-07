@@ -4357,7 +4357,7 @@ ${skills}`;
             }
 
             // 3. Call API
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ contents: contents })
             });
@@ -4692,7 +4692,7 @@ return items.map(item => {
     </div>
 
     <!-- CHAT BUBBLE TRIGGER -->
-    <div id="managerChatBubble" onclick="toggleManagerChat(true)" style="display:none; position:fixed; bottom:30px; right:30px; width:60px; height:60px; background:linear-gradient(135deg, #8b5cf6, #d946ef); border-radius:20px; box-shadow:0 10px 25px rgba(139,92,246,0.4); z-index:10000; cursor:pointer; display:none; align-items:center; justify-content:center; font-size:28px; animation: pulse 2s infinite;">
+    <div id="managerChatBubble" onclick="toggleManagerChat(true)" style="display:flex; position:fixed; bottom:30px; right:30px; width:60px; height:60px; background:linear-gradient(135deg, #8b5cf6, #d946ef); border-radius:20px; box-shadow:0 10px 25px rgba(139,92,246,0.4); z-index:10000; cursor:pointer; display:none; align-items:center; justify-content:center; font-size:28px; animation: pulse 2s infinite;">
         🧠
     </div>
 
