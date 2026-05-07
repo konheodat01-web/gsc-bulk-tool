@@ -4438,6 +4438,9 @@
                 appState += "\nSếp đang ở sảnh ngoài quản lý danh sách các quy trình.\n";
             }
             
+            // Check Engine
+            const engine = localStorage.getItem('sys_ai_engine') || 'gemini';
+            
             // 2. Build Prompt Payload
             const sysPrompt = `Bạn là một trợ lý AI nhúng trong ứng dụng tự động hóa SEO. Luôn xưng hô "Sếp - Em" thân thiện.
 Kỹ năng cá nhân của bạn (do user huấn luyện):
@@ -4463,58 +4466,68 @@ ${appState}`;
             };
 
             // 3. Call API
-            
-            // Hàm tìm model khả dụng (Cache lại để đỡ tốn request)
-            if (!window._availableModels) {
-                try {
-                    const mRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-                    const mData = await mRes.json();
-                    if (mData.models) {
-                        window._availableModels = mData.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')).map(m => m.name.split('/')[1]);
-                        console.log("Available Gemini Models:", window._availableModels);
-                    }
-                } catch(e) { console.error("ListModels failed", e); }
-            }
-
-            const attemptFetch = async (preferredModel) => {
-                let actualModel = "gemini-pro"; // Ultimate fallback (v1.0)
-                if (window._availableModels && window._availableModels.length > 0) {
-                    const match = window._availableModels.find(m => m.includes(preferredModel));
-                    if (match) {
-                        actualModel = match;
-                    } else {
-                        actualModel = window._availableModels.find(m => m.includes('gemini')) || window._availableModels[0];
-                    }
-                } else if (preferredModel.includes('flash')) {
-                    actualModel = 'gemini-1.5-flash-latest';
-                } else {
-                    actualModel = 'gemini-1.5-pro-latest';
-                }
+            let replyText = "";
+            if (engine === 'ollama') {
+                const oUrl = localStorage.getItem('sys_ollama_url') || 'http://127.0.0.1:11434';
+                const oModel = localStorage.getItem('sys_ollama_model') || 'llama3';
                 
-                console.log("Using model:", actualModel);
+                // Convert contents to Ollama format
+                const ollamaMsgs = [{role: 'system', content: sysPrompt}];
+                chatHistory.forEach(msg => ollamaMsgs.push({role: msg.role === 'ai' ? 'assistant' : 'user', content: msg.text}));
+                ollamaMsgs.push({role: 'user', content: text});
                 
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${actualModel}:generateContent?key=${apiKey}`, {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(apiPayload)
+                const res = await fetch(oUrl + '/api/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ model: oModel, messages: ollamaMsgs, stream: false })
                 });
                 const data = await res.json();
-                if (data.error) throw new Error(data.error.message);
-                return data.candidates[0].content.parts[0].text;
-            };
-
-            let replyText = "";
-            try {
-                replyText = await attemptFetch('1.5-pro');
-            } catch (errPro) {
-                console.warn("Pro model failed, trying flash...", errPro);
-                try {
-                    replyText = await attemptFetch('1.5-flash');
-                } catch (errFlash) {
-                    console.warn("Flash model failed, trying basic gemini-pro...", errFlash);
+                if (data.error) throw new Error(data.error);
+                replyText = data.message.content;
+            } else {
+                // GEMINI LOGIC
+                // Hàm tìm model khả dụng (Cache lại để đỡ tốn request)
+                if (!window._availableModels) {
                     try {
-                        replyText = await attemptFetch('gemini-pro');
-                    } catch (errBasic) {
-                        throw new Error("Tất cả các model đều đang bị lỗi hoặc từ chối kết nối: " + errBasic.message);
+                        const mRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                        const mData = await mRes.json();
+                        if (mData.models) {
+                            window._availableModels = mData.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')).map(m => m.name.split('/')[1]);
+                        }
+                    } catch(e) { console.error("ListModels failed", e); }
+                }
+
+                const attemptFetch = async (preferredModel) => {
+                    let actualModel = "gemini-pro"; 
+                    if (window._availableModels && window._availableModels.length > 0) {
+                        const match = window._availableModels.find(m => m.includes(preferredModel));
+                        if (match) { actualModel = match; } 
+                        else { actualModel = window._availableModels.find(m => m.includes('gemini')) || window._availableModels[0]; }
+                    } else if (preferredModel.includes('flash')) { actualModel = 'gemini-1.5-flash-latest'; } 
+                    else { actualModel = 'gemini-1.5-pro-latest'; }
+                    
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${actualModel}:generateContent?key=${apiKey}`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(apiPayload)
+                    });
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error.message);
+                    return data.candidates[0].content.parts[0].text;
+                };
+
+                try {
+                    replyText = await attemptFetch('1.5-pro');
+                } catch (errPro) {
+                    console.warn("Pro model failed, trying flash...", errPro);
+                    try {
+                        replyText = await attemptFetch('1.5-flash');
+                    } catch (errFlash) {
+                        console.warn("Flash model failed, trying basic gemini-pro...", errFlash);
+                        try {
+                            replyText = await attemptFetch('gemini-pro');
+                        } catch (errBasic) {
+                            throw new Error("Tất cả các model đều đang bị lỗi hoặc từ chối kết nối: " + errBasic.message);
+                        }
                     }
                 }
             }
@@ -4606,14 +4619,27 @@ ${appState}`;
         if (!overlay) return;
         overlay.style.display = show ? 'flex' : 'none';
         if (show) {
-            document.getElementById('sysGeminiKey').value = localStorage.getItem('gemini_api_key') || '';
+            
+        const engine = localStorage.getItem('sys_ai_engine') || 'gemini';
+        document.getElementById('sysAiEngine').value = engine;
+        document.getElementById('sysOllamaUrl').value = localStorage.getItem('sys_ollama_url') || 'http://127.0.0.1:11434';
+        document.getElementById('sysOllamaModel').value = localStorage.getItem('sys_ollama_model') || 'llama3';
+        document.getElementById('cfgOllama').style.display = engine === 'ollama' ? 'block' : 'none';
+        document.getElementById('cfgGemini').style.display = engine === 'gemini' ? 'block' : 'none';
+        document.getElementById('sysGeminiKey').value = localStorage.getItem('gemini_api_key') || '';
+
             document.getElementById('sysTeleToken').value = localStorage.getItem('telegram_bot_token') || '';
             document.getElementById('sysAiSkills').value = localStorage.getItem('ai_skills') || '';
         }
     }
 
     function saveSystemSettings() {
+        
+        localStorage.setItem('sys_ai_engine', document.getElementById('sysAiEngine').value);
+        localStorage.setItem('sys_ollama_url', document.getElementById('sysOllamaUrl').value.trim());
+        localStorage.setItem('sys_ollama_model', document.getElementById('sysOllamaModel').value.trim());
         localStorage.setItem('gemini_api_key', document.getElementById('sysGeminiKey').value.trim());
+
         localStorage.setItem('telegram_bot_token', document.getElementById('sysTeleToken').value.trim());
         localStorage.setItem('ai_skills', document.getElementById('sysAiSkills').value.trim());
         toggleGlobalSettings(false);
@@ -4885,10 +4911,26 @@ return items.map(item => {
                     <div id="setContent_apis" style="display:block;">
                         <h3 style="color:white; margin:0 0 20px 0; font-size:18px;">Khoá API (API Keys)</h3>
                         <div style="margin-bottom:20px;">
+                            <label style="display:block; color:#94a3b8; font-size:12px; font-weight:600; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Lõi Trí Tuệ (AI Engine)</label>
+                            <select id="sysAiEngine" onchange="document.getElementById('cfgOllama').style.display = this.value==='ollama'?'block':'none'; document.getElementById('cfgGemini').style.display = this.value==='gemini'?'block':'none';" style="width:100%; background:#0f172a; border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:12px 16px; color:white; font-size:14px; outline:none; box-sizing:border-box;">
+                                <option value="gemini">Google Gemini (Mặc định)</option>
+                                <option value="ollama">Ollama (Chạy nội bộ trên VPS - 0đ)</option>
+                            </select>
+                        </div>
+                        
+                        <div id="cfgOllama" style="display:none; background:rgba(0,0,0,0.2); padding:15px; border-radius:12px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:20px;">
+                            <label style="display:block; color:#94a3b8; font-size:12px; font-weight:600; margin-bottom:8px;">Ollama API URL</label>
+                            <input type="text" id="sysOllamaUrl" placeholder="http://127.0.0.1:11434" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:10px; color:white; font-size:13px; outline:none; margin-bottom:12px; box-sizing:border-box;">
+                            
+                            <label style="display:block; color:#94a3b8; font-size:12px; font-weight:600; margin-bottom:8px;">Tên Model Nguồn Mở (VD: llama3, mistral)</label>
+                            <input type="text" id="sysOllamaModel" placeholder="llama3" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                        </div>
+
+                        <div id="cfgGemini" style="margin-bottom:20px;">
                             <label style="display:block; color:#94a3b8; font-size:12px; font-weight:600; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Google Gemini API</label>
                             <input type="password" id="sysGeminiKey" placeholder="AIzaSy..." style="width:100%; background:#0f172a; border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:12px 16px; color:white; font-size:14px; outline:none; box-sizing:border-box;">
                             <p style="font-size:11px; color:#475569; margin-top:8px;">Dùng cho Trợ lý AI và tính năng sinh nội dung.</p>
-                        </div>
+                        </div></div>
                         <div style="margin-bottom:20px;">
                             <label style="display:block; color:#94a3b8; font-size:12px; font-weight:600; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Telegram Bot Token</label>
                             <input type="password" id="sysTeleToken" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" style="width:100%; background:#0f172a; border:1px solid rgba(56,189,248,0.3); border-radius:12px; padding:12px 16px; color:white; font-size:14px; outline:none; box-sizing:border-box;">
