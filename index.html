@@ -922,8 +922,10 @@
 
     async function syncWorkflowsToFirebase(list) {
         try {
-            await fbDb.ref('workflows/shared_list').set(list);
-            console.log("☁️ Đã đồng bộ Workflow lên Firebase!");
+            // Firebase từ chối undefined — làm sạch bằng JSON round-trip (undefined → null)
+            const clean = JSON.parse(JSON.stringify(list, (k, v) => v === undefined ? null : v));
+            await fbDb.ref('workflows/shared_list').set(clean);
+            console.log("☁️ Đã đồng bộ Workflow lên Firebase! Tổng: " + clean.length);
         } catch (e) { console.error("Lỗi sync Firebase:", e); }
     }
 
