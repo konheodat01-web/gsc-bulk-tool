@@ -932,7 +932,7 @@
             'sys_ai_engine', 'gemini_api_key', 'sys_ollama_url', 'sys_ollama_model',
             'sys_serper_key', 'telegram_bot_token', 'tele_chat_id',
             'wf_system_settings', 'google_client_id', 'global_sheet_url',
-            'vps_ip', 'ai_skills', 'gsc_emails'
+            'vps_ip', 'ai_skills', 'gsc_emails', 'wf_user_deleted'
         ];
         const settings = {};
         SYNC_KEYS.forEach(k => {
@@ -960,17 +960,29 @@
     }
 
     function startWorkflowRealTimeSync() {
-        // Lắng nghe real-time: mỗi khi 1 máy lưu WFL, các máy khác cập nhật ngay
+        // Lắng nghe danh sách WFL đã xóa từ Firebase
+        fbDb.ref('workflows/deleted_names').on('value', (snap) => {
+            const fbDeleted = snap.val();
+            if (fbDeleted && Array.isArray(fbDeleted) && fbDeleted.length > 0) {
+                const localDeleted = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
+                const merged = [...new Set([...localDeleted, ...fbDeleted])];
+                localStorage.setItem('wf_user_deleted', JSON.stringify(merged));
+            }
+        });
+
+        // Lắng nghe real-time danh sách WFL
         fbDb.ref('workflows/shared_list').on('value', (snapshot) => {
             const list = snapshot.val();
+            const deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
             if (list && Array.isArray(list) && list.length > 0) {
-                // Firebase có dữ liệu → dùng làm nguồn thật, ghi đè local
-                localStorage.setItem('wf_builder_list', JSON.stringify(list));
+                // Lọc ra các WFL user đã xóa trước khi áp dụng
+                const filtered = list.filter(w => !deletedNames.includes(w.name));
+                localStorage.setItem('wf_builder_list', JSON.stringify(filtered));
                 localStorage.setItem('wf_seeded_v2', '1'); // Chặn seed chạy lại
                 if (typeof renderWfLibrary === 'function') renderWfLibrary();
                 if (typeof renderSavedWfList === 'function') renderSavedWfList();
                 updateAutomationBadge();
-                console.log("☁️ [Real-time] Đồng bộ Workflow từ Firebase! Tổng: " + list.length);
+                console.log("☁️ [Real-time] Đồng bộ Workflow từ Firebase! Tổng: " + filtered.length);
             } else {
                 // Firebase rỗng → chạy seed mặc định rồi push lên Firebase
                 console.log("☁️ Firebase WFL rỗng → chạy seed mặc định...");
@@ -4074,10 +4086,12 @@
     function deleteWorkflowLib(idx) {
         if (!confirm('Bạn có chắc chắn muốn xóa quy trình này?')) return;
         let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
-        // Track deleted seeded workflow names to prevent re-seed
+        // Track deleted workflow names to prevent re-appearing from Firebase
         const deleted = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
         if (list[idx]) deleted.push(list[idx].name);
         localStorage.setItem('wf_user_deleted', JSON.stringify(deleted));
+        // Sync danh sách đã xóa lên Firebase để các máy khác cũng biết
+        fbDb.ref('workflows/deleted_names').set(deleted).catch(e => console.error('Lỗi sync deleted:', e));
         list.splice(idx, 1);
         localStorage.setItem('wf_builder_list', JSON.stringify(list));
         syncWorkflowsToFirebase(list); // SYNC TO CLOUD
