@@ -12,6 +12,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+    <!-- Firebase SDKs for Sync -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         :root {
             --bg: #0f172a;
@@ -901,6 +904,47 @@
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
+    // --- FIREBASE SYNC CONFIG ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9FnjWvhtQVoTntV9wOvrLQJu2eOnskfE",
+      authDomain: "gsc-bulk-tool-e4e1c.firebaseapp.com",
+      databaseURL: "https://gsc-bulk-tool-e4e1c-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "gsc-bulk-tool-e4e1c",
+      storageBucket: "gsc-bulk-tool-e4e1c.firebasestorage.app",
+      messagingSenderId: "289973612938",
+      appId: "1:289973612938:web:e57efb3bf7dcb049f39873",
+      measurementId: "G-96B5D1X0LB"
+    };
+    
+    // Initialize Firebase Compat
+    firebase.initializeApp(firebaseConfig);
+    const fbDb = firebase.database();
+
+    async function syncWorkflowsToFirebase(list) {
+        try {
+            // Sếp có thể thay "default_user" bằng tên sếp để phân biệt nếu dùng chung DB
+            await fbDb.ref('workflows/shared_list').set(list);
+            console.log("☁️ Đã đồng bộ Workflow lên Firebase!");
+        } catch (e) { console.error("Lỗi sync Firebase:", e); }
+    }
+
+    async function loadWorkflowsFromFirebase() {
+        try {
+            const snapshot = await fbDb.ref('workflows/shared_list').once('value');
+            const list = snapshot.val();
+            if (list && Array.isArray(list)) {
+                localStorage.setItem('wf_builder_list', JSON.stringify(list));
+                if (typeof renderWfLibrary === 'function') renderWfLibrary();
+                if (typeof renderSavedWfList === 'function') renderSavedWfList();
+                updateAutomationBadge();
+                console.log("☁️ Đã tải dữ liệu Workflow từ Firebase!");
+            }
+        } catch (e) { console.error("Lỗi load Firebase:", e); }
+    }
+    
+    // Load ngay khi mở trang
+    loadWorkflowsFromFirebase();
+
 
     // --- BỔ SUNG: XÁC THỰC SERVICE ACCOUNT KHÔNG CẦN POPUP ---
     async function getGoogleToken() {
@@ -1644,6 +1688,7 @@
         lib.unshift(wf);
         localStorage.setItem("wf_builder_list", JSON.stringify(lib));
         localStorage.setItem("wf_seeded_v2", "1");
+        syncWorkflowsToFirebase(lib); // Sync seeded wf
     }
 
     function initWorkflowBuilder() {
@@ -3953,6 +3998,7 @@
         }
         
         localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        syncWorkflowsToFirebase(list); // SYNC TO CLOUD
         updateAutomationBadge();
         
         const btn = document.getElementById('wfBtnSave');
@@ -3991,6 +4037,7 @@
         localStorage.setItem('wf_user_deleted', JSON.stringify(deleted));
         list.splice(idx, 1);
         localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        syncWorkflowsToFirebase(list); // SYNC TO CLOUD
         renderWfLibrary();
         updateAutomationBadge();
     }
