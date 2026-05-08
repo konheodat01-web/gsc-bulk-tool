@@ -950,34 +950,32 @@
             const snapshot = await fbDb.ref('settings/shared').once('value');
             const settings = snapshot.val();
             if (settings && typeof settings === 'object') {
+                // Firebase luôn là nguồn duy nhất — ghi đè tất cả
                 Object.keys(settings).forEach(k => {
-                    // Không ghi đè nếu máy hiện tại đã có giá trị
-                    if (!localStorage.getItem(k)) {
-                        localStorage.setItem(k, settings[k]);
-                    }
+                    localStorage.setItem(k, settings[k]);
                 });
-                console.log("☁️ Đã tải Settings từ Firebase!");
+                console.log("☁️ Đã tải & đồng bộ Settings từ Firebase!");
             }
         } catch (e) { console.error("Lỗi load Settings Firebase:", e); }
     }
 
-    async function loadWorkflowsFromFirebase() {
-        try {
-            const snapshot = await fbDb.ref('workflows/shared_list').once('value');
+    function startWorkflowRealTimeSync() {
+        // Lắng nghe real-time: mỗi khi 1 máy lưu WFL, các máy khác cập nhật ngay
+        fbDb.ref('workflows/shared_list').on('value', (snapshot) => {
             const list = snapshot.val();
             if (list && Array.isArray(list)) {
                 localStorage.setItem('wf_builder_list', JSON.stringify(list));
                 if (typeof renderWfLibrary === 'function') renderWfLibrary();
                 if (typeof renderSavedWfList === 'function') renderSavedWfList();
                 updateAutomationBadge();
-                console.log("☁️ Đã tải Workflow từ Firebase!");
+                console.log("☁️ [Real-time] Đồng bộ Workflow từ Firebase!");
             }
-        } catch (e) { console.error("Lỗi load Firebase:", e); }
+        });
     }
-    
-    // Load ngay khi mở trang
+
+    // Load ngay khi mở trang + bật real-time sync
     loadSettingsFromFirebase();
-    loadWorkflowsFromFirebase();
+    startWorkflowRealTimeSync();
 
 
     // --- BỔ SUNG: XÁC THỰC SERVICE ACCOUNT KHÔNG CẦN POPUP ---
