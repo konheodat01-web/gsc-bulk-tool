@@ -922,10 +922,43 @@
 
     async function syncWorkflowsToFirebase(list) {
         try {
-            // Sếp có thể thay "default_user" bằng tên sếp để phân biệt nếu dùng chung DB
             await fbDb.ref('workflows/shared_list').set(list);
             console.log("☁️ Đã đồng bộ Workflow lên Firebase!");
         } catch (e) { console.error("Lỗi sync Firebase:", e); }
+    }
+
+    async function syncSettingsToFirebase() {
+        const SYNC_KEYS = [
+            'sys_ai_engine', 'gemini_api_key', 'sys_ollama_url', 'sys_ollama_model',
+            'sys_serper_key', 'telegram_bot_token', 'tele_chat_id',
+            'wf_system_settings', 'google_client_id', 'global_sheet_url',
+            'vps_ip', 'ai_skills', 'gsc_emails'
+        ];
+        const settings = {};
+        SYNC_KEYS.forEach(k => {
+            const v = localStorage.getItem(k);
+            if (v !== null && v !== '') settings[k] = v;
+        });
+        try {
+            await fbDb.ref('settings/shared').set(settings);
+            console.log("☁️ Đã đồng bộ Settings lên Firebase!");
+        } catch (e) { console.error("Lỗi sync Settings Firebase:", e); }
+    }
+
+    async function loadSettingsFromFirebase() {
+        try {
+            const snapshot = await fbDb.ref('settings/shared').once('value');
+            const settings = snapshot.val();
+            if (settings && typeof settings === 'object') {
+                Object.keys(settings).forEach(k => {
+                    // Không ghi đè nếu máy hiện tại đã có giá trị
+                    if (!localStorage.getItem(k)) {
+                        localStorage.setItem(k, settings[k]);
+                    }
+                });
+                console.log("☁️ Đã tải Settings từ Firebase!");
+            }
+        } catch (e) { console.error("Lỗi load Settings Firebase:", e); }
     }
 
     async function loadWorkflowsFromFirebase() {
@@ -937,12 +970,13 @@
                 if (typeof renderWfLibrary === 'function') renderWfLibrary();
                 if (typeof renderSavedWfList === 'function') renderSavedWfList();
                 updateAutomationBadge();
-                console.log("☁️ Đã tải dữ liệu Workflow từ Firebase!");
+                console.log("☁️ Đã tải Workflow từ Firebase!");
             }
         } catch (e) { console.error("Lỗi load Firebase:", e); }
     }
     
     // Load ngay khi mở trang
+    loadSettingsFromFirebase();
     loadWorkflowsFromFirebase();
 
 
@@ -4877,9 +4911,11 @@ ${appState}`;
         // AI Skills
         localStorage.setItem('ai_skills', document.getElementById('sysAiSkills').value.trim());
         toggleGlobalSettings(false);
+        // Sync lên Firebase
+        syncSettingsToFirebase();
         // Toast thay vì alert
         const toast = document.createElement('div');
-        toast.innerText = '✅ Đã lưu thiết lập hệ thống!';
+        toast.innerText = '✅ Đã lưu & đồng bộ thiết lập hệ thống!';
         toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:slideUp 0.3s ease;';
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 2500);
