@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -436,64 +436,6 @@
     <div class="header">
         <h1>GSC Bulk & SEO Automation Pro</h1>
         <p>Hệ thống quản lý PBN: GSC, Sitemap, 301 & Outbound Link</p>
-    </div>
-<!-- GLOBAL SETTINGS -->
-    <div class="card" style="margin-top: 20px; margin-bottom: 20px; background: rgba(59, 130, 246, 0.05); border-color: var(--primary);">
-        <h3 style="margin-top:0; font-size: 14px; color: var(--primary); display: flex; align-items: center; gap: 8px;">
-            <i class="fa-solid fa-cogs"></i> Cấu hình Chung (Telegram & Google Sheet)
-            <button class="help-btn" onclick="showHelp('telegram')" title="Hướng dẫn sử dụng">?</button>
-        </h3>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <div class="form-group" style="margin-bottom:0">
-                <label style="font-size:11px; color:var(--text-muted)">Telegram Bot Token</label>
-                <input type="password" id="teleToken" placeholder="Dán Token vào đây..." onchange="saveTeleSettings()" style="width:100%; padding:8px; font-size:12px;">
-            </div>
-            <div class="form-group" style="margin-bottom:0">
-                <label style="font-size:11px; color:var(--text-muted)">Telegram Chat ID (Dãy số)</label>
-                <div style="display:flex; gap:8px;">
-                    <input type="text" id="teleChatId" placeholder="VD: 543216789" onchange="saveTeleSettings()" style="flex-grow:1; padding:8px; font-size:12px;">
-                    <button class="btn-mini" onclick="testTele()" style="background:var(--success); border:none; height:33px; white-space:nowrap;">🔔 Test</button>
-                </div>
-            </div>
-        </div>
-        <div style="margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <div>
-                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Google Client ID (Dùng cho GSC & Sheets API)</label>
-                <input type="password" id="googleClientId" placeholder="Dán Client ID vào đây..." onchange="saveTeleSettings()" style="width:100%; border:1px solid var(--border); padding:8px; font-size:12px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box;">
-            </div>
-            <div>
-                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">Google Sheet URL (Link nguồn cố định để nạp dữ liệu)</label>
-                <input type="text" id="globalSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/1X2Y3Z.../edit" onchange="saveTeleSettings()" style="width:100%; border:1px solid var(--border); padding:8px; font-size:12px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box;">
-            </div>
-        </div>
-        <!-- Cấu hình VPS -->
-        <div style="background: rgba(255,255,255,0.03); padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px dashed rgba(255,255,255,0.1);">
-            <h4 style="margin-top:0; font-size:14px; color:var(--primary); display:flex; align-items:center; gap:8px;">
-                <span style="font-size:18px;">🖥️</span> Điều khiển VPS (Super Agent)
-            </h4>
-            <div class="input-group">
-                <label>Địa chỉ IP VPS:</label>
-                <input type="text" id="vpsIp" placeholder="Ví dụ: 103.82.195.87" onchange="saveTeleSettings()">
-            </div>
-            <div class="input-group" style="margin-top:10px;">
-                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">🔑 Google Service Account JSON (Dán nội dung file JSON vào đây):</label>
-                <textarea id="vpsGoogleJson" oninput="localStorage.setItem('vps_google_json', this.value)" placeholder='{"type": "service_account", ...}' style="width:100%; height:60px; border:1px solid var(--border); padding:8px; font-size:10px; background:var(--bg); color:var(--text); border-radius:6px; box-sizing:border-box; font-family:monospace;"></textarea>
-                <button onclick="syncCredentialsToVps()" style="width:100%; margin-top:5px; background:rgba(255,255,255,0.05); border:1px solid var(--border); padding:5px; border-radius:6px; color:var(--text); font-size:11px; cursor:pointer;">💾 Lưu Chìa Khóa Lên VPS</button>
-            </div>
-            <div style="display:flex; gap:10px; margin-top:10px;">
-                <button onclick="syncToVps()" id="syncVpsBtn" style="flex:1; background:var(--secondary); border:none; padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                    <span>📤</span> Đồng bộ cấu hình
-                </button>
-                <button onclick="upgradeAgent()" id="upgradeVpsBtn" style="flex:1; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); padding:10px; border-radius:8px; color:white; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                    <span>🔄</span> Nâng cấp Agent
-                </button>
-            </div>
-            <div id="vpsStatus" style="font-size:11px; margin-top:8px; text-align:center;"></div>
-        </div>
-        <div style="margin-top: 15px; text-align: right;">
-            <button class="btn btn-primary" onclick="saveTeleSettings()" style="padding: 8px 25px; font-size: 12px; height: 35px; white-space: nowrap;">💾 Lưu Cấu Hình</button>
-        </div>
-        <div id="teleStatus" style="font-size:11px; margin-top:8px; color:var(--success); display:none;">✅ Đã lưu cấu hình chung!</div>
     </div>
 
     <div class="tab-nav">
@@ -958,7 +900,7 @@
     // --- BỔ SUNG: XÁC THỰC SERVICE ACCOUNT KHÔNG CẦN POPUP ---
     async function getGoogleToken() {
         // Ưu tiên dùng Service Account nếu sếp đã dán
-        const saJson = document.getElementById('vpsGoogleJson')?.value?.trim();
+        const saJson = document.getElementById('sysVpsGoogleJson')?.value?.trim();
         if (saJson) {
             try {
                 const creds = JSON.parse(saJson);
@@ -1214,7 +1156,7 @@
     }
 
     function getVpsProxyUrl(url, raw = false) {
-        const ip = document.getElementById('vpsIp')?.value.trim();
+        const ip = document.getElementById('sysVpsIp')?.value.trim();
         if (ip) {
             const target = `http://${ip}:3000/proxy?url=${encodeURIComponent(url)}&raw=${raw}`;
             return `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`;
@@ -1223,7 +1165,7 @@
     }
 
         async function vpsProxyRaw(url, signal) {
-        const ip = document.getElementById('vpsIp')?.value.trim();
+        const ip = document.getElementById('sysVpsIp')?.value.trim();
         if (ip) {
             try {
                 const ctrl2 = new AbortController();
@@ -1246,7 +1188,7 @@
     }
 
         async function vpsProxyJson(url, signal) {
-        const ip = document.getElementById('vpsIp')?.value.trim();
+        const ip = document.getElementById('sysVpsIp')?.value.trim();
         if (ip) {
             try {
                 const ctrl2 = new AbortController();
@@ -1288,134 +1230,62 @@
     const TELE_JSON_URL = "https://api.restful-api.dev/objects/ff8081819d82fab6019dd7f81ef5626c";
     
         async function syncCredentialsToVps() {
-            const ip = document.getElementById('vpsIp').value.trim();
-            const jsonContent = document.getElementById('vpsGoogleJson').value.trim();
-            const statusEl = document.getElementById('vpsStatus');
-
-            if (!ip || !jsonContent) { alert('Vui lòng nhập IP và dán JSON!'); return; }
-
-            statusEl.innerHTML = '🟡 Đang gửi chìa khóa lên VPS...';
+            const ip = document.getElementById('sysVpsIp').value.trim();
+            const jsonContent = document.getElementById('sysVpsGoogleJson').value.trim();
+            if (!ip || !jsonContent) { alert('Vui lòng nhập IP và dán JSON trong phần Cài đặt Hệ thống!'); return; }
             try {
                 const data = await callVps(ip, `/update-credentials?jsonContent=${encodeURIComponent(jsonContent)}`);
-                if (data.success) {
-                    statusEl.innerHTML = '<span style="color:var(--success)">✅ ' + data.message + '</span>';
-                    alert('Đã lưu chìa khóa thành công!');
-                
-        } else {
-                    statusEl.innerHTML = '<span style="color:var(--danger)">❌ ' + data.message + '</span>';
-                }
-            } catch (error) {
-                statusEl.innerHTML = '<span style="color:var(--danger)">❌ Lỗi gửi chìa khóa.</span>';
-            }
+                if (data.success) { alert('✅ Đã lưu chìa khóa lên VPS thành công!'); }
+                else { alert('❌ Thất bại: ' + data.message); }
+            } catch (error) { alert('❌ Lỗi kết nối VPS. Kiểm tra IP và cổng.'); }
         }
 
         async function upgradeAgent() {
-            const ip = document.getElementById('vpsIp').value.trim();
-            const statusEl = document.getElementById('vpsStatus');
-            if (!ip) { alert('Vui lòng nhập IP VPS!'); return; }
-
+            const ip = document.getElementById('sysVpsIp').value.trim();
+            if (!ip) { alert('Vui lòng nhập IP VPS trong phần Cài đặt Hệ thống!'); return; }
             if (!confirm('Sếp có chắc muốn nâng cấp Agent từ xa không?')) return;
-
-            statusEl.innerHTML = '🟡 Đang gửi lệnh nâng cấp tới VPS...';
             try {
                 const data = await callVps(ip, '/update-agent');
-                if (data.success) {
-                    statusEl.innerHTML = '<span style="color:var(--success)">✅ ' + data.message + '</span>';
-                } else {
-                    statusEl.innerHTML = '<span style="color:var(--warning)">⚠️ ' + (data.message || 'Không rõ trạng thái') + '</span>';
-                }
-            } catch (error) {
-                statusEl.innerHTML = '<span style="color:var(--danger)">❌ Lỗi: VPS chưa chạy hoặc sai IP.</span>';
-            }
+                if (data.success) { alert('✅ ' + data.message); }
+                else { alert('⚠️ ' + (data.message || 'Không rõ trạng thái')); }
+            } catch (error) { alert('❌ Lỗi: VPS chưa chạy hoặc sai IP.'); }
         }
 
         async function syncToVps() {
-            const ip = document.getElementById('vpsIp').value.trim();
-            const token = document.getElementById('teleToken').value.trim();
-            const chatId = document.getElementById('teleChatId').value.trim();
-            const sheetUrl = document.getElementById('globalSheetUrl').value.trim();
-            const statusEl = document.getElementById('vpsStatus');
-            const btn = document.getElementById('syncVpsBtn');
-
+            const ip = document.getElementById('sysVpsIp').value.trim();
+            const token = document.getElementById('sysTeleToken').value.trim();
+            const chatId = document.getElementById('sysTeleChatId').value.trim();
+            const sheetUrl = document.getElementById('sysGlobalSheetUrl').value.trim();
             if (!ip) { alert('Vui lòng nhập IP VPS!'); return; }
-            if (!token || !chatId || !sheetUrl) { alert('Vui lòng điền đủ Token, Chat ID và Sheet URL trước!'); return; }
-
-            btn.disabled = true;
-            btn.innerText = '⏳ Đang đồng bộ...';
-            statusEl.innerHTML = '🟡 Đang kết nối tới VPS...';
-
+            if (!token || !chatId || !sheetUrl) { alert('Vui lòng điền đủ Token, Chat ID và Sheet URL!'); return; }
             try {
                 const data = await callVps(ip, `/update-config?telegramToken=${encodeURIComponent(token)}&chatId=${encodeURIComponent(chatId)}&sheetUrl=${encodeURIComponent(sheetUrl)}`);
-                if (data.success) {
-                    statusEl.innerHTML = '<span style="color:var(--success)">✅ Đồng bộ thành công! Agent đang khởi động lại...</span>';
-                } else {
-                    statusEl.innerHTML = '<span style="color:var(--danger)">❌ Thất bại: ' + data.message + '</span>';
-                }
-            } catch (error) {
-                console.error(error);
-                statusEl.innerHTML = '<span style="color:var(--danger)">❌ Lỗi kết nối! Hãy đảm bảo VPS đã chạy lệnh update_logic.sh và mở cổng 3000.</span>';
-            } finally {
-                btn.disabled = false;
-                btn.innerText = '📤 Đồng bộ cấu hình lên VPS';
-            }
+                if (data.success) { alert('✅ Đồng bộ thành công! Agent đang khởi động lại...'); }
+                else { alert('❌ Thất bại: ' + data.message); }
+            } catch (error) { alert('❌ Lỗi kết nối! Đảm bảo VPS đã mở cổng 3000.'); }
         }
 
+    // Legacy stub — data now lives in Settings Modal
     async function saveTeleSettings() {
-        const token = document.getElementById('teleToken').value;
-        const chatId = document.getElementById('teleChatId').value;
-        const sheetUrl = document.getElementById('globalSheetUrl').value;
-        const clientId = document.getElementById('googleClientId').value;
-        const vpsIp = document.getElementById('vpsIp').value;
-        
-        localStorage.setItem('tele_token', token);
-        localStorage.setItem('tele_chat_id', chatId);
-        localStorage.setItem('global_sheet_url', sheetUrl);
-        localStorage.setItem('google_client_id', clientId);
-        localStorage.setItem('vps_ip', vpsIp);
-        GOOGLE_CLIENT_ID = clientId; // Cập nhật biến toàn cục ngay lập tức
-        
-        try {
-            const emails = typeof gscAccounts !== 'undefined' ? gscAccounts.map(a => a.email) : [];
-            await fetch(TELE_JSON_URL, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data: { tele_token: token, tele_chat_id: chatId, global_sheet_url: sheetUrl, google_client_id: clientId, gsc_emails: emails } })
-            });
-        } catch(e) { console.error("Lỗi đồng bộ cấu hình (Save)", e); }
-
+        // Tự động lưu từ localStorage (không cần form cũ)
         const st = document.getElementById('teleStatus');
-        st.style.display = 'block';
-        setTimeout(() => st.style.display = 'none', 3000);
+        if (st) { st.style.display = 'block'; setTimeout(() => st.style.display = 'none', 3000); }
     }
-
     async function loadTeleSettings() {
-        document.getElementById('teleToken').value = localStorage.getItem('tele_token') || '';
-        document.getElementById('teleChatId').value = localStorage.getItem('tele_chat_id') || '';
-        document.getElementById('globalSheetUrl').value = localStorage.getItem('global_sheet_url') || '';
-        document.getElementById('googleClientId').value = localStorage.getItem('google_client_id') || GOOGLE_CLIENT_ID;
-        document.getElementById('vpsIp').value = localStorage.getItem('vps_ip') || '';
-        
+        // Load từ cloud và lưu vào localStorage
         try {
             const res = await fetch(TELE_JSON_URL + "?t=" + Date.now());
-            if(!res.ok) return;
+            if (!res.ok) return;
             const resData = await res.json();
             const data = resData.data;
-            
-            if(data) {
-                if(data.tele_token) { localStorage.setItem('tele_token', data.tele_token); document.getElementById('teleToken').value = data.tele_token; }
-                if(data.tele_chat_id) { localStorage.setItem('tele_chat_id', data.tele_chat_id); document.getElementById('teleChatId').value = data.tele_chat_id; }
-                if(data.global_sheet_url) { localStorage.setItem('global_sheet_url', data.global_sheet_url); document.getElementById('globalSheetUrl').value = data.global_sheet_url; }
-                if(data.google_client_id) { 
-                    localStorage.setItem('google_client_id', data.google_client_id); 
-                    document.getElementById('googleClientId').value = data.google_client_id; 
-                    GOOGLE_CLIENT_ID = data.google_client_id;
-                }
-
-                if(data.gsc_emails && Array.isArray(data.gsc_emails) && typeof gscAccounts !== 'undefined') {
-                    data.gsc_emails.forEach(email => {
-                        if(!gscAccounts.find(a=>a.email === email)) gscAccounts.push({ email: email, token: null, expiresAt: 0 });
-                    });
-                    if(gscAccounts.length > 0 && activeAccountEmails.length === 0) activeAccountEmails = [gscAccounts[0].email];
+            if (data) {
+                if (data.tele_token) localStorage.setItem('telegram_bot_token', data.tele_token);
+                if (data.tele_chat_id) localStorage.setItem('tele_chat_id', data.tele_chat_id);
+                if (data.global_sheet_url) localStorage.setItem('global_sheet_url', data.global_sheet_url);
+                if (data.google_client_id) { localStorage.setItem('google_client_id', data.google_client_id); GOOGLE_CLIENT_ID = data.google_client_id; }
+                if (data.gsc_emails && Array.isArray(data.gsc_emails) && typeof gscAccounts !== 'undefined') {
+                    data.gsc_emails.forEach(email => { if (!gscAccounts.find(a => a.email === email)) gscAccounts.push({ email, token: null, expiresAt: 0 }); });
+                    if (gscAccounts.length > 0 && activeAccountEmails.length === 0) activeAccountEmails = [gscAccounts[0].email];
                     renderAccounts();
                     localStorage.setItem('gsc_emails', JSON.stringify(data.gsc_emails));
                 }
@@ -1423,8 +1293,8 @@
         } catch(e) { console.error("Lỗi đồng bộ cấu hình (Load)", e); }
     }
     async function sendToTelegram(msg) {
-        const t = localStorage.getItem('tele_token'), c = localStorage.getItem('tele_chat_id');
-        if(!t || !c) return;
+        const t = localStorage.getItem('telegram_bot_token'), c = localStorage.getItem('tele_chat_id');
+        if (!t || !c) return;
         try {
             const res = await fetch(`https://api.telegram.org/bot${t}/sendMessage`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1435,8 +1305,8 @@
     }
     async function testTele() {
         const ok = await sendToTelegram('<b>🔔 Test thành công!</b>\nTool GSC đã kết nối được với Telegram của sếp.');
-        if(ok) alert("✅ Bot đã gửi tin nhắn test thành công! Sếp kiểm tra Telegram nhé.");
-        else alert("❌ Lỗi! Sếp kiểm tra lại Token hoặc Chat ID (phải là dãy số) xem đúng chưa nhé.");
+        if (ok) alert("✅ Bot đã gửi tin nhắn test thành công! Sếp kiểm tra Telegram nhé.");
+        else alert("❌ Lỗi! Sếp kiểm tra lại Token hoặc Chat ID trong phần Cài đặt Hệ thống ⚙️.");
     }
     let gscAccounts = []; // { email, token, expiresAt }
     let activeAccountEmails = [];
@@ -1444,16 +1314,14 @@
     function saveAccountsToLocal() {
         const emails = gscAccounts.map(a => a.email);
         localStorage.setItem('gsc_emails', JSON.stringify(emails));
-        
-        // Đồng bộ lên Cloud
-        const token = document.getElementById('teleToken').value;
-        const chatId = document.getElementById('teleChatId').value;
+        const token = localStorage.getItem('telegram_bot_token') || '';
+        const chatId = localStorage.getItem('tele_chat_id') || '';
         fetch(TELE_JSON_URL, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ data: { tele_token: token, tele_chat_id: chatId, gsc_emails: emails } })
         }).catch(e => console.error(e));
     }
+
 
     function loadAccountsFromLocal() {
         try {
@@ -2634,7 +2502,7 @@
     }
 
     async function verifyLoginViaVps(url, adminPath, user, pass) {
-        const ip = document.getElementById('vpsIp').value.trim();
+        const ip = document.getElementById('sysVpsIp').value.trim();
         if (!ip) return '<span style="color:var(--text-muted);font-size:10px;">⚠️ Cần IP VPS</span>';
         try {
             const ctrl = new AbortController();
@@ -4765,8 +4633,8 @@ ${appState}`;
      loadChatHistory();
      setTimeout(() => {
          const savedJson = localStorage.getItem('vps_google_json');
-         if (savedJson && document.getElementById('vpsGoogleJson')) {
-             document.getElementById('vpsGoogleJson').value = savedJson;
+         if (savedJson && document.getElementById('sysVpsGoogleJson')) {
+             document.getElementById('sysVpsGoogleJson').value = savedJson;
          }
      }, 500);
 
@@ -4789,31 +4657,62 @@ ${appState}`;
         if (!overlay) return;
         overlay.style.display = show ? 'flex' : 'none';
         if (show) {
-            
-        const engine = localStorage.getItem('sys_ai_engine') || 'gemini';
-        document.getElementById('sysAiEngine').value = engine;
-        document.getElementById('sysOllamaUrl').value = localStorage.getItem('sys_ollama_url') || 'http://127.0.0.1:11434';
-        document.getElementById('sysOllamaModel').value = localStorage.getItem('sys_ollama_model') || 'llama3';
-        document.getElementById('cfgOllama').style.display = engine === 'ollama' ? 'block' : 'none';
-        document.getElementById('cfgGemini').style.display = engine === 'gemini' ? 'block' : 'none';
-        document.getElementById('sysGeminiKey').value = localStorage.getItem('gemini_api_key') || '';
-
+            // AI Engine
+            const engine = localStorage.getItem('sys_ai_engine') || 'gemini';
+            document.getElementById('sysAiEngine').value = engine;
+            document.getElementById('sysGeminiKey').value = localStorage.getItem('gemini_api_key') || '';
+            document.getElementById('cfgGemini').style.display = engine === 'gemini' ? 'block' : 'none';
+            if (document.getElementById('sysOllamaUrl')) document.getElementById('sysOllamaUrl').value = localStorage.getItem('sys_ollama_url') || 'http://127.0.0.1:11434';
+            if (document.getElementById('sysOllamaModel')) document.getElementById('sysOllamaModel').value = localStorage.getItem('sys_ollama_model') || 'llama3';
+            document.getElementById('cfgOllama').style.display = engine === 'ollama' ? 'block' : 'none';
+            // Telegram
             document.getElementById('sysTeleToken').value = localStorage.getItem('telegram_bot_token') || '';
+            document.getElementById('sysTeleChatId').value = localStorage.getItem('tele_chat_id') || '';
+            // VPS Automation
+            const wfSettings = JSON.parse(localStorage.getItem('wf_system_settings') || '{}');
+            document.getElementById('sysVpsUrl').value = wfSettings.vpsUrl || '';
+            document.getElementById('sysVpsToken').value = wfSettings.vpsToken || '';
+            // Google
+            document.getElementById('sysGoogleClientId').value = localStorage.getItem('google_client_id') || '';
+            document.getElementById('sysGlobalSheetUrl').value = localStorage.getItem('global_sheet_url') || '';
+            // VPS Agent
+            document.getElementById('sysVpsIp').value = localStorage.getItem('vps_ip') || '';
+            document.getElementById('sysVpsGoogleJson').value = localStorage.getItem('vps_google_json') || '';
+            // AI Skills
             document.getElementById('sysAiSkills').value = localStorage.getItem('ai_skills') || '';
         }
     }
 
     function saveSystemSettings() {
-        
+        // AI
         localStorage.setItem('sys_ai_engine', document.getElementById('sysAiEngine').value);
-        localStorage.setItem('sys_ollama_url', document.getElementById('sysOllamaUrl').value.trim());
-        localStorage.setItem('sys_ollama_model', document.getElementById('sysOllamaModel').value.trim());
         localStorage.setItem('gemini_api_key', document.getElementById('sysGeminiKey').value.trim());
-
+        if (document.getElementById('sysOllamaUrl')) localStorage.setItem('sys_ollama_url', document.getElementById('sysOllamaUrl').value.trim());
+        if (document.getElementById('sysOllamaModel')) localStorage.setItem('sys_ollama_model', document.getElementById('sysOllamaModel').value.trim());
+        // Telegram
         localStorage.setItem('telegram_bot_token', document.getElementById('sysTeleToken').value.trim());
+        localStorage.setItem('tele_chat_id', document.getElementById('sysTeleChatId').value.trim());
+        // VPS Automation
+        const vpsUrl = document.getElementById('sysVpsUrl').value.trim().replace(/\/$/, '');
+        const vpsToken = document.getElementById('sysVpsToken').value.trim();
+        localStorage.setItem('wf_system_settings', JSON.stringify({ vpsUrl, vpsToken }));
+        // Google
+        const clientId = document.getElementById('sysGoogleClientId').value.trim();
+        localStorage.setItem('google_client_id', clientId);
+        if (typeof GOOGLE_CLIENT_ID !== 'undefined') GOOGLE_CLIENT_ID = clientId;
+        localStorage.setItem('global_sheet_url', document.getElementById('sysGlobalSheetUrl').value.trim());
+        // VPS Agent
+        localStorage.setItem('vps_ip', document.getElementById('sysVpsIp').value.trim());
+        localStorage.setItem('vps_google_json', document.getElementById('sysVpsGoogleJson').value.trim());
+        // AI Skills
         localStorage.setItem('ai_skills', document.getElementById('sysAiSkills').value.trim());
         toggleGlobalSettings(false);
-        alert('✅ Đã lưu thiết lập hệ thống!');
+        // Toast thay vì alert
+        const toast = document.createElement('div');
+        toast.innerText = '✅ Đã lưu thiết lập hệ thống!';
+        toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:slideUp 0.3s ease;';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
     }
 
 </script>
@@ -5079,32 +4978,84 @@ return items.map(item => {
                 <div style="flex:1; overflow-y:auto; padding:24px;">
                     <!-- API TAB -->
                     <div id="setContent_apis" style="display:block;">
-                        <h3 style="color:white; margin:0 0 20px 0; font-size:18px;">Khoá API (API Keys)</h3>
-                        <div style="margin-bottom:20px;">
-                            <label style="display:block; color:#94a3b8; font-size:12px; font-weight:600; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Lõi Trí Tuệ (AI Engine)</label>
-                            <select id="sysAiEngine" onchange="document.getElementById('cfgOllama').style.display = this.value==='ollama'?'block':'none'; document.getElementById('cfgGemini').style.display = this.value==='gemini'?'block':'none';" style="width:100%; background:#0f172a; border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:12px 16px; color:white; font-size:14px; outline:none; box-sizing:border-box;">
-                                <option value="gemini">Google Gemini (Mặc định)</option>
-                                <option value="ollama">Ollama (Chạy nội bộ trên VPS - 0đ)</option>
-                            </select>
+                        <h3 style="color:white; margin:0 0 16px 0; font-size:16px;">Cấu hình Hệ thống & API</h3>
+
+                        <!-- AI Engine -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
+                            <div>
+                                <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase;">AI Engine</label>
+                                <select id="sysAiEngine" onchange="document.getElementById('cfgOllama').style.display=this.value==='ollama'?'block':'none';document.getElementById('cfgGemini').style.display=this.value==='gemini'?'block':'none';" style="width:100%; background:#0f172a; border:1px solid rgba(139,92,246,0.3); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                                    <option value="gemini">Google Gemini (Mặc định)</option>
+                                    <option value="ollama">Ollama (Chạy local trên VPS)</option>
+                                </select>
+                            </div>
+                            <div id="cfgGemini">
+                                <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase;">Gemini API Key</label>
+                                <input type="password" id="sysGeminiKey" placeholder="AIzaSy..." style="width:100%; background:#0f172a; border:1px solid rgba(139,92,246,0.3); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                            </div>
                         </div>
-                        
-                        <div id="cfgOllama" style="display:none; background:rgba(0,0,0,0.2); padding:15px; border-radius:12px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:20px;">
-                            <label style="display:block; color:#94a3b8; font-size:12px; font-weight:600; margin-bottom:8px;">Ollama API URL</label>
-                            <input type="text" id="sysOllamaUrl" placeholder="http://127.0.0.1:11434" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:10px; color:white; font-size:13px; outline:none; margin-bottom:12px; box-sizing:border-box;">
-                            
-                            <label style="display:block; color:#94a3b8; font-size:12px; font-weight:600; margin-bottom:8px;">Tên Model Nguồn Mở (VD: llama3, mistral)</label>
-                            <input type="text" id="sysOllamaModel" placeholder="llama3" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                        <div id="cfgOllama" style="display:none; background:rgba(0,0,0,0.2); padding:12px; border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:16px;">
+                            <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px;">Ollama URL</label>
+                            <input type="text" id="sysOllamaUrl" placeholder="http://127.0.0.1:11434" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:9px; color:white; font-size:12px; outline:none; margin-bottom:8px; box-sizing:border-box;">
+                            <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px;">Model (VD: llama3)</label>
+                            <input type="text" id="sysOllamaModel" placeholder="llama3" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:9px; color:white; font-size:12px; outline:none; box-sizing:border-box;">
                         </div>
 
-                        <div id="cfgGemini" style="margin-bottom:20px;">
-                            <label style="display:block; color:#94a3b8; font-size:12px; font-weight:600; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Google Gemini API</label>
-                            <input type="password" id="sysGeminiKey" placeholder="AIzaSy..." style="width:100%; background:#0f172a; border:1px solid rgba(139,92,246,0.3); border-radius:12px; padding:12px 16px; color:white; font-size:14px; outline:none; box-sizing:border-box;">
-                            <p style="font-size:11px; color:#475569; margin-top:8px;">Dùng cho Trợ lý AI và tính năng sinh nội dung.</p>
+                        <!-- Telegram -->
+                        <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:14px; margin-bottom:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.05);">
+                            <div>
+                                <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase;">Telegram Bot Token</label>
+                                <input type="password" id="sysTeleToken" placeholder="123456:ABC-DEF..." style="width:100%; background:#0f172a; border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase;">Telegram Chat ID</label>
+                                <div style="display:flex; gap:6px;">
+                                    <input type="text" id="sysTeleChatId" placeholder="VD: 543216789" style="flex:1; background:#0f172a; border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                                    <button onclick="testTele()" style="background:rgba(16,185,129,0.1); color:#10b981; border:1px solid #10b981; border-radius:8px; padding:0 10px; cursor:pointer; font-size:11px; white-space:nowrap;">Test</button>
+                                </div>
+                            </div>
                         </div>
-                        <div style="margin-bottom:20px;">
-                            <label style="display:block; color:#94a3b8; font-size:12px; font-weight:600; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Telegram Bot Token</label>
-                            <input type="password" id="sysTeleToken" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" style="width:100%; background:#0f172a; border:1px solid rgba(56,189,248,0.3); border-radius:12px; padding:12px 16px; color:white; font-size:14px; outline:none; box-sizing:border-box;">
-                            <p style="font-size:11px; color:#475569; margin-top:8px;">Dùng cho các cảnh báo gửi qua Telegram.</p>
+
+                        <!-- VPS Automation -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.05);">
+                            <div>
+                                <label style="display:block; color:#a78bfa; font-size:11px; font-weight:700; margin-bottom:6px; text-transform:uppercase;">VPS URL (Workflow)</label>
+                                <input type="text" id="sysVpsUrl" placeholder="http://103.x.x.x:9000" style="width:100%; background:rgba(124,58,237,0.05); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="display:block; color:#a78bfa; font-size:11px; font-weight:700; margin-bottom:6px; text-transform:uppercase;">VPS Token (Mật mã)</label>
+                                <input type="password" id="sysVpsToken" placeholder="Token xác thực..." style="width:100%; background:rgba(124,58,237,0.05); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                            </div>
+                        </div>
+
+                        <!-- Google -->
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.05);">
+                            <div>
+                                <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase;">Google Client ID</label>
+                                <input type="password" id="sysGoogleClientId" placeholder="Dán Client ID..." style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                            </div>
+                            <div>
+                                <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase;">Google Sheet URL (Nguồn)</label>
+                                <input type="text" id="sysGlobalSheetUrl" placeholder="https://docs.google.com/..." style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                            </div>
+                        </div>
+
+                        <!-- VPS Super Agent -->
+                        <div style="background:rgba(255,255,255,0.03); padding:14px; border-radius:12px; border:1px dashed rgba(255,255,255,0.1);">
+                            <h4 style="margin:0 0 10px 0; font-size:12px; color:#94a3b8; text-transform:uppercase;">🖥️ Điều khiển VPS (Super Agent)</h4>
+                            <div style="margin-bottom:10px;">
+                                <label style="display:block; color:#64748b; font-size:11px; margin-bottom:4px;">Địa chỉ IP VPS</label>
+                                <input type="text" id="sysVpsIp" placeholder="103.82.195.87" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; font-size:12px; box-sizing:border-box;">
+                            </div>
+                            <div style="margin-bottom:10px;">
+                                <label style="display:block; color:#64748b; font-size:11px; margin-bottom:4px;">Google Service Account JSON</label>
+                                <textarea id="sysVpsGoogleJson" placeholder='{"type": "service_account", ...}' style="width:100%; height:60px; background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:#94a3b8; font-size:10px; font-family:monospace; resize:none; box-sizing:border-box;"></textarea>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button onclick="syncCredentialsToVps()" style="flex:1; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); padding:7px; border-radius:6px; font-size:11px; cursor:pointer;">💾 Lưu Chìa Khóa</button>
+                                <button onclick="syncToVps()" style="flex:1; background:#3b82f6; color:white; border:none; padding:7px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer;">📤 Đồng bộ cấu hình</button>
+                                <button onclick="upgradeAgent()" style="flex:1; background:rgba(255,255,255,0.08); color:white; border:1px solid rgba(255,255,255,0.15); padding:7px; border-radius:6px; font-size:11px; cursor:pointer;">🔄 Nâng cấp Agent</button>
+                            </div>
                         </div>
                     </div>
 
