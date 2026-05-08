@@ -1607,13 +1607,14 @@
         ].join("\n");
 
         var FILTER_CODE = [
+            "// Lọc top 100 và build mẫu báo cáo (Website -> Rank)",
             "var top = items.filter(function(i) { return i.total_rank > 0 && i.total_rank <= 100; });",
             "var lines = top.map(function(i) {",
-            "    return \"🌐 \" + i.domain + \"\n🔑 \" + i.keyword + \"\n💻 PC: #\" + (i.rank_pc||\"-\") + \" | 📱 MB: #\" + (i.rank_mb||\"-\") + \" | ⭐ Best: #\" + i.total_rank;",
-            "}).join(\"\n──────────────\n\");",
+            "    return \"🌐 \" + i.domain + \" ➔ 🏆 <b>Rank: #\" + i.total_rank + \"</b>\";",
+            "}).join(\"\\n\");",
             "var ts = new Date().toLocaleString(\"vi-VN\");",
-            "var msg = top.length ? \"📊 <b>Check Rank hoan tat</b>\n📅 \" + ts + \"\n✅ \" + top.length + \" ket qua Top 100:\n──────────────\n\" + lines : \"📊 Xong (\" + ts + \"). Khong co ket qua Top 100.\";",
-            "return top.length ? top.map(function(i) { return Object.assign({}, i, {_msg: msg}); }) : [{_msg: msg, _noResult: true}];"
+            "var msg = top.length ? \"📊 <b>BÁO CÁO THỨ HẠNG</b>\\n📅 \" + ts + \"\\n✅ Có \" + top.length + \" website trong Top 100:\\n──────────────\\n\" + lines : \"📊 Check xong (\" + ts + \"). Không có website nào trong Top 100.\";",
+            "return top.length ? top.map(function(i) { return Object.assign({}, i, {baocao: msg}); }) : [{baocao: msg, _noResult: true}];"
         ].join("\n");
 
         function defOf(type) {
@@ -1634,7 +1635,7 @@
                 {id:"n3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Rank PC+Mobile (Serper)"},data:{code:RANK_CODE}},
                 {id:"n4",type:"custom-code",    category:"core",   x:760, y:200,def:defOf("custom-code"),   config:{customName:"Loc Top 100 & Tao Bao Cao"},data:{code:FILTER_CODE}},
                 {id:"n5",type:"update-sheet",   category:"app",    x:1000,y:200,def:defOf("update-sheet"),  config:{},data:{sheetUrl:"",range:"A2",colMap:"keyword,domain,rank_pc,rank_mb,total_rank"}},
-                {id:"n6",type:"telegram",       category:"app",    x:1240,y:200,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"{_msg}"}}
+                {id:"n6",type:"telegram",       category:"app",    x:1240,y:200,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"{baocao}"}}
             ],
             edges:[{from:"n1",to:"n2"},{from:"n2",to:"n3"},{from:"n3",to:"n4"},{from:"n4",to:"n5"},{from:"n5",to:"n6"}]
         };
