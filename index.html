@@ -1561,65 +1561,85 @@
     let tempLine = null;
     
     function seedDefaultWorkflows() {
-        if (localStorage.getItem('wf_seeded_v1')) return;
-        const RANK_CODE = `// CHECK RANK TU KHOA (PC + Mobile) via GSC API
+        if (localStorage.getItem('wf_seeded_v2')) return;
+        localStorage.removeItem('wf_seeded_v1');
+        const RANK_CODE = `// CHECK RANK REAL-TIME via Serper API
 // Input sheet: Col A = tu khoa, Col B = domain
-// Output: rank_pc, rank_mb, total_rank
-const token = await getGoogleToken();
-const endDate = new Date().toISOString().split('T')[0];
-const startDate = new Date(Date.now()-28*864e5).toISOString().split('T')[0];
+// Output: rank_pc, rank_mb, total_rank (vi tri tot nhat)
+const serperKey = localStorage.getItem('sys_serper_key') || '';
+if (!serperKey) { alert('Chua co Serper API Key! Vao Cai dat >> Serper de dan key.'); return items; }
+
+async function checkRank(keyword, domain, device) {
+    const body = { q: keyword, gl: 'vn', hl: 'vi', num: 100 };
+    if (device === 'mobile') body.device = 'mobile';
+    const res = await fetch('https://google.serper.dev/search', {
+        method: 'POST',
+        headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!data.organic) return 0;
+    const d = domain.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+    const found = data.organic.find(r => r.link && r.link.toLowerCase().includes(d));
+    return found ? found.position : 0;
+}
+
 for (const item of items) {
-    const kw = (item.A||item.keyword||'').trim();
-    const site = (item.B||item.domain||'').trim();
-    if (!kw||!site){item.rank_pc=0;item.rank_mb=0;item.total_rank=0;continue;}
-    const siteUrl = site.startsWith('http')?site:'https://'+site;
-    item.keyword=kw; item.domain=site;
+    const kw   = (item.A || item.keyword || '').trim();
+    const site = (item.B || item.domain  || '').trim();
+    if (!kw || !site) { item.rank_pc=0; item.rank_mb=0; item.total_rank=0; continue; }
+    item.keyword = kw; item.domain = site;
     try {
-        const res = await fetch(
-            \`https://www.googleapis.com/webmasters/v3/sites/\${encodeURIComponent(siteUrl)}/searchAnalytics/query\`,
-            {method:'POST',headers:{Authorization:\`Bearer \${token}\`,'Content-Type':'application/json'},
-             body:JSON.stringify({startDate,endDate,dimensions:['query','device'],
-                dimensionFilterGroups:[{filters:[{dimension:'query',expression:kw,operator:'equals'}]}],rowLimit:5})}
-        );
-        const d=await res.json();
-        let pc=0,mb=0;
-        if(d.rows){
-            const pr=d.rows.find(r=>r.keys[1]?.toUpperCase()==='DESKTOP');
-            const mr=d.rows.find(r=>r.keys[1]?.toUpperCase()==='MOBILE');
-            pc=pr?Math.round(pr.position):0;mb=mr?Math.round(mr.position):0;
-        }
-        item.rank_pc=pc;item.rank_mb=mb;
-        const v=[pc,mb].filter(r=>r>0);
-        item.total_rank=v.length?Math.min(...v):0;
-    }catch(e){item.rank_pc=0;item.rank_mb=0;item.total_rank=0;}
+        const [pc, mb] = await Promise.all([
+            checkRank(kw, site, 'desktop'),
+            checkRank(kw, site, 'mobile')
+        ]);
+        item.rank_pc = pc; item.rank_mb = mb;
+        const v = [pc, mb].filter(r => r > 0);
+        item.total_rank = v.length ? Math.min(...v) : 0;
+    } catch(e) { item.rank_pc=0; item.rank_mb=0; item.total_rank=0; }
 }
 return items;`;
         const FILTER_CODE = `// Loc top 100, build Telegram message
-const top=items.filter(i=>i.total_rank>0&&i.total_rank<=100);
-const lines=top.map(i=>'🌐 '+i.domain+'\\n🔑 '+i.keyword+'\\n💻 PC:#'+(i.rank_pc||'-')+' | 📱 MB:#'+(i.rank_mb||'-')+' | ⭐ Best:#'+i.total_rank).join('\\n──────────\\n');
-const ts=new Date().toLocaleString('vi-VN');
-const msg=top.length?'📊 <b>Check Rank hoan tat</b>\\n📅 '+ts+'\\n✅ '+top.length+' ket qua Top 100:\\n──────────\\n'+lines:'📊 Xong ('+ts+'). Khong co ket qua Top 100.';
-return top.length?top.map(i=>({...i,_msg:msg})):[{_msg:msg,_noResult:true}];`;
+const top = items.filter(i => i.total_rank > 0 && i.total_rank <= 100);
+const lines = top.map(i =>
+    '🌐 ' + i.domain + '\\n🔑 ' + i.keyword +
+    '\\n💻 PC: #' + (i.rank_pc || '-') +
+    ' | 📱 MB: #' + (i.rank_mb || '-') +
+    ' | ⭐ Best: #' + i.total_rank
+).join('\\n──────────────\\n');
+const ts = new Date().toLocaleString('vi-VN');
+const msg = top.length
+    ? '📊 <b>Check Rank hoan tat</b>\\n📅 ' + ts + '\\n✅ ' + top.length + ' ket qua trong Top 100:\\n──────────────\\n' + lines
+    : '📊 Check Rank xong (' + ts + '). Khong co ket qua Top 100.';
+return top.length ? top.map(i => ({...i, _msg: msg})) : [{_msg: msg, _noResult: true}];`;
         const defOf = type => {
-            const all = [...(typeof ATOMIC_BLOCKS!=='undefined'?ATOMIC_BLOCKS:[]),...(typeof COMPOUND_BLOCKS!=='undefined'?COMPOUND_BLOCKS:[])];
-            return all.find(x=>x.type===type)||{type,category:'core',icon:'⚙️',label:type,color:'#64748b',desc:''};
+            const all = [
+                ...(typeof ATOMIC_BLOCKS !== 'undefined' ? ATOMIC_BLOCKS : []),
+                ...(typeof COMPOUND_BLOCKS !== 'undefined' ? COMPOUND_BLOCKS : [])
+            ];
+            return all.find(x => x.type === type) || {type, category:'core', icon:'⚙️', label:type, color:'#64748b', desc:''};
         };
         const wf = {
-            name:'🔍 Check Rank Tu Khoa (PC + Mobile)',
-            savedAt:new Date().toISOString(),
-            nodes:[
+            name: '🔍 Check Rank Tu Khoa (Serper Real-time)',
+            savedAt: new Date().toISOString(),
+            nodes: [
                 {id:'n1',type:'trigger-manual',category:'trigger',x:40,  y:200,def:defOf('trigger-manual'),config:{},data:{}},
                 {id:'n2',type:'input',          category:'core',   x:280, y:200,def:defOf('input'),         config:{},data:{mode:'sheet',sheetUrl:'',range:'A2:B500'}},
-                {id:'n3',type:'custom-code',    category:'core',   x:520, y:200,def:defOf('custom-code'),   config:{customName:'Check Rank PC + Mobile'},data:{code:RANK_CODE}},
-                {id:'n4',type:'custom-code',    category:'core',   x:760, y:200,def:defOf('custom-code'),   config:{customName:'Loc Top 100 & Bao Cao'},data:{code:FILTER_CODE}},
+                {id:'n3',type:'custom-code',    category:'core',   x:520, y:200,def:defOf('custom-code'),   config:{customName:'Check Rank PC + Mobile (Serper)'},data:{code:RANK_CODE}},
+                {id:'n4',type:'custom-code',    category:'core',   x:760, y:200,def:defOf('custom-code'),   config:{customName:'Loc Top 100 & Tao Bao Cao'},data:{code:FILTER_CODE}},
                 {id:'n5',type:'update-sheet',   category:'app',    x:1000,y:200,def:defOf('update-sheet'),  config:{},data:{sheetUrl:'',range:'A2',colMap:'keyword,domain,rank_pc,rank_mb,total_rank'}},
                 {id:'n6',type:'telegram',       category:'app',    x:1240,y:200,def:defOf('telegram'),      config:{},data:{token:'',chatId:'',template:'{_msg}'}}
             ],
             edges:[{from:'n1',to:'n2'},{from:'n2',to:'n3'},{from:'n3',to:'n4'},{from:'n4',to:'n5'},{from:'n5',to:'n6'}]
         };
-        const lib=JSON.parse(localStorage.getItem('wf_builder_list')||'[]');
-        if(!lib.find(w=>w.name===wf.name)){lib.unshift(wf);localStorage.setItem('wf_builder_list',JSON.stringify(lib));}
-        localStorage.setItem('wf_seeded_v1','1');
+        const lib = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        // Remove old version if exists
+        const filtered = lib.filter(w => !w.name.includes('Check Rank'));
+        filtered.unshift(wf);
+        localStorage.setItem('wf_builder_list', JSON.stringify(filtered));
+        localStorage.setItem('wf_seeded_v2', '1');
+    }
     }
 
     function initWorkflowBuilder() {
@@ -4745,6 +4765,8 @@ ${appState}`;
             if (document.getElementById('sysOllamaUrl')) document.getElementById('sysOllamaUrl').value = localStorage.getItem('sys_ollama_url') || 'http://127.0.0.1:11434';
             if (document.getElementById('sysOllamaModel')) document.getElementById('sysOllamaModel').value = localStorage.getItem('sys_ollama_model') || 'llama3';
             document.getElementById('cfgOllama').style.display = engine === 'ollama' ? 'block' : 'none';
+            // Serper
+            if (document.getElementById('sysSerperKey')) document.getElementById('sysSerperKey').value = localStorage.getItem('sys_serper_key') || '';
             // Telegram
             document.getElementById('sysTeleToken').value = localStorage.getItem('telegram_bot_token') || '';
             document.getElementById('sysTeleChatId').value = localStorage.getItem('tele_chat_id') || '';
@@ -4769,6 +4791,8 @@ ${appState}`;
         localStorage.setItem('gemini_api_key', document.getElementById('sysGeminiKey').value.trim());
         if (document.getElementById('sysOllamaUrl')) localStorage.setItem('sys_ollama_url', document.getElementById('sysOllamaUrl').value.trim());
         if (document.getElementById('sysOllamaModel')) localStorage.setItem('sys_ollama_model', document.getElementById('sysOllamaModel').value.trim());
+        // Serper
+        if (document.getElementById('sysSerperKey')) localStorage.setItem('sys_serper_key', document.getElementById('sysSerperKey').value.trim());
         // Telegram
         localStorage.setItem('telegram_bot_token', document.getElementById('sysTeleToken').value.trim());
         localStorage.setItem('tele_chat_id', document.getElementById('sysTeleChatId').value.trim());
@@ -5088,6 +5112,21 @@ return items.map(item => {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- SERPER API -->
+                        <div class="acc-group" id="acc_serper">
+                            <div class="acc-header" onclick="toggleAcc('acc_serper')">
+                                <span class="acc-icon" style="background:linear-gradient(135deg,#16a34a,#15803d);font-size:18px;">🔍</span>
+                                <span class="acc-title">Serper API</span>
+                                <span class="acc-desc">Check rank real-time từ Google SERP</span>
+                                <span class="acc-arrow">▾</span>
+                            </div>
+                            <div class="acc-body" style="display:none;">
+                                <label class="acc-label">Serper API Key</label>
+                                <input type="password" id="sysSerperKey" placeholder="Dán API key từ serper.dev..." class="acc-input" style="border-color:rgba(22,163,74,0.4);margin-bottom:8px;">
+                                <div style="font-size:11px;color:#64748b;">🆓 Lấy key miễn phí tại <b style="color:#4ade80;">serper.dev</b> — 2,500 queries/tháng free. Mỗi lần check 1 từ khóa = 2 queries (PC + Mobile).</div>
                             </div>
                         </div>
 
