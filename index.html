@@ -4657,7 +4657,18 @@ ${appState}`;
         document.getElementById('setTab_skills').style.color = tab === 'skills' ? '#e2e8f0' : '#94a3b8';
     }
 
+
+    function toggleAcc(id) {
+        const grp = document.getElementById(id);
+        if (!grp) return;
+        const body = grp.querySelector('.acc-body');
+        const isOpen = grp.classList.contains('open');
+        grp.classList.toggle('open', !isOpen);
+        body.style.display = isOpen ? 'none' : 'block';
+    }
+
     function toggleGlobalSettings(show) {
+
         const overlay = document.getElementById('globalSettingsOverlay');
         if (!overlay) return;
         overlay.style.display = show ? 'flex' : 'none';
@@ -4966,7 +4977,7 @@ return items.map(item => {
     
     <!-- SYSTEM SETTINGS MODAL -->
     <div id="globalSettingsOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(8px); z-index:20000; align-items:center; justify-content:center; pointer-events:none;">
-        <div style="background:#1e293b; width:700px; height:500px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); overflow:hidden; animation: zoomIn 0.3s ease; display:flex;">
+        <div style="background:#1e293b; width:700px; max-height:580px; border-radius:24px; border:1px solid rgba(255,255,255,0.1); box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); overflow:hidden; animation: zoomIn 0.3s ease; display:flex;">
             
             <!-- Sidebar -->
             <div style="width: 220px; background:rgba(0,0,0,0.2); border-right:1px solid rgba(255,255,255,0.05); padding:20px 0; display:flex; flex-direction:column;">
@@ -4991,85 +5002,124 @@ return items.map(item => {
                 <div style="flex:1; overflow-y:auto; padding:24px;">
                     <!-- API TAB -->
                     <div id="setContent_apis" style="display:block;">
-                        <h3 style="color:white; margin:0 0 16px 0; font-size:16px;">Cấu hình Hệ thống & API</h3>
 
-                        <!-- AI Engine -->
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
-                            <div>
-                                <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase;">AI Engine</label>
-                                <select id="sysAiEngine" onchange="document.getElementById('cfgOllama').style.display=this.value==='ollama'?'block':'none';document.getElementById('cfgGemini').style.display=this.value==='gemini'?'block':'none';" style="width:100%; background:#0f172a; border:1px solid rgba(139,92,246,0.3); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
-                                    <option value="gemini">Google Gemini (Mặc định)</option>
-                                    <option value="ollama">Ollama (Chạy local trên VPS)</option>
-                                </select>
+                        <!-- TELEGRAM -->
+                        <div class="acc-group open" id="acc_tele">
+                            <div class="acc-header" onclick="toggleAcc('acc_tele')">
+                                <span class="acc-icon" style="background:linear-gradient(135deg,#2CA5E0,#1a8bbf);"><img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" style="width:18px;height:18px;"></span>
+                                <span class="acc-title">Telegram</span>
+                                <span class="acc-desc">Thông báo qua bot Telegram</span>
+                                <span class="acc-arrow">▾</span>
                             </div>
-                            <div id="cfgGemini">
-                                <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase;">Gemini API Key</label>
-                                <input type="password" id="sysGeminiKey" placeholder="AIzaSy..." style="width:100%; background:#0f172a; border:1px solid rgba(139,92,246,0.3); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
-                            </div>
-                        </div>
-                        <div id="cfgOllama" style="display:none; background:rgba(0,0,0,0.2); padding:12px; border-radius:10px; border:1px dashed rgba(255,255,255,0.1); margin-bottom:16px;">
-                            <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px;">Ollama URL</label>
-                            <input type="text" id="sysOllamaUrl" placeholder="http://127.0.0.1:11434" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:9px; color:white; font-size:12px; outline:none; margin-bottom:8px; box-sizing:border-box;">
-                            <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px;">Model (VD: llama3)</label>
-                            <input type="text" id="sysOllamaModel" placeholder="llama3" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.2); border-radius:8px; padding:9px; color:white; font-size:12px; outline:none; box-sizing:border-box;">
-                        </div>
-
-                        <!-- Telegram -->
-                        <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:14px; margin-bottom:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.05);">
-                            <div>
-                                <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase;">Telegram Bot Token</label>
-                                <input type="password" id="sysTeleToken" placeholder="123456:ABC-DEF..." style="width:100%; background:#0f172a; border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
-                            </div>
-                            <div>
-                                <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase;">Telegram Chat ID</label>
-                                <div style="display:flex; gap:6px;">
-                                    <input type="text" id="sysTeleChatId" placeholder="VD: 543216789" style="flex:1; background:#0f172a; border:1px solid rgba(56,189,248,0.3); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
-                                    <button onclick="testTele()" style="background:rgba(16,185,129,0.1); color:#10b981; border:1px solid #10b981; border-radius:8px; padding:0 10px; cursor:pointer; font-size:11px; white-space:nowrap;">Test</button>
+                            <div class="acc-body">
+                                <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:12px;">
+                                    <div>
+                                        <label class="acc-label">Bot Token</label>
+                                        <input type="password" id="sysTeleToken" placeholder="123456:ABC-DEF..." class="acc-input" style="border-color:rgba(44,165,224,0.4);">
+                                    </div>
+                                    <div>
+                                        <label class="acc-label">Chat ID</label>
+                                        <div style="display:flex;gap:6px;">
+                                            <input type="text" id="sysTeleChatId" placeholder="543216789" class="acc-input" style="border-color:rgba(44,165,224,0.4);flex:1;">
+                                            <button onclick="testTele()" style="background:rgba(44,165,224,0.15);color:#2CA5E0;border:1px solid #2CA5E0;border-radius:8px;padding:0 10px;cursor:pointer;font-size:11px;white-space:nowrap;">Test</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- VPS Automation -->
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.05);">
-                            <div>
-                                <label style="display:block; color:#a78bfa; font-size:11px; font-weight:700; margin-bottom:6px; text-transform:uppercase;">VPS URL (Workflow)</label>
-                                <input type="text" id="sysVpsUrl" placeholder="http://103.x.x.x:9000" style="width:100%; background:rgba(124,58,237,0.05); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                        <!-- AI ENGINE -->
+                        <div class="acc-group" id="acc_ai">
+                            <div class="acc-header" onclick="toggleAcc('acc_ai')">
+                                <span class="acc-icon" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);">🤖</span>
+                                <span class="acc-title">AI Engine</span>
+                                <span class="acc-desc">Gemini hoặc Ollama local</span>
+                                <span class="acc-arrow">▾</span>
                             </div>
-                            <div>
-                                <label style="display:block; color:#a78bfa; font-size:11px; font-weight:700; margin-bottom:6px; text-transform:uppercase;">VPS Token (Mật mã)</label>
-                                <input type="password" id="sysVpsToken" placeholder="Token xác thực..." style="width:100%; background:rgba(124,58,237,0.05); border:1px solid rgba(124,58,237,0.3); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                            <div class="acc-body" style="display:none;">
+                                <label class="acc-label">Engine</label>
+                                <select id="sysAiEngine" onchange="document.getElementById('cfgOllama').style.display=this.value==='ollama'?'block':'none';document.getElementById('cfgGemini').style.display=this.value==='gemini'?'block':'none';" class="acc-input" style="margin-bottom:12px;">
+                                    <option value="gemini">Google Gemini (Mặc định)</option>
+                                    <option value="ollama">Ollama (VPS local)</option>
+                                </select>
+                                <div id="cfgGemini">
+                                    <label class="acc-label">Gemini API Key</label>
+                                    <input type="password" id="sysGeminiKey" placeholder="AIzaSy..." class="acc-input" style="border-color:rgba(139,92,246,0.4);">
+                                </div>
+                                <div id="cfgOllama" style="display:none;margin-top:12px;">
+                                    <label class="acc-label">Ollama URL</label>
+                                    <input type="text" id="sysOllamaUrl" placeholder="http://127.0.0.1:11434" class="acc-input" style="margin-bottom:8px;">
+                                    <label class="acc-label">Model</label>
+                                    <input type="text" id="sysOllamaModel" placeholder="llama3" class="acc-input">
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Google -->
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.05);">
-                            <div>
-                                <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase;">Google Client ID</label>
-                                <input type="password" id="sysGoogleClientId" placeholder="Dán Client ID..." style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                        <!-- GOOGLE -->
+                        <div class="acc-group" id="acc_google">
+                            <div class="acc-header" onclick="toggleAcc('acc_google')">
+                                <span class="acc-icon" style="background:#fff;padding:4px;"><svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.7 2.2 30.2 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.6 28.6A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.7-4.6L2.3 13.3A23.9 23.9 0 0 0 0 24c0 3.8.9 7.4 2.5 10.6l8.1-6z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.2 0-11.5-4.2-13.4-9.8l-8 6.1C6.5 42.5 14.6 48 24 48z"/></svg></span>
+                                <span class="acc-title">Google</span>
+                                <span class="acc-desc">OAuth Client ID & Sheet nguồn</span>
+                                <span class="acc-arrow">▾</span>
                             </div>
-                            <div>
-                                <label style="display:block; color:#94a3b8; font-size:11px; font-weight:600; margin-bottom:6px; text-transform:uppercase;">Google Sheet URL (Nguồn)</label>
-                                <input type="text" id="sysGlobalSheetUrl" placeholder="https://docs.google.com/..." style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:10px; color:white; font-size:13px; outline:none; box-sizing:border-box;">
+                            <div class="acc-body" style="display:none;">
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                    <div>
+                                        <label class="acc-label">Client ID</label>
+                                        <input type="password" id="sysGoogleClientId" placeholder="Dán Client ID..." class="acc-input" style="border-color:rgba(66,133,244,0.4);">
+                                    </div>
+                                    <div>
+                                        <label class="acc-label">Sheet URL (Nguồn)</label>
+                                        <input type="text" id="sysGlobalSheetUrl" placeholder="https://docs.google.com/..." class="acc-input" style="border-color:rgba(52,168,83,0.4);">
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- VPS Super Agent -->
-                        <div style="background:rgba(255,255,255,0.03); padding:14px; border-radius:12px; border:1px dashed rgba(255,255,255,0.1);">
-                            <h4 style="margin:0 0 10px 0; font-size:12px; color:#94a3b8; text-transform:uppercase;">🖥️ Điều khiển VPS (Super Agent)</h4>
-                            <div style="margin-bottom:10px;">
-                                <label style="display:block; color:#64748b; font-size:11px; margin-bottom:4px;">Địa chỉ IP VPS</label>
-                                <input type="text" id="sysVpsIp" placeholder="103.82.195.87" style="width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:white; font-size:12px; box-sizing:border-box;">
+                        <!-- VPS WORKFLOW -->
+                        <div class="acc-group" id="acc_vps">
+                            <div class="acc-header" onclick="toggleAcc('acc_vps')">
+                                <span class="acc-icon" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);">⚡</span>
+                                <span class="acc-title">VPS Workflow</span>
+                                <span class="acc-desc">URL & Token kết nối Workflow Builder</span>
+                                <span class="acc-arrow">▾</span>
                             </div>
-                            <div style="margin-bottom:10px;">
-                                <label style="display:block; color:#64748b; font-size:11px; margin-bottom:4px;">Google Service Account JSON</label>
-                                <textarea id="sysVpsGoogleJson" placeholder='{"type": "service_account", ...}' style="width:100%; height:60px; background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:8px; color:#94a3b8; font-size:10px; font-family:monospace; resize:none; box-sizing:border-box;"></textarea>
-                            </div>
-                            <div style="display:flex; gap:8px;">
-                                <button onclick="syncCredentialsToVps()" style="flex:1; background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); padding:7px; border-radius:6px; font-size:11px; cursor:pointer;">💾 Lưu Chìa Khóa</button>
-                                <button onclick="syncToVps()" style="flex:1; background:#3b82f6; color:white; border:none; padding:7px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer;">📤 Đồng bộ cấu hình</button>
-                                <button onclick="upgradeAgent()" style="flex:1; background:rgba(255,255,255,0.08); color:white; border:1px solid rgba(255,255,255,0.15); padding:7px; border-radius:6px; font-size:11px; cursor:pointer;">🔄 Nâng cấp Agent</button>
+                            <div class="acc-body" style="display:none;">
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                    <div>
+                                        <label class="acc-label">VPS URL</label>
+                                        <input type="text" id="sysVpsUrl" placeholder="http://103.x.x.x:9000" class="acc-input" style="border-color:rgba(124,58,237,0.4);">
+                                    </div>
+                                    <div>
+                                        <label class="acc-label">VPS Token</label>
+                                        <input type="password" id="sysVpsToken" placeholder="Token xác thực..." class="acc-input" style="border-color:rgba(124,58,237,0.4);">
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        <!-- VPS AGENT -->
+                        <div class="acc-group" id="acc_agent">
+                            <div class="acc-header" onclick="toggleAcc('acc_agent')">
+                                <span class="acc-icon" style="background:linear-gradient(135deg,#0f766e,#0d9488);">🖥️</span>
+                                <span class="acc-title">VPS Agent</span>
+                                <span class="acc-desc">IP VPS, Service Account & đồng bộ</span>
+                                <span class="acc-arrow">▾</span>
+                            </div>
+                            <div class="acc-body" style="display:none;">
+                                <label class="acc-label">Địa chỉ IP VPS</label>
+                                <input type="text" id="sysVpsIp" placeholder="103.82.195.87" class="acc-input" style="margin-bottom:10px;">
+                                <label class="acc-label">Google Service Account JSON</label>
+                                <textarea id="sysVpsGoogleJson" placeholder='{"type": "service_account", ...}' style="width:100%;height:70px;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;color:#94a3b8;font-size:10px;font-family:monospace;resize:none;box-sizing:border-box;margin-bottom:10px;"></textarea>
+                                <div style="display:flex;gap:8px;">
+                                    <button onclick="syncCredentialsToVps()" style="flex:1;background:rgba(255,255,255,0.05);color:white;border:1px solid rgba(255,255,255,0.1);padding:7px;border-radius:6px;font-size:11px;cursor:pointer;">💾 Lưu Chìa Khóa</button>
+                                    <button onclick="syncToVps()" style="flex:1;background:#3b82f6;color:white;border:none;padding:7px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">📤 Đồng bộ</button>
+                                    <button onclick="upgradeAgent()" style="flex:1;background:rgba(255,255,255,0.08);color:white;border:1px solid rgba(255,255,255,0.15);padding:7px;border-radius:6px;font-size:11px;cursor:pointer;">🔄 Nâng cấp</button>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- SKILLS TAB -->
@@ -5091,6 +5141,19 @@ return items.map(item => {
 
     <style>
     @keyframes zoomIn { from { transform:scale(0.9); opacity:0; } to { transform:scale(1); opacity:1; } }
+    .acc-group { border:1px solid rgba(255,255,255,0.07); border-radius:12px; margin-bottom:10px; overflow:hidden; background:rgba(255,255,255,0.02); }
+    .acc-header { display:flex; align-items:center; gap:12px; padding:13px 16px; cursor:pointer; transition:background 0.2s; user-select:none; }
+    .acc-header:hover { background:rgba(255,255,255,0.05); }
+    .acc-icon { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+    .acc-title { font-size:14px; font-weight:700; color:#e2e8f0; }
+    .acc-desc { font-size:11px; color:#64748b; margin-left:4px; flex:1; }
+    .acc-arrow { color:#64748b; font-size:14px; transition:transform 0.25s; }
+    .acc-group.open .acc-arrow { transform:rotate(180deg); }
+    .acc-group.open .acc-header { background:rgba(255,255,255,0.04); }
+    .acc-body { padding:0 16px 16px 16px; }
+    .acc-label { display:block; color:#94a3b8; font-size:10px; font-weight:700; margin-bottom:5px; text-transform:uppercase; letter-spacing:0.06em; }
+    .acc-input { width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:9px; padding:9px 12px; color:white; font-size:13px; outline:none; box-sizing:border-box; }
+    .acc-input:focus { border-color:rgba(139,92,246,0.6); }
     </style>
 
 </body>
