@@ -1906,21 +1906,7 @@
         saveCanvasToSession();
     }
     
-    function saveCurrentWorkflow() {
-    if (currentEditingNodeId) saveNodeSettings(); // AUTO SAVE BEFORE SAVING WORKFLOW
-    const nameEl = document.getElementById('wfNameInput');
-        const name = (nameEl ? nameEl.value.trim() : '') || ('Workflow ' + new Date().toLocaleTimeString('vi-VN'));
-        if (wfNodes.length === 0) { alert('Canvas đang trống! Thêm ít nhất 1 block trước.'); return; }
-        const wf = { id: Date.now(), name, nodes: wfNodes.map(n=>({id:n.id,type:n.type,cat:n.cat,x:n.x,y:n.y,data:n.data,config:n.config})), edges: wfEdges, savedAt: new Date().toISOString() };
-        let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
-        list.unshift(wf);
-        if (list.length > 20) list = list.slice(0, 20);
-        localStorage.setItem('wf_builder_list', JSON.stringify(list));
-        renderSavedWfList();
-        updateAutomationBadge();
-        if (nameEl) nameEl.value = '';
-        alert('Đã lưu: ' + name);
-    }
+    // saveCurrentWorkflow is defined below (line ~3941) - this duplicate removed
     
     function renderSavedWfList() {
         const el = document.getElementById('savedWfList');
@@ -4153,8 +4139,17 @@
         } else if (node.type === 'update-sheet') {
             paramsHtml = `
             <div class="set-group">
-                <label class="set-label">Link Google Sheet:</label>
+                <label class="set-label">Link Google Sheet (ghi kết quả):</label>
                 <input type="text" id="setUpdateSheetUrl" class="set-input" placeholder="https://docs.google.com/spreadsheets/d/..." value="${data.sheetUrl || ''}">
+            </div>
+            <div class="set-group">
+                <label class="set-label">Range bắt đầu ghi (vd: A2):</label>
+                <input type="text" id="setUpdateSheetRange" class="set-input" placeholder="A2" value="${data.range || 'A2'}">
+            </div>
+            <div class="set-group">
+                <label class="set-label">Các cột cần ghi (theo thứ tự, cách nhau dấu phẩy):</label>
+                <input type="text" id="setUpdateSheetCols" class="set-input" placeholder="keyword,domain,rank_pc,rank_mb,total_rank" value="${data.colMap || 'keyword,domain,rank_pc,rank_mb,total_rank'}">
+                <div style="font-size:10px;color:#64748b;margin-top:4px;">Phải khớp với tên key trong dữ liệu đầu ra của node trước.</div>
             </div>
             `;
         } else if (node.type === 'ai-content') {
@@ -4296,6 +4291,9 @@
             node.data.hour = parseInt(document.getElementById('setCronHour')?.value || 0);
             node.data.minute = parseInt(document.getElementById('setCronMinute')?.value || 0);
         } else if (node.type === 'input') {
+            // Save mode from which tab is visible
+            const manualDiv = document.getElementById('inputModeManual');
+            node.data.mode = (manualDiv && manualDiv.style.display !== 'none') ? 'manual' : 'sheet';
             node.data.manualRaw = document.getElementById('setManualData')?.value;
             node.data.sheetUrl = document.getElementById('setSheetUrl')?.value;
             node.data.sheetRange = document.getElementById('setSheetRange')?.value;
@@ -4313,6 +4311,8 @@
             node.data.code = document.getElementById('setCustomCode')?.value;
         } else if (node.type === 'update-sheet') {
             node.data.sheetUrl = document.getElementById('setUpdateSheetUrl')?.value;
+            node.data.range   = document.getElementById('setUpdateSheetRange')?.value;
+            node.data.colMap  = document.getElementById('setUpdateSheetCols')?.value;
         } else if (node.type === 'ai-content') {
             node.data.model = document.getElementById('setAiModel')?.value;
             node.data.prompt = document.getElementById('setAiPrompt')?.value;
