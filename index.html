@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GSC Bulk &amp; SEO Automation Pro</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- v2.5.1 -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1683,7 +1687,8 @@
             tempLine.setAttribute('d', bezierPath(fromNode.x + 170, fromNode.y + 40, e.clientX - rect.left, e.clientY - rect.top));
         });
         wrap.addEventListener('click', e => {
-            if (connectingFrom && !e.target.closest('.port-in')) {
+            // Only cancel if user clicked empty canvas (not on any port or node)
+            if (connectingFrom && !e.target.closest('.wf-port') && !e.target.closest('.wf-node')) {
                 connectingFrom = null;
                 if (tempLine) { tempLine.remove(); tempLine = null; }
             }
