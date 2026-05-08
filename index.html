@@ -963,12 +963,20 @@
         // Lắng nghe real-time: mỗi khi 1 máy lưu WFL, các máy khác cập nhật ngay
         fbDb.ref('workflows/shared_list').on('value', (snapshot) => {
             const list = snapshot.val();
-            if (list && Array.isArray(list)) {
+            if (list && Array.isArray(list) && list.length > 0) {
+                // Firebase có dữ liệu → dùng làm nguồn thật, ghi đè local
                 localStorage.setItem('wf_builder_list', JSON.stringify(list));
+                localStorage.setItem('wf_seeded_v2', '1'); // Chặn seed chạy lại
                 if (typeof renderWfLibrary === 'function') renderWfLibrary();
                 if (typeof renderSavedWfList === 'function') renderSavedWfList();
                 updateAutomationBadge();
-                console.log("☁️ [Real-time] Đồng bộ Workflow từ Firebase!");
+                console.log("☁️ [Real-time] Đồng bộ Workflow từ Firebase! Tổng: " + list.length);
+            } else {
+                // Firebase rỗng → chạy seed mặc định rồi push lên Firebase
+                console.log("☁️ Firebase WFL rỗng → chạy seed mặc định...");
+                seedDefaultWorkflows();
+                const seeded = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+                if (seeded.length > 0) syncWorkflowsToFirebase(seeded);
             }
         });
     }
@@ -1720,11 +1728,14 @@
         lib.unshift(wf);
         localStorage.setItem("wf_builder_list", JSON.stringify(lib));
         localStorage.setItem("wf_seeded_v2", "1");
-        syncWorkflowsToFirebase(lib); // Sync seeded wf
+        // KHÔNG sync lên Firebase ở đây — seed chỉ là fallback local
+        // Firebase sẽ được sync riêng bởi startWorkflowRealTimeSync khi Firebase rỗng
     }
 
     function initWorkflowBuilder() {
-        seedDefaultWorkflows();
+        // Seed chỉ chạy nếu Firebase rỗng (xử lý bởi startWorkflowRealTimeSync)
+        // Nếu wf_seeded_v2 chưa set (Firebase cũng chưa có data), seed local trước
+        if (!localStorage.getItem('wf_seeded_v2')) seedDefaultWorkflows();
         renderPalette();
         initCanvasDrop();
         renderSavedWfList();
