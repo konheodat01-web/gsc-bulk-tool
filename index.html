@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GSC Bulk &amp; SEO Automation Pro</title>
@@ -955,6 +957,44 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9FnjWvhtQVoTntV9wOvrLQJu2eOnskfE",
+      authDomain: "gsc-bulk-tool-e4e1c.firebaseapp.com",
+      projectId: "gsc-bulk-tool-e4e1c",
+      storageBucket: "gsc-bulk-tool-e4e1c.firebasestorage.app",
+      messagingSenderId: "289973612938",
+      appId: "1:289973612938:web:e57efb3bf7dcb049f39873",
+      measurementId: "G-96B5D1X0LB",
+      databaseURL: "https://gsc-bulk-tool-e4e1c-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    async function syncWorkflowsToCloud(list) {
+        try {
+            await db.ref("workflows").set(list);
+            console.log("?? Da dong bo Workflow len Cloud!");
+        } catch(e) { console.error("Sync error:", e); }
+    }
+
+    async function loadWorkflowsFromCloud() {
+        try {
+            const snapshot = await db.ref("workflows").get();
+            if (snapshot.exists()) {
+                const cloudList = snapshot.val();
+                localStorage.setItem("wf_builder_list", JSON.stringify(cloudList));
+                if (typeof renderWfLibrary === "function") renderWfLibrary();
+                if (typeof updateAutomationBadge === "function") updateAutomationBadge();
+                console.log("?? Da tai Workflow tu Cloud ve!");
+            }
+        } catch(e) { console.error("Load error:", e); }
+    }
+
+    // Tu dong tai khi vao trang
+    document.addEventListener("DOMContentLoaded", loadWorkflowsFromCloud);
+
+
     // --- BỔ SUNG: XÁC THỰC SERVICE ACCOUNT KHÔNG CẦN POPUP ---
     async function getGoogleToken() {
         // Ưu tiên dùng Service Account nếu sếp đã dán
@@ -1096,6 +1136,44 @@
     }
 </script>
 <script>
+
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9FnjWvhtQVoTntV9wOvrLQJu2eOnskfE",
+      authDomain: "gsc-bulk-tool-e4e1c.firebaseapp.com",
+      projectId: "gsc-bulk-tool-e4e1c",
+      storageBucket: "gsc-bulk-tool-e4e1c.firebasestorage.app",
+      messagingSenderId: "289973612938",
+      appId: "1:289973612938:web:e57efb3bf7dcb049f39873",
+      measurementId: "G-96B5D1X0LB",
+      databaseURL: "https://gsc-bulk-tool-e4e1c-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    async function syncWorkflowsToCloud(list) {
+        try {
+            await db.ref("workflows").set(list);
+            console.log("?? Da dong bo Workflow len Cloud!");
+        } catch(e) { console.error("Sync error:", e); }
+    }
+
+    async function loadWorkflowsFromCloud() {
+        try {
+            const snapshot = await db.ref("workflows").get();
+            if (snapshot.exists()) {
+                const cloudList = snapshot.val();
+                localStorage.setItem("wf_builder_list", JSON.stringify(cloudList));
+                if (typeof renderWfLibrary === "function") renderWfLibrary();
+                if (typeof updateAutomationBadge === "function") updateAutomationBadge();
+                console.log("?? Da tai Workflow tu Cloud ve!");
+            }
+        } catch(e) { console.error("Load error:", e); }
+    }
+
+    // Tu dong tai khi vao trang
+    document.addEventListener("DOMContentLoaded", loadWorkflowsFromCloud);
+
     const HELP_DATA = {
         'telegram': {
             icon: '📬', title: 'Cấu hình Telegram Bot',
@@ -1956,7 +2034,7 @@
         let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
         list.unshift(wf);
         if (list.length > 20) list = list.slice(0, 20);
-        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        localStorage.setItem('wf_builder_list', JSON.stringify(list)); syncWorkflowsToCloud(list); syncWorkflowsToCloud(list);
         renderSavedWfList();
         updateAutomationBadge();
         if (nameEl) nameEl.value = '';
@@ -2002,7 +2080,7 @@
     function deleteWorkflowByIdx(idx) {
         let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
         list.splice(idx, 1);
-        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        localStorage.setItem('wf_builder_list', JSON.stringify(list)); syncWorkflowsToCloud(list); syncWorkflowsToCloud(list);
         renderSavedWfList();
         updateAutomationBadge();
     }
@@ -2630,7 +2708,45 @@
     function autoLogin(url, path, user, pass) {
         const win = window.open('', '_blank');
         const lUrl = url + (path === 'wp-admin' ? 'wp-login.php' : path);
-        win.document.write(`<form id="f" method="POST" action="${lUrl}"><input type="hidden" name="log" value="${user}"><input type="hidden" name="pwd" value="${pass}"><input type="hidden" name="wp-submit" value="Log In"><input type="hidden" name="redirect_to" value="${url}wp-admin/"></form><script>document.getElementById('f').submit();<\/script>`);
+        win.document.write(`<form id="f" method="POST" action="${lUrl}"><input type="hidden" name="log" value="${user}"><input type="hidden" name="pwd" value="${pass}"><input type="hidden" name="wp-submit" value="Log In"><input type="hidden" name="redirect_to" value="${url}wp-admin/"></form><script>
+
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9FnjWvhtQVoTntV9wOvrLQJu2eOnskfE",
+      authDomain: "gsc-bulk-tool-e4e1c.firebaseapp.com",
+      projectId: "gsc-bulk-tool-e4e1c",
+      storageBucket: "gsc-bulk-tool-e4e1c.firebasestorage.app",
+      messagingSenderId: "289973612938",
+      appId: "1:289973612938:web:e57efb3bf7dcb049f39873",
+      measurementId: "G-96B5D1X0LB",
+      databaseURL: "https://gsc-bulk-tool-e4e1c-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    async function syncWorkflowsToCloud(list) {
+        try {
+            await db.ref("workflows").set(list);
+            console.log("?? Da dong bo Workflow len Cloud!");
+        } catch(e) { console.error("Sync error:", e); }
+    }
+
+    async function loadWorkflowsFromCloud() {
+        try {
+            const snapshot = await db.ref("workflows").get();
+            if (snapshot.exists()) {
+                const cloudList = snapshot.val();
+                localStorage.setItem("wf_builder_list", JSON.stringify(cloudList));
+                if (typeof renderWfLibrary === "function") renderWfLibrary();
+                if (typeof updateAutomationBadge === "function") updateAutomationBadge();
+                console.log("?? Da tai Workflow tu Cloud ve!");
+            }
+        } catch(e) { console.error("Load error:", e); }
+    }
+
+    // Tu dong tai khi vao trang
+    document.addEventListener("DOMContentLoaded", loadWorkflowsFromCloud);
+document.getElementById('f').submit();<\/script>`);
     }
 
     async function verifyLoginViaVps(url, adminPath, user, pass) {
@@ -2752,7 +2868,45 @@
                 });
             });
 
-            // 4. Quét nội dung <script> tìm URL ngoại (dạng https://... trong chuỗi)
+            // 4. Quét nội dung <script>
+
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9FnjWvhtQVoTntV9wOvrLQJu2eOnskfE",
+      authDomain: "gsc-bulk-tool-e4e1c.firebaseapp.com",
+      projectId: "gsc-bulk-tool-e4e1c",
+      storageBucket: "gsc-bulk-tool-e4e1c.firebasestorage.app",
+      messagingSenderId: "289973612938",
+      appId: "1:289973612938:web:e57efb3bf7dcb049f39873",
+      measurementId: "G-96B5D1X0LB",
+      databaseURL: "https://gsc-bulk-tool-e4e1c-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    async function syncWorkflowsToCloud(list) {
+        try {
+            await db.ref("workflows").set(list);
+            console.log("?? Da dong bo Workflow len Cloud!");
+        } catch(e) { console.error("Sync error:", e); }
+    }
+
+    async function loadWorkflowsFromCloud() {
+        try {
+            const snapshot = await db.ref("workflows").get();
+            if (snapshot.exists()) {
+                const cloudList = snapshot.val();
+                localStorage.setItem("wf_builder_list", JSON.stringify(cloudList));
+                if (typeof renderWfLibrary === "function") renderWfLibrary();
+                if (typeof updateAutomationBadge === "function") updateAutomationBadge();
+                console.log("?? Da tai Workflow tu Cloud ve!");
+            }
+        } catch(e) { console.error("Load error:", e); }
+    }
+
+    // Tu dong tai khi vao trang
+    document.addEventListener("DOMContentLoaded", loadWorkflowsFromCloud);
+ tìm URL ngoại (dạng https://... trong chuỗi)
             doc.querySelectorAll('script:not([src])').forEach(s => {
                 const txt = s.textContent || '';
                 // Bắt URL trong chuỗi JS
@@ -3049,6 +3203,44 @@
 
     <script src="auditor.js"></script>
     <script>
+
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9FnjWvhtQVoTntV9wOvrLQJu2eOnskfE",
+      authDomain: "gsc-bulk-tool-e4e1c.firebaseapp.com",
+      projectId: "gsc-bulk-tool-e4e1c",
+      storageBucket: "gsc-bulk-tool-e4e1c.firebasestorage.app",
+      messagingSenderId: "289973612938",
+      appId: "1:289973612938:web:e57efb3bf7dcb049f39873",
+      measurementId: "G-96B5D1X0LB",
+      databaseURL: "https://gsc-bulk-tool-e4e1c-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    async function syncWorkflowsToCloud(list) {
+        try {
+            await db.ref("workflows").set(list);
+            console.log("?? Da dong bo Workflow len Cloud!");
+        } catch(e) { console.error("Sync error:", e); }
+    }
+
+    async function loadWorkflowsFromCloud() {
+        try {
+            const snapshot = await db.ref("workflows").get();
+            if (snapshot.exists()) {
+                const cloudList = snapshot.val();
+                localStorage.setItem("wf_builder_list", JSON.stringify(cloudList));
+                if (typeof renderWfLibrary === "function") renderWfLibrary();
+                if (typeof updateAutomationBadge === "function") updateAutomationBadge();
+                console.log("?? Da tai Workflow tu Cloud ve!");
+            }
+        } catch(e) { console.error("Load error:", e); }
+    }
+
+    // Tu dong tai khi vao trang
+    document.addEventListener("DOMContentLoaded", loadWorkflowsFromCloud);
+
         async function startCheckHomepage() {
             const rawUrls = document.getElementById('homepageUrlInput').value.split('\n').map(u => u.trim()).filter(u => u);
             if(rawUrls.length === 0) return alert('Nhập danh sách URL!');
@@ -3141,6 +3333,44 @@
     
 
     <script>
+
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9FnjWvhtQVoTntV9wOvrLQJu2eOnskfE",
+      authDomain: "gsc-bulk-tool-e4e1c.firebaseapp.com",
+      projectId: "gsc-bulk-tool-e4e1c",
+      storageBucket: "gsc-bulk-tool-e4e1c.firebasestorage.app",
+      messagingSenderId: "289973612938",
+      appId: "1:289973612938:web:e57efb3bf7dcb049f39873",
+      measurementId: "G-96B5D1X0LB",
+      databaseURL: "https://gsc-bulk-tool-e4e1c-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    async function syncWorkflowsToCloud(list) {
+        try {
+            await db.ref("workflows").set(list);
+            console.log("?? Da dong bo Workflow len Cloud!");
+        } catch(e) { console.error("Sync error:", e); }
+    }
+
+    async function loadWorkflowsFromCloud() {
+        try {
+            const snapshot = await db.ref("workflows").get();
+            if (snapshot.exists()) {
+                const cloudList = snapshot.val();
+                localStorage.setItem("wf_builder_list", JSON.stringify(cloudList));
+                if (typeof renderWfLibrary === "function") renderWfLibrary();
+                if (typeof updateAutomationBadge === "function") updateAutomationBadge();
+                console.log("?? Da tai Workflow tu Cloud ve!");
+            }
+        } catch(e) { console.error("Load error:", e); }
+    }
+
+    // Tu dong tai khi vao trang
+    document.addEventListener("DOMContentLoaded", loadWorkflowsFromCloud);
+
         let currentGscMode = 'week';
         
         function setGscMode(mode) {
@@ -3995,7 +4225,7 @@
             currentEditingWfIndex = 0;
         }
         
-        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        localStorage.setItem('wf_builder_list', JSON.stringify(list)); syncWorkflowsToCloud(list); syncWorkflowsToCloud(list);
         updateAutomationBadge();
         
         const btn = document.getElementById('wfBtnSave');
@@ -4029,7 +4259,7 @@
         if (!confirm('Bạn có chắc chắn muốn xóa quy trình này?')) return;
         let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
         list.splice(idx, 1);
-        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        localStorage.setItem('wf_builder_list', JSON.stringify(list)); syncWorkflowsToCloud(list); syncWorkflowsToCloud(list);
         renderWfLibrary();
         updateAutomationBadge();
     }
@@ -5136,3 +5366,5 @@ return items.map(item => {
 
 </body>
 </html>
+
+
