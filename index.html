@@ -1560,7 +1560,70 @@
     let connectingFrom = null;
     let tempLine = null;
     
+    function seedDefaultWorkflows() {
+        if (localStorage.getItem('wf_seeded_v1')) return;
+        const RANK_CODE = `// CHECK RANK TU KHOA (PC + Mobile) via GSC API
+// Input sheet: Col A = tu khoa, Col B = domain
+// Output: rank_pc, rank_mb, total_rank
+const token = await getGoogleToken();
+const endDate = new Date().toISOString().split('T')[0];
+const startDate = new Date(Date.now()-28*864e5).toISOString().split('T')[0];
+for (const item of items) {
+    const kw = (item.A||item.keyword||'').trim();
+    const site = (item.B||item.domain||'').trim();
+    if (!kw||!site){item.rank_pc=0;item.rank_mb=0;item.total_rank=0;continue;}
+    const siteUrl = site.startsWith('http')?site:'https://'+site;
+    item.keyword=kw; item.domain=site;
+    try {
+        const res = await fetch(
+            \`https://www.googleapis.com/webmasters/v3/sites/\${encodeURIComponent(siteUrl)}/searchAnalytics/query\`,
+            {method:'POST',headers:{Authorization:\`Bearer \${token}\`,'Content-Type':'application/json'},
+             body:JSON.stringify({startDate,endDate,dimensions:['query','device'],
+                dimensionFilterGroups:[{filters:[{dimension:'query',expression:kw,operator:'equals'}]}],rowLimit:5})}
+        );
+        const d=await res.json();
+        let pc=0,mb=0;
+        if(d.rows){
+            const pr=d.rows.find(r=>r.keys[1]?.toUpperCase()==='DESKTOP');
+            const mr=d.rows.find(r=>r.keys[1]?.toUpperCase()==='MOBILE');
+            pc=pr?Math.round(pr.position):0;mb=mr?Math.round(mr.position):0;
+        }
+        item.rank_pc=pc;item.rank_mb=mb;
+        const v=[pc,mb].filter(r=>r>0);
+        item.total_rank=v.length?Math.min(...v):0;
+    }catch(e){item.rank_pc=0;item.rank_mb=0;item.total_rank=0;}
+}
+return items;`;
+        const FILTER_CODE = `// Loc top 100, build Telegram message
+const top=items.filter(i=>i.total_rank>0&&i.total_rank<=100);
+const lines=top.map(i=>'🌐 '+i.domain+'\\n🔑 '+i.keyword+'\\n💻 PC:#'+(i.rank_pc||'-')+' | 📱 MB:#'+(i.rank_mb||'-')+' | ⭐ Best:#'+i.total_rank).join('\\n──────────\\n');
+const ts=new Date().toLocaleString('vi-VN');
+const msg=top.length?'📊 <b>Check Rank hoan tat</b>\\n📅 '+ts+'\\n✅ '+top.length+' ket qua Top 100:\\n──────────\\n'+lines:'📊 Xong ('+ts+'). Khong co ket qua Top 100.';
+return top.length?top.map(i=>({...i,_msg:msg})):[{_msg:msg,_noResult:true}];`;
+        const defOf = type => {
+            const all = [...(typeof ATOMIC_BLOCKS!=='undefined'?ATOMIC_BLOCKS:[]),...(typeof COMPOUND_BLOCKS!=='undefined'?COMPOUND_BLOCKS:[])];
+            return all.find(x=>x.type===type)||{type,category:'core',icon:'⚙️',label:type,color:'#64748b',desc:''};
+        };
+        const wf = {
+            name:'🔍 Check Rank Tu Khoa (PC + Mobile)',
+            savedAt:new Date().toISOString(),
+            nodes:[
+                {id:'n1',type:'trigger-manual',category:'trigger',x:40,  y:200,def:defOf('trigger-manual'),config:{},data:{}},
+                {id:'n2',type:'input',          category:'core',   x:280, y:200,def:defOf('input'),         config:{},data:{mode:'sheet',sheetUrl:'',range:'A2:B500'}},
+                {id:'n3',type:'custom-code',    category:'core',   x:520, y:200,def:defOf('custom-code'),   config:{customName:'Check Rank PC + Mobile'},data:{code:RANK_CODE}},
+                {id:'n4',type:'custom-code',    category:'core',   x:760, y:200,def:defOf('custom-code'),   config:{customName:'Loc Top 100 & Bao Cao'},data:{code:FILTER_CODE}},
+                {id:'n5',type:'update-sheet',   category:'app',    x:1000,y:200,def:defOf('update-sheet'),  config:{},data:{sheetUrl:'',range:'A2',colMap:'keyword,domain,rank_pc,rank_mb,total_rank'}},
+                {id:'n6',type:'telegram',       category:'app',    x:1240,y:200,def:defOf('telegram'),      config:{},data:{token:'',chatId:'',template:'{_msg}'}}
+            ],
+            edges:[{from:'n1',to:'n2'},{from:'n2',to:'n3'},{from:'n3',to:'n4'},{from:'n4',to:'n5'},{from:'n5',to:'n6'}]
+        };
+        const lib=JSON.parse(localStorage.getItem('wf_builder_list')||'[]');
+        if(!lib.find(w=>w.name===wf.name)){lib.unshift(wf);localStorage.setItem('wf_builder_list',JSON.stringify(lib));}
+        localStorage.setItem('wf_seeded_v1','1');
+    }
+
     function initWorkflowBuilder() {
+        seedDefaultWorkflows();
         renderPalette();
         initCanvasDrop();
         renderSavedWfList();
