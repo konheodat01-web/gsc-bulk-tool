@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -1561,85 +1561,82 @@
     let tempLine = null;
     
     function seedDefaultWorkflows() {
-        if (localStorage.getItem('wf_seeded_v2')) return;
-        localStorage.removeItem('wf_seeded_v1');
-        const RANK_CODE = `// CHECK RANK REAL-TIME via Serper API
-// Input sheet: Col A = tu khoa, Col B = domain
-// Output: rank_pc, rank_mb, total_rank (vi tri tot nhat)
-const serperKey = localStorage.getItem('sys_serper_key') || '';
-if (!serperKey) { alert('Chua co Serper API Key! Vao Cai dat >> Serper de dan key.'); return items; }
+        if (localStorage.getItem("wf_seeded_v2")) return;
+        localStorage.removeItem("wf_seeded_v1");
 
-async function checkRank(keyword, domain, device) {
-    const body = { q: keyword, gl: 'vn', hl: 'vi', num: 100 };
-    if (device === 'mobile') body.device = 'mobile';
-    const res = await fetch('https://google.serper.dev/search', {
-        method: 'POST',
-        headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (!data.organic) return 0;
-    const d = domain.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
-    const found = data.organic.find(r => r.link && r.link.toLowerCase().includes(d));
-    return found ? found.position : 0;
-}
+        var RANK_CODE = [
+            "// CHECK RANK REAL-TIME via Serper API",
+            "// Input: Col A = tu khoa, Col B = domain",
+            "// Output: rank_pc, rank_mb, total_rank",
+            "var serperKey = localStorage.getItem(\"sys_serper_key\") || \"\";",
+            "if (!serperKey) { alert(\"Chua co Serper API Key! Vao Cai dat >> Serper.\"); return items; }",
+            "async function checkRank(keyword, domain, device) {",
+            "    var body = { q: keyword, gl: \"vn\", hl: \"vi\", num: 100 };",
+            "    if (device === \"mobile\") body.device = \"mobile\";",
+            "    var res = await fetch(\"https://google.serper.dev/search\", {",
+            "        method: \"POST\",",
+            "        headers: { \"X-API-KEY\": serperKey, \"Content-Type\": \"application/json\" },",
+            "        body: JSON.stringify(body)",
+            "    });",
+            "    var data = await res.json();",
+            "    if (!data.organic) return 0;",
+            "    var d = domain.replace(/^https?:\\/\\//, \"\").replace(/\\/$/, \"\").toLowerCase();",
+            "    var found = data.organic.find(function(r) { return r.link && r.link.toLowerCase().indexOf(d) >= 0; });",
+            "    return found ? found.position : 0;",
+            "}",
+            "for (var i = 0; i < items.length; i++) {",
+            "    var item = items[i];",
+            "    var kw = (item.A || item.keyword || \"\").trim();",
+            "    var site = (item.B || item.domain || \"\").trim();",
+            "    if (!kw || !site) { item.rank_pc=0; item.rank_mb=0; item.total_rank=0; continue; }",
+            "    item.keyword = kw; item.domain = site;",
+            "    try {",
+            "        var results = await Promise.all([checkRank(kw, site, \"desktop\"), checkRank(kw, site, \"mobile\")]);",
+            "        item.rank_pc = results[0]; item.rank_mb = results[1];",
+            "        var v = [results[0], results[1]].filter(function(r) { return r > 0; });",
+            "        item.total_rank = v.length ? Math.min.apply(null, v) : 0;",
+            "    } catch(e) { item.rank_pc=0; item.rank_mb=0; item.total_rank=0; }",
+            "}",
+            "return items;"
+        ].join("\n");
 
-for (const item of items) {
-    const kw   = (item.A || item.keyword || '').trim();
-    const site = (item.B || item.domain  || '').trim();
-    if (!kw || !site) { item.rank_pc=0; item.rank_mb=0; item.total_rank=0; continue; }
-    item.keyword = kw; item.domain = site;
-    try {
-        const [pc, mb] = await Promise.all([
-            checkRank(kw, site, 'desktop'),
-            checkRank(kw, site, 'mobile')
-        ]);
-        item.rank_pc = pc; item.rank_mb = mb;
-        const v = [pc, mb].filter(r => r > 0);
-        item.total_rank = v.length ? Math.min(...v) : 0;
-    } catch(e) { item.rank_pc=0; item.rank_mb=0; item.total_rank=0; }
-}
-return items;`;
-        const FILTER_CODE = `// Loc top 100, build Telegram message
-const top = items.filter(i => i.total_rank > 0 && i.total_rank <= 100);
-const lines = top.map(i =>
-    '🌐 ' + i.domain + '\\n🔑 ' + i.keyword +
-    '\\n💻 PC: #' + (i.rank_pc || '-') +
-    ' | 📱 MB: #' + (i.rank_mb || '-') +
-    ' | ⭐ Best: #' + i.total_rank
-).join('\\n──────────────\\n');
-const ts = new Date().toLocaleString('vi-VN');
-const msg = top.length
-    ? '📊 <b>Check Rank hoan tat</b>\\n📅 ' + ts + '\\n✅ ' + top.length + ' ket qua trong Top 100:\\n──────────────\\n' + lines
-    : '📊 Check Rank xong (' + ts + '). Khong co ket qua Top 100.';
-return top.length ? top.map(i => ({...i, _msg: msg})) : [{_msg: msg, _noResult: true}];`;
-        const defOf = type => {
-            const all = [
-                ...(typeof ATOMIC_BLOCKS !== 'undefined' ? ATOMIC_BLOCKS : []),
-                ...(typeof COMPOUND_BLOCKS !== 'undefined' ? COMPOUND_BLOCKS : [])
-            ];
-            return all.find(x => x.type === type) || {type, category:'core', icon:'⚙️', label:type, color:'#64748b', desc:''};
-        };
-        const wf = {
-            name: '🔍 Check Rank Tu Khoa (Serper Real-time)',
+        var FILTER_CODE = [
+            "var top = items.filter(function(i) { return i.total_rank > 0 && i.total_rank <= 100; });",
+            "var lines = top.map(function(i) {",
+            "    return \"🌐 \" + i.domain + \"\n🔑 \" + i.keyword + \"\n💻 PC: #\" + (i.rank_pc||\"-\") + \" | 📱 MB: #\" + (i.rank_mb||\"-\") + \" | ⭐ Best: #\" + i.total_rank;",
+            "}).join(\"\n──────────────\n\");",
+            "var ts = new Date().toLocaleString(\"vi-VN\");",
+            "var msg = top.length ? \"📊 <b>Check Rank hoan tat</b>\n📅 \" + ts + \"\n✅ \" + top.length + \" ket qua Top 100:\n──────────────\n\" + lines : \"📊 Xong (\" + ts + \"). Khong co ket qua Top 100.\";",
+            "return top.length ? top.map(function(i) { return Object.assign({}, i, {_msg: msg}); }) : [{_msg: msg, _noResult: true}];"
+        ].join("\n");
+
+        function defOf(type) {
+            var all = [].concat(
+                typeof ATOMIC_BLOCKS !== "undefined" ? ATOMIC_BLOCKS : [],
+                typeof COMPOUND_BLOCKS !== "undefined" ? COMPOUND_BLOCKS : []
+            );
+            for (var i = 0; i < all.length; i++) { if (all[i].type === type) return all[i]; }
+            return {type: type, category:"core", icon:"⚙️", label:type, color:"#64748b", desc:""};
+        }
+
+        var wf = {
+            name: "🔍 Check Rank Tu Khoa (Serper Real-time)",
             savedAt: new Date().toISOString(),
             nodes: [
-                {id:'n1',type:'trigger-manual',category:'trigger',x:40,  y:200,def:defOf('trigger-manual'),config:{},data:{}},
-                {id:'n2',type:'input',          category:'core',   x:280, y:200,def:defOf('input'),         config:{},data:{mode:'sheet',sheetUrl:'',range:'A2:B500'}},
-                {id:'n3',type:'custom-code',    category:'core',   x:520, y:200,def:defOf('custom-code'),   config:{customName:'Check Rank PC + Mobile (Serper)'},data:{code:RANK_CODE}},
-                {id:'n4',type:'custom-code',    category:'core',   x:760, y:200,def:defOf('custom-code'),   config:{customName:'Loc Top 100 & Tao Bao Cao'},data:{code:FILTER_CODE}},
-                {id:'n5',type:'update-sheet',   category:'app',    x:1000,y:200,def:defOf('update-sheet'),  config:{},data:{sheetUrl:'',range:'A2',colMap:'keyword,domain,rank_pc,rank_mb,total_rank'}},
-                {id:'n6',type:'telegram',       category:'app',    x:1240,y:200,def:defOf('telegram'),      config:{},data:{token:'',chatId:'',template:'{_msg}'}}
+                {id:"n1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
+                {id:"n2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"A2:B500"}},
+                {id:"n3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Rank PC+Mobile (Serper)"},data:{code:RANK_CODE}},
+                {id:"n4",type:"custom-code",    category:"core",   x:760, y:200,def:defOf("custom-code"),   config:{customName:"Loc Top 100 & Tao Bao Cao"},data:{code:FILTER_CODE}},
+                {id:"n5",type:"update-sheet",   category:"app",    x:1000,y:200,def:defOf("update-sheet"),  config:{},data:{sheetUrl:"",range:"A2",colMap:"keyword,domain,rank_pc,rank_mb,total_rank"}},
+                {id:"n6",type:"telegram",       category:"app",    x:1240,y:200,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"{_msg}"}}
             ],
-            edges:[{from:'n1',to:'n2'},{from:'n2',to:'n3'},{from:'n3',to:'n4'},{from:'n4',to:'n5'},{from:'n5',to:'n6'}]
+            edges:[{from:"n1",to:"n2"},{from:"n2",to:"n3"},{from:"n3",to:"n4"},{from:"n4",to:"n5"},{from:"n5",to:"n6"}]
         };
-        const lib = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
-        // Remove old version if exists
-        const filtered = lib.filter(w => !w.name.includes('Check Rank'));
-        filtered.unshift(wf);
-        localStorage.setItem('wf_builder_list', JSON.stringify(filtered));
-        localStorage.setItem('wf_seeded_v2', '1');
-    }
+        var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
+        lib = lib.filter(function(w) { return w.name.indexOf("Check Rank") < 0; });
+        lib.unshift(wf);
+        localStorage.setItem("wf_builder_list", JSON.stringify(lib));
+        localStorage.setItem("wf_seeded_v2", "1");
     }
 
     function initWorkflowBuilder() {
