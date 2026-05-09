@@ -1692,27 +1692,37 @@
             "    var item = items[i];",
             "    var kw = (item.A || item.keyword || \"\").trim();",
             "    var site = (item.B || item.domain || \"\").trim();",
-            "    if (!kw || !site) { item.rank_pc=0; item.rank_mb=0; item.total_rank=0; continue; }",
+            "    if (!kw || !site) { item.rank_pc='N/A'; item.rank_mb='N/A'; item.total_rank='N/A'; continue; }",
             "    item.keyword = kw; item.domain = site;",
             "    try {",
             "        var results = await Promise.all([checkRank(kw, site, \"desktop\"), checkRank(kw, site, \"mobile\")]);",
-            "        item.rank_pc = results[0]; item.rank_mb = results[1];",
+            "        item.rank_pc = results[0] > 0 ? results[0] : 'N/A';",
+            "        item.rank_mb = results[1] > 0 ? results[1] : 'N/A';",
             "        var v = [results[0], results[1]].filter(function(r) { return r > 0; });",
-            "        item.total_rank = v.length ? Math.min.apply(null, v) : 0;",
-            "    } catch(e) { item.rank_pc=0; item.rank_mb=0; item.total_rank=0; }",
+            "        item.total_rank = v.length ? Math.min.apply(null, v) : 'N/A';",
+            "    } catch(e) { item.rank_pc='N/A'; item.rank_mb='N/A'; item.total_rank='N/A'; }",
             "}",
             "return items;"
         ].join("\n");
 
         var FILTER_CODE = [
-            "// Lọc top 100 và build mẫu báo cáo (Website -> Rank)",
-            "var top = items.filter(function(i) { return i.total_rank > 0 && i.total_rank <= 100; });",
-            "var lines = top.map(function(i) {",
+            "// Build 2 báo cáo gửi Telegram",
+            "var ts = new Date().toLocaleString(\"vi-VN\");",
+            "// Tin 1: Danh sách tổng hợp",
+            "var allLines = items.map(function(i) {",
+            "    var r = (i.total_rank !== 'N/A' && i.total_rank > 0) ? '#'+i.total_rank : 'N/A';",
+            "    return \"🌐 \" + i.domain + \" (\" + i.keyword + \") ➔ Rank: \" + r;",
+            "}).join(\"\\n\");",
+            "var msg1 = \"📋 <b>BÁO CÁO TỔNG HỢP</b>\\n📅 \" + ts + \"\\n──────────────\\n\" + allLines;",
+            "",
+            "// Tin 2: Danh sách Top 100",
+            "var top = items.filter(function(i) { return i.total_rank !== 'N/A' && i.total_rank > 0 && i.total_rank <= 100; });",
+            "var topLines = top.map(function(i) {",
             "    return \"🌐 \" + i.domain + \" ➔ 🏆 <b>Rank: #\" + i.total_rank + \"</b>\";",
             "}).join(\"\\n\");",
-            "var ts = new Date().toLocaleString(\"vi-VN\");",
-            "var msg = top.length ? \"📊 <b>BÁO CÁO THỨ HẠNG</b>\\n📅 \" + ts + \"\\n✅ Có \" + top.length + \" website trong Top 100:\\n──────────────\\n\" + lines : \"📊 Check xong (\" + ts + \"). Không có website nào trong Top 100.\";",
-            "return top.length ? top.map(function(i) { return Object.assign({}, i, {baocao: msg}); }) : [{baocao: msg, _noResult: true}];"
+            "var msg2 = top.length ? \"🔥 <b>BÁO CÁO TOP 100</b>\\n📅 \" + ts + \"\\n✅ Có \" + top.length + \" website lọt Top:\\n──────────────\\n\" + topLines : \"📉 Check xong (\" + ts + \"). Không có website nào lọt Top 100.\";",
+            "",
+            "return [{baocao: msg1}, {baocao: msg2}];"
         ].join("\n");
 
         function defOf(type) {
@@ -1731,8 +1741,8 @@
                 {id:"n1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
                 {id:"n2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"A2:B500"}},
                 {id:"n3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Rank PC+Mobile (Serper)"},data:{code:RANK_CODE}},
-                {id:"n4",type:"custom-code",    category:"core",   x:760, y:200,def:defOf("custom-code"),   config:{customName:"Loc Top 100 & Tao Bao Cao"},data:{code:FILTER_CODE}},
-                {id:"n5",type:"update-sheet",   category:"app",    x:1000,y:200,def:defOf("update-sheet"),  config:{},data:{sheetUrl:"",range:"A2",colMap:"keyword,domain,rank_pc,rank_mb,total_rank"}},
+                {id:"n4",type:"update-sheet",   category:"app",    x:760, y:200,def:defOf("update-sheet"),  config:{},data:{sheetUrl:"",range:"A2",colMap:"keyword,domain,rank_pc,rank_mb,total_rank"}},
+                {id:"n5",type:"custom-code",    category:"core",   x:1000,y:200,def:defOf("custom-code"),   config:{customName:"Loc Top 100 & Tao Bao Cao"},data:{code:FILTER_CODE}},
                 {id:"n6",type:"telegram",       category:"app",    x:1240,y:200,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"{baocao}"}}
             ],
             edges:[{from:"n1",to:"n2"},{from:"n2",to:"n3"},{from:"n3",to:"n4"},{from:"n4",to:"n5"},{from:"n5",to:"n6"}]
