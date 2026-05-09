@@ -978,8 +978,21 @@
             const deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
             if (list && Array.isArray(list) && list.length > 0) {
                 // Lọc ra các WFL user đã xóa trước khi áp dụng
-                const filtered = list.filter(w => !deletedNames.includes(w.name));
-                localStorage.setItem('wf_builder_list', JSON.stringify(filtered));
+                let filtered = list.filter(w => !deletedNames.includes(w.name));
+                
+                // Tự động inject bản V2 nếu chưa có và user chưa chủ động xóa bản V2
+                const hasV2 = filtered.find(w => w.name === "🔍 Check Rank Từ Khóa (Bản Mới 2.0)");
+                const deletedV2 = deletedNames.includes("🔍 Check Rank Từ Khóa (Bản Mới 2.0)");
+                
+                if (!hasV2 && !deletedV2) {
+                    console.log("☁️ Auto-injecting V2 Workflow...");
+                    seedDefaultWorkflows();
+                    filtered = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+                    syncWorkflowsToFirebase(filtered);
+                } else {
+                    localStorage.setItem('wf_builder_list', JSON.stringify(filtered));
+                }
+                
                 localStorage.setItem('wf_seeded_v2', '1'); // Chặn seed chạy lại
                 if (typeof renderWfLibrary === 'function') renderWfLibrary();
                 if (typeof renderSavedWfList === 'function') renderSavedWfList();
