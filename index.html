@@ -1800,10 +1800,10 @@
     }
     
     function seedStatusWorkflow() {
-        var STATUS_WFL_NAME = "\ud83c\udf10 Ki\u1ec3m Tra Tr\u1ea1ng Th\u00e1i Web";
+        var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
+        var STATUS_WFL_VER  = 2;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
-        var alreadyExists = lib.find(function(w) { return w.name === STATUS_WFL_NAME; });
-        if (alreadyExists) return;
+        var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
         if (deletedNames.includes(STATUS_WFL_NAME)) return;
 
@@ -1837,7 +1837,7 @@
             "for (var i = 0; i < items.length; i++) {",
             "    var item = items[i];",
             "    var url = (item.A || item.url || '').trim();",
-            "    if (!url) { item.ket_luan = 'N/A'; item.url_dich = ''; continue; }",
+            "    if (!url) { item.trang_thai = 'N/A'; item.url_redirect = ''; continue; }",
             "    if (!/^https?:\\/\\//i.test(url)) url = 'https://' + url;",
             "    item.url = url;",
             "    try {",
@@ -1845,12 +1845,12 @@
             "        var dStatus = String((r.direct || {}).status || 'TIMEOUT');",
             "        var pStatus = String((r.proxy || {}).status || 'TIMEOUT');",
             "        var dOk = dStatus === '200'; var pOk = pStatus === '200';",
-            "        if (dOk && pOk) { item.ket_luan = 'OK'; }",
-            "        else if (dOk && !pOk) { item.ket_luan = 'CAN CLF'; }",
-            "        else { item.ket_luan = 'LOI ' + (pOk ? dStatus : pStatus); }",
+            "        if (dOk && pOk) { item.trang_thai = 'Tot'; }",
+            "        else if (dOk && !pOk) { item.trang_thai = 'CAN CLF'; }",
+            "        else { item.trang_thai = 'LOI ' + (pOk ? dStatus : pStatus); }",
             "        var finalUrl = (pOk ? (r.proxy||{}).finalUrl : (r.direct||{}).finalUrl) || url;",
-            "        item.url_dich = (finalUrl !== url) ? finalUrl : '';",
-            "    } catch(e) { item.ket_luan = 'LOI'; item.url_dich = ''; }",
+            "        item.url_redirect = (finalUrl !== url) ? finalUrl : '';",
+            "    } catch(e) { item.trang_thai = 'LOI'; item.url_redirect = ''; }",
             "}",
             "return items;"
         ].join("\n");
@@ -1862,17 +1862,29 @@
                 {id:"s1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
                 {id:"s2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"A2:A500"}},
                 {id:"s3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Status + CLF + Redirect"},data:{code:STATUS_CODE}},
-                {id:"s4",type:"update-sheet",   category:"app",    x:760, y:200,def:defOf("update-sheet"),  config:{},data:{sheetUrl:"",range:"B2",colMap:"ket_luan,url_dich"}},
-                {id:"s5",type:"telegram",       category:"app",    x:1000,y:200,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"Check xong {total} web.\nBinh thuong: {ok}\nCan CLF: {clf}\nLoi that: {error}"}}
+                {id:"s4",type:"update-sheet",   category:"app",    x:680, y:120,def:defOf("update-sheet"),  config:{customName:"Redirect -> Col D"},data:{sheetUrl:"",range:"D2",colMap:"url_redirect"}},
+                {id:"s5",type:"update-sheet",   category:"app",    x:680, y:320,def:defOf("update-sheet"),  config:{customName:"Trang Thai -> Col J"},data:{sheetUrl:"",range:"J2",colMap:"trang_thai"}},
+                {id:"s6",type:"telegram",       category:"app",    x:920, y:220,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"Check xong website."}}
             ],
             edges: [
-                {from:"s1",to:"s2"},{from:"s2",to:"s3"},{from:"s3",to:"s4"},{from:"s4",to:"s5"}
+                {from:"s1",to:"s2"},{from:"s2",to:"s3"},{from:"s3",to:"s4"},{from:"s3",to:"s5"},{from:"s4",to:"s6"},{from:"s5",to:"s6"}
             ]
         };
-        lib.push(wf);
+        if (existingIdx >= 0) {
+            var oldNodes = lib[existingIdx].nodes || [];
+            var oldInput = oldNodes.find(function(n){ return n.id==="s2"; });
+            if (oldInput && oldInput.data && oldInput.data.sheetUrl) {
+                wf.nodes[1].data.sheetUrl = oldInput.data.sheetUrl;
+                wf.nodes[3].data.sheetUrl = oldInput.data.sheetUrl;
+                wf.nodes[4].data.sheetUrl = oldInput.data.sheetUrl;
+            }
+            lib[existingIdx] = wf;
+        } else {
+            lib.push(wf);
+        }
         localStorage.setItem("wf_builder_list", JSON.stringify(lib));
         if (typeof syncWorkflowsToFirebase === 'function') syncWorkflowsToFirebase(lib);
-        console.log("\u2705 \u0110\u00e3 inject WFL: " + STATUS_WFL_NAME);
+        console.log("WFL v" + STATUS_WFL_VER + " cap nhat: " + STATUS_WFL_NAME);
     }
 
     function getUserBlocks() {
