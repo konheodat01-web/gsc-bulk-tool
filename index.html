@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -1801,7 +1801,7 @@
     
     function seedStatusWorkflow() {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 12;
+        var STATUS_WFL_VER  = 13;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1869,7 +1869,7 @@
             "            item.url_redirect = (pFinal !== url) ? pFinal : (item.D || '');",
             "            var oldC = (item.C || '').trim();",
             "            if (item.url_redirect && oldC.indexOf(item.url_redirect) === -1) {",
-            "                item.lich_su_301 = oldC ? oldC + '\n' + item.url_redirect : item.url_redirect;",
+            "                item.lich_su_301 = oldC ? oldC + '\\n' + item.url_redirect : item.url_redirect;",
             "            } else { item.lich_su_301 = oldC; }",
             "            continue;",
             "        }",
@@ -1886,7 +1886,7 @@
             "        item.url_redirect = (dFinal !== url) ? dFinal : (item.D || '');",
             "        var oldC2 = (item.C || '').trim();",
             "        if (item.url_redirect && oldC2.indexOf(item.url_redirect) === -1) {",
-            "            item.lich_su_301 = oldC2 ? oldC2 + '\n' + item.url_redirect : item.url_redirect;",
+            "            item.lich_su_301 = oldC2 ? oldC2 + '\\n' + item.url_redirect : item.url_redirect;",
             "        } else { item.lich_su_301 = oldC2; }",
             "    } catch(e) { item.trang_thai = (item.J || 'Time out'); item.url_redirect = (item.D || ''); item.lich_su_301 = (item.C || ''); }",
             "}",
