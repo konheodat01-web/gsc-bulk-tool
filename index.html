@@ -1801,7 +1801,7 @@
     
     function seedStatusWorkflow() {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 11;
+        var STATUS_WFL_VER  = 12;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1826,7 +1826,7 @@
             "        var body = { url: url, proxy: { host: proxyHost, port: parseInt(proxyPort), user: proxyUser, pass: proxyPass }, mode: 'proxy' };",
             "        var res = await fetch(vpsUrl + '/check-web-status', {",
             "            method: 'POST',",
-            "            headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken },",
+            "            headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },",
             "            body: JSON.stringify(body),",
             "            signal: AbortSignal.timeout(10000)",
             "        });",
@@ -1842,7 +1842,7 @@
             "        var body = { url: url, mode: 'direct' };",
             "        var res = await fetch(vpsUrl + '/check-web-status', {",
             "            method: 'POST',",
-            "            headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken },",
+            "            headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },",
             "            body: JSON.stringify(body),",
             "            signal: AbortSignal.timeout(10000)",
             "        });",
