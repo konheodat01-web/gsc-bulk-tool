@@ -1801,7 +1801,7 @@
     
     function seedStatusWorkflow() {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 8;
+        var STATUS_WFL_VER  = 9;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1855,7 +1855,7 @@
             "for (var i = 0; i < items.length; i++) {",
             "    var item = items[i];",
             "    var url = (item.B || item.url || '').trim();",
-            "    if (!url) { item.trang_thai = 'N/A'; item.url_redirect = ''; continue; }",
+            "    if (!url) { item.trang_thai = (item.J || ''); item.url_redirect = (item.D || ''); item.lich_su_301 = (item.C || ''); continue; }",
             "    if (!/^https?:\\/\\//i.test(url)) url = 'https://' + url;",
             "    item.url = url;",
             "    try {",
@@ -1866,7 +1866,7 @@
             "        if (pOk) {",
             "            item.trang_thai = 'OK';",
             "            var pFinal = (pResult.finalUrl || url);",
-            "            item.url_redirect = (pFinal !== url) ? pFinal : '';",
+            "            item.url_redirect = (pFinal !== url) ? pFinal : (item.D || '');",
             "            var oldC = (item.C || '').trim();",
             "            if (item.url_redirect && oldC.indexOf(item.url_redirect) === -1) {",
             "                item.lich_su_301 = oldC ? oldC + '\n' + item.url_redirect : item.url_redirect;",
@@ -1883,12 +1883,12 @@
             "            item.trang_thai = (dStatus === 'TIMEOUT') ? 'Time out' : dStatus;",
             "        }",
             "        var dFinal = dResult ? (dResult.finalUrl || url) : url;",
-            "        item.url_redirect = (dFinal !== url) ? dFinal : '';",
+            "        item.url_redirect = (dFinal !== url) ? dFinal : (item.D || '');",
             "        var oldC2 = (item.C || '').trim();",
             "        if (item.url_redirect && oldC2.indexOf(item.url_redirect) === -1) {",
             "            item.lich_su_301 = oldC2 ? oldC2 + '\n' + item.url_redirect : item.url_redirect;",
             "        } else { item.lich_su_301 = oldC2; }",
-            "    } catch(e) { item.trang_thai = 'Time out'; item.url_redirect = ''; item.lich_su_301 = (item.C || ''); }",
+            "    } catch(e) { item.trang_thai = (item.J || 'Time out'); item.url_redirect = (item.D || ''); item.lich_su_301 = (item.C || ''); }",
             "}",
             "return items;"
         ].join("\n");
