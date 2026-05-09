@@ -981,8 +981,8 @@
                 let filtered = list.filter(w => !deletedNames.includes(w.name));
                 
                 // Tự động inject bản V2 nếu chưa có và user chưa chủ động xóa bản V2
-                const hasV2 = filtered.find(w => w.name === "🔍 Check Rank Từ Khóa (Bản Mới 2.1)");
-                const deletedV2 = deletedNames.includes("🔍 Check Rank Từ Khóa (Bản Mới 2.1)");
+                const hasV2 = filtered.find(w => w.name === "🔍 Check Rank Từ Khóa (Bản Mới 2.2)");
+                const deletedV2 = deletedNames.includes("🔍 Check Rank Từ Khóa (Bản Mới 2.2)");
                 
                 if (!hasV2 && !deletedV2) {
                     console.log("☁️ Auto-injecting V2 Workflow...");
@@ -1718,23 +1718,23 @@
         ].join("\n");
 
         var FILTER_CODE = [
-            "// Build 2 báo cáo gửi Telegram",
-            "var ts = new Date().toLocaleString(\"vi-VN\");",
-            "// Tin 1: Danh sách tổng hợp",
-            "var allLines = items.map(function(i) {",
-            "    var r = (i.total_rank !== 'N/A' && i.total_rank > 0) ? '#'+i.total_rank : 'N/A';",
-            "    return \"🌐 \" + i.domain + \" (\" + i.keyword + \") ➔ Rank: \" + r;",
-            "}).join(\"\\n\");",
-            "var msg1 = \"📋 <b>BÁO CÁO TỔNG HỢP</b>\\n📅 \" + ts + \"\\n──────────────\\n\" + allLines;",
-            "",
-            "// Tin 2: Danh sách Top 100",
+            "var ts = new Date().toLocaleDateString('vi-VN');",
             "var top = items.filter(function(i) { return i.total_rank !== 'N/A' && i.total_rank > 0 && i.total_rank <= 100; });",
             "var topLines = top.map(function(i) {",
-            "    return \"🌐 \" + i.domain + \" ➔ 🏆 <b>Rank: #\" + i.total_rank + \"</b>\";",
+            "    return i.domain + \" (\" + i.keyword + \") -> Rank \" + i.total_rank;",
             "}).join(\"\\n\");",
-            "var msg2 = top.length ? \"🔥 <b>BÁO CÁO TOP 100</b>\\n📅 \" + ts + \"\\n✅ Có \" + top.length + \" website lọt Top:\\n──────────────\\n\" + topLines : \"📉 Check xong (\" + ts + \"). Không có website nào lọt Top 100.\";",
+            "if (!topLines) topLines = \"- Không có website nào lọt Top 100.\";",
             "",
-            "return [{baocao: msg1}, {baocao: msg2}];"
+            "var allLines = items.map(function(i) {",
+            "    var r = (i.total_rank !== 'N/A' && i.total_rank > 0) ? \"Rank \" + i.total_rank : 'N/A';",
+            "    return i.domain + \" (\" + i.keyword + \") -> \" + r;",
+            "}).join(\"\\n\");",
+            "",
+            "var msg = \"Em gửi báo cáo rank ngày \" + ts + \"\\n\\n\" +",
+            "\"1. Các website có Top\\n\" + topLines + \"\\n\\n\" +",
+            "\"2. Các website đã check Rank hôm nay\\n\" + allLines;",
+            "",
+            "return [{baocao: msg}];"
         ].join("\n");
 
         function defOf(type) {
@@ -1747,7 +1747,7 @@
         }
 
         var wf = {
-            name: "🔍 Check Rank Từ Khóa (Bản Mới 2.1)",
+            name: "🔍 Check Rank Từ Khóa (Bản Mới 2.2)",
             savedAt: new Date().toISOString(),
             nodes: [
                 {id:"n1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
