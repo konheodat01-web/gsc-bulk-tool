@@ -1801,7 +1801,7 @@
     
     function seedStatusWorkflow() {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 5;
+        var STATUS_WFL_VER  = 6;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1854,7 +1854,7 @@
             "",
             "for (var i = 0; i < items.length; i++) {",
             "    var item = items[i];",
-            "    var url = (item.A || item.url || '').trim();",
+            "    var url = (item.B || item.url || '').trim();",
             "    if (!url) { item.trang_thai = 'N/A'; item.url_redirect = ''; continue; }",
             "    if (!/^https?:\\/\\//i.test(url)) url = 'https://' + url;",
             "    item.url = url;",
@@ -1891,7 +1891,7 @@
             savedAt: new Date().toISOString(),
             nodes: [
                 {id:"s1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
-                {id:"s2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"A2:A500"}},
+                {id:"s2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"B2:B500"}},
                 {id:"s3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Status + CLF + Redirect"},data:{code:STATUS_CODE}},
                 {id:"s4",type:"update-sheet",   category:"app",    x:680, y:120,def:defOf("update-sheet"),  config:{customName:"Redirect -> Col D"},data:{sheetUrl:"",range:"D2",colMap:"url_redirect"}},
                 {id:"s5",type:"update-sheet",   category:"app",    x:680, y:320,def:defOf("update-sheet"),  config:{customName:"Trang Thai -> Col J"},data:{sheetUrl:"",range:"J2",colMap:"trang_thai"}},
