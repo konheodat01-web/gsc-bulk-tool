@@ -981,8 +981,8 @@
                 let filtered = list.filter(w => !deletedNames.includes(w.name));
                 
                 // Tự động inject bản V2 nếu chưa có và user chưa chủ động xóa bản V2
-                const hasV2 = filtered.find(w => w.name === "🔍 Check Rank Từ Khóa (Bản Mới 2.2)");
-                const deletedV2 = deletedNames.includes("🔍 Check Rank Từ Khóa (Bản Mới 2.2)");
+                const hasV2 = filtered.find(w => w.name === "🔍 Check Rank Từ Khóa (Bản Mới 2.3)");
+                const deletedV2 = deletedNames.includes("🔍 Check Rank Từ Khóa (Bản Mới 2.3)");
                 
                 if (!hasV2 && !deletedV2) {
                     console.log("☁️ Auto-injecting V2 Workflow...");
@@ -1703,7 +1703,7 @@
             "for (var i = 0; i < items.length; i++) {",
             "    var item = items[i];",
             "    var kw = (item.A || item.keyword || \"\").trim();",
-            "    var site = (item.B || item.domain || \"\").trim();",
+            "    var site = (item.C || item.domain || \"\").trim();",
             "    if (!kw || !site) { item.rank_pc='N/A'; item.rank_mb='N/A'; item.total_rank='N/A'; continue; }",
             "    item.keyword = kw; item.domain = site;",
             "    try {",
@@ -1747,13 +1747,13 @@
         }
 
         var wf = {
-            name: "🔍 Check Rank Từ Khóa (Bản Mới 2.2)",
+            name: "🔍 Check Rank Từ Khóa (Bản Mới 2.3)",
             savedAt: new Date().toISOString(),
             nodes: [
                 {id:"n1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
-                {id:"n2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"A2:B500"}},
+                {id:"n2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"A2:C500"}},
                 {id:"n3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Rank PC+Mobile (Serper)"},data:{code:RANK_CODE}},
-                {id:"n4",type:"update-sheet",   category:"app",    x:760, y:200,def:defOf("update-sheet"),  config:{},data:{sheetUrl:"",range:"A2",colMap:"keyword,domain,rank_pc,rank_mb,total_rank"}},
+                {id:"n4",type:"update-sheet",   category:"app",    x:760, y:200,def:defOf("update-sheet"),  config:{},data:{sheetUrl:"",range:"K2",colMap:"rank_pc,rank_mb,total_rank"}},
                 {id:"n5",type:"custom-code",    category:"core",   x:1000,y:200,def:defOf("custom-code"),   config:{customName:"Loc Top 100 & Tao Bao Cao"},data:{code:FILTER_CODE}},
                 {id:"n6",type:"telegram",       category:"app",    x:1240,y:200,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"{baocao}"}}
             ],
