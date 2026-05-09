@@ -1801,7 +1801,7 @@
     
     function seedStatusWorkflow() {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 2;
+        var STATUS_WFL_VER  = 3;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1845,18 +1845,22 @@
             "        var dStatus = String((r.direct || {}).status || 'TIMEOUT');",
             "        var pStatus = String((r.proxy || {}).status || 'TIMEOUT');",
             "        var dOk = dStatus === '200'; var pOk = pStatus === '200';",
-            "        if (dOk && pOk) { item.trang_thai = 'Tot'; }",
-            "        else if (dOk && !pOk) { item.trang_thai = 'CAN CLF'; }",
-            "        else { item.trang_thai = 'LOI ' + (pOk ? dStatus : pStatus); }",
+            "        if (dOk && pOk) { item.trang_thai = 'OK'; }",
+            "        else if (dOk && !pOk) { item.trang_thai = 'Cloudflare'; }",
+            "        else {",
+            "            var errCode = pOk ? dStatus : pStatus;",
+            "            item.trang_thai = (errCode === 'TIMEOUT') ? 'Time out' : errCode;",
+            "        }",
             "        var finalUrl = (pOk ? (r.proxy||{}).finalUrl : (r.direct||{}).finalUrl) || url;",
             "        item.url_redirect = (finalUrl !== url) ? finalUrl : '';",
-            "    } catch(e) { item.trang_thai = 'LOI'; item.url_redirect = ''; }",
+            "    } catch(e) { item.trang_thai = 'Time out'; item.url_redirect = ''; }",
             "}",
             "return items;"
         ].join("\n");
 
         var wf = {
             name: STATUS_WFL_NAME,
+            _ver: STATUS_WFL_VER,
             savedAt: new Date().toISOString(),
             nodes: [
                 {id:"s1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
