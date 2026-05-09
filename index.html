@@ -5334,7 +5334,7 @@ return items.map(item => {
                                 <span class="acc-arrow">▾</span>
                             </div>
                             <div class="acc-body" style="display:none;">
-                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
                                     <div>
                                         <label class="acc-label">Client ID</label>
                                         <input type="password" id="sysGoogleClientId" placeholder="Dán Client ID..." class="acc-input" style="border-color:rgba(66,133,244,0.4);">
@@ -5344,6 +5344,9 @@ return items.map(item => {
                                         <input type="text" id="sysGlobalSheetUrl" placeholder="https://docs.google.com/..." class="acc-input" style="border-color:rgba(52,168,83,0.4);">
                                     </div>
                                 </div>
+                                <label class="acc-label">Google Service Account JSON</label>
+                                <textarea id="sysVpsGoogleJson" placeholder='{"type": "service_account", ...}' style="width:100%;height:70px;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;color:#94a3b8;font-size:10px;font-family:monospace;resize:none;box-sizing:border-box;margin-bottom:4px;"></textarea>
+                                <div style="font-size:11px;color:#64748b;">Dùng để chạy ngầm định (như cập nhật Sheet) và có thể đồng bộ lên VPS.</div>
                             </div>
                         </div>
 
@@ -5380,12 +5383,10 @@ return items.map(item => {
                             <div class="acc-body" style="display:none;">
                                 <label class="acc-label">Địa chỉ IP VPS</label>
                                 <input type="text" id="sysVpsIp" placeholder="103.82.195.87" class="acc-input" style="margin-bottom:10px;">
-                                <label class="acc-label">Google Service Account JSON</label>
-                                <textarea id="sysVpsGoogleJson" placeholder='{"type": "service_account", ...}' style="width:100%;height:70px;background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;color:#94a3b8;font-size:10px;font-family:monospace;resize:none;box-sizing:border-box;margin-bottom:10px;"></textarea>
                                 <div style="display:flex;gap:8px;">
-                                    <button onclick="syncCredentialsToVps()" style="flex:1;background:rgba(255,255,255,0.05);color:white;border:1px solid rgba(255,255,255,0.1);padding:7px;border-radius:6px;font-size:11px;cursor:pointer;">💾 Lưu Chìa Khóa</button>
-                                    <button onclick="syncToVps()" style="flex:1;background:#3b82f6;color:white;border:none;padding:7px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">📤 Đồng bộ</button>
-                                    <button onclick="upgradeAgent()" style="flex:1;background:rgba(255,255,255,0.08);color:white;border:1px solid rgba(255,255,255,0.15);padding:7px;border-radius:6px;font-size:11px;cursor:pointer;">🔄 Nâng cấp</button>
+                                    <button onclick="syncCredentialsToVps()" style="flex:1;background:rgba(255,255,255,0.05);color:white;border:1px solid rgba(255,255,255,0.1);padding:7px;border-radius:6px;font-size:11px;cursor:pointer;" title="Đẩy Google JSON lên VPS">💾 Lưu Chìa Khóa</button>
+                                    <button onclick="syncToVps()" style="flex:1;background:#3b82f6;color:white;border:none;padding:7px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">📤 Đồng bộ Code</button>
+                                    <button onclick="upgradeAgent()" style="flex:1;background:rgba(255,255,255,0.08);color:white;border:1px solid rgba(255,255,255,0.15);padding:7px;border-radius:6px;font-size:11px;cursor:pointer;">🔄 Nâng cấp Agent</button>
                                 </div>
                             </div>
                         </div>
