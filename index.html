@@ -934,7 +934,8 @@
             'sys_ai_engine', 'gemini_api_key', 'sys_ollama_url', 'sys_ollama_model',
             'sys_serper_key', 'telegram_bot_token', 'tele_chat_id',
             'wf_system_settings', 'google_client_id', 'global_sheet_url',
-            'vps_ip', 'ai_skills', 'gsc_emails', 'wf_user_deleted', 'vps_google_json'
+            'vps_ip', 'ai_skills', 'gsc_emails', 'wf_user_deleted', 'vps_google_json',
+            'sys_proxy_host', 'sys_proxy_port', 'sys_proxy_user', 'sys_proxy_pass'
         ];
         const settings = {};
         SYNC_KEYS.forEach(k => {
@@ -1791,12 +1792,89 @@
         // Seed chỉ chạy nếu Firebase rỗng (xử lý bởi startWorkflowRealTimeSync)
         // Nếu wf_seeded_v2 chưa set (Firebase cũng chưa có data), seed local trước
         if (!localStorage.getItem('wf_seeded_v2')) seedDefaultWorkflows();
+        seedStatusWorkflow();
         renderPalette();
         initCanvasDrop();
         renderSavedWfList();
         restoreCanvasFromSession();
     }
     
+    function seedStatusWorkflow() {
+        var STATUS_WFL_NAME = "\ud83c\udf10 Ki\u1ec3m Tra Tr\u1ea1ng Th\u00e1i Web";
+        var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
+        var alreadyExists = lib.find(function(w) { return w.name === STATUS_WFL_NAME; });
+        if (alreadyExists) return;
+        var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
+        if (deletedNames.includes(STATUS_WFL_NAME)) return;
+
+        function defOf(t) { return (window.WF_NODE_DEFS || []).find(function(d){ return d.type===t; }) || {}; }
+
+        var STATUS_CODE = [
+            "var proxyHost = localStorage.getItem('sys_proxy_host') || '';",
+            "var proxyPort = localStorage.getItem('sys_proxy_port') || '';",
+            "var proxyUser = localStorage.getItem('sys_proxy_user') || '';",
+            "var proxyPass = localStorage.getItem('sys_proxy_pass') || '';",
+            "var vpsSettings = JSON.parse(localStorage.getItem('wf_system_settings') || '{}');",
+            "var vpsUrl = (vpsSettings.vpsUrl || '').replace(/\\/$/,'');",
+            "var vpsToken = vpsSettings.vpsToken || '';",
+            "if (!vpsUrl) throw new Error('Chua cau hinh VPS URL trong Cai dat chung!');",
+            "if (!proxyHost || !proxyPort) throw new Error('Chua cau hinh Proxy trong Cai dat chung!');",
+            "async function checkUrl(url) {",
+            "    try {",
+            "        var body = { url: url, proxy: { host: proxyHost, port: parseInt(proxyPort), user: proxyUser, pass: proxyPass } };",
+            "        var res = await fetch(vpsUrl + '/check-web-status', {",
+            "            method: 'POST',",
+            "            headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken },",
+            "            body: JSON.stringify(body),",
+            "            signal: AbortSignal.timeout(30000)",
+            "        });",
+            "        if (!res.ok) throw new Error('VPS Error: ' + res.status);",
+            "        return await res.json();",
+            "    } catch(e) {",
+            "        return { direct: { status: 'TIMEOUT', finalUrl: url }, proxy: { status: 'TIMEOUT', finalUrl: url } };",
+            "    }",
+            "}",
+            "for (var i = 0; i < items.length; i++) {",
+            "    var item = items[i];",
+            "    var url = (item.A || item.url || '').trim();",
+            "    if (!url) { item.ket_luan = 'N/A'; item.url_dich = ''; continue; }",
+            "    if (!/^https?:\\/\\//i.test(url)) url = 'https://' + url;",
+            "    item.url = url;",
+            "    try {",
+            "        var r = await checkUrl(url);",
+            "        var dStatus = String((r.direct || {}).status || 'TIMEOUT');",
+            "        var pStatus = String((r.proxy || {}).status || 'TIMEOUT');",
+            "        var dOk = dStatus === '200'; var pOk = pStatus === '200';",
+            "        if (dOk && pOk) { item.ket_luan = 'OK'; }",
+            "        else if (dOk && !pOk) { item.ket_luan = 'CAN CLF'; }",
+            "        else { item.ket_luan = 'LOI ' + (pOk ? dStatus : pStatus); }",
+            "        var finalUrl = (pOk ? (r.proxy||{}).finalUrl : (r.direct||{}).finalUrl) || url;",
+            "        item.url_dich = (finalUrl !== url) ? finalUrl : '';",
+            "    } catch(e) { item.ket_luan = 'LOI'; item.url_dich = ''; }",
+            "}",
+            "return items;"
+        ].join("\n");
+
+        var wf = {
+            name: STATUS_WFL_NAME,
+            savedAt: new Date().toISOString(),
+            nodes: [
+                {id:"s1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
+                {id:"s2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"A2:A500"}},
+                {id:"s3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Status + CLF + Redirect"},data:{code:STATUS_CODE}},
+                {id:"s4",type:"update-sheet",   category:"app",    x:760, y:200,def:defOf("update-sheet"),  config:{},data:{sheetUrl:"",range:"B2",colMap:"ket_luan,url_dich"}},
+                {id:"s5",type:"telegram",       category:"app",    x:1000,y:200,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"Check xong {total} web.\nBinh thuong: {ok}\nCan CLF: {clf}\nLoi that: {error}"}}
+            ],
+            edges: [
+                {from:"s1",to:"s2"},{from:"s2",to:"s3"},{from:"s3",to:"s4"},{from:"s4",to:"s5"}
+            ]
+        };
+        lib.push(wf);
+        localStorage.setItem("wf_builder_list", JSON.stringify(lib));
+        if (typeof syncWorkflowsToFirebase === 'function') syncWorkflowsToFirebase(lib);
+        console.log("\u2705 \u0110\u00e3 inject WFL: " + STATUS_WFL_NAME);
+    }
+
     function getUserBlocks() {
         try { return JSON.parse(localStorage.getItem('wf_user_blocks') || '[]'); } catch(e) { return []; }
     }
@@ -5003,6 +5081,11 @@ ${appState}`;
             // VPS Agent
             document.getElementById('sysVpsIp').value = localStorage.getItem('vps_ip') || '';
             document.getElementById('sysVpsGoogleJson').value = localStorage.getItem('vps_google_json') || '';
+            // Proxy
+            if (document.getElementById('sysProxyHost')) document.getElementById('sysProxyHost').value = localStorage.getItem('sys_proxy_host') || '';
+            if (document.getElementById('sysProxyPort')) document.getElementById('sysProxyPort').value = localStorage.getItem('sys_proxy_port') || '';
+            if (document.getElementById('sysProxyUser')) document.getElementById('sysProxyUser').value = localStorage.getItem('sys_proxy_user') || '';
+            if (document.getElementById('sysProxyPass')) document.getElementById('sysProxyPass').value = localStorage.getItem('sys_proxy_pass') || '';
             // AI Skills
             document.getElementById('sysAiSkills').value = localStorage.getItem('ai_skills') || '';
         }
@@ -5031,6 +5114,11 @@ ${appState}`;
         // VPS Agent
         localStorage.setItem('vps_ip', document.getElementById('sysVpsIp').value.trim());
         localStorage.setItem('vps_google_json', document.getElementById('sysVpsGoogleJson').value.trim());
+        // Proxy
+        if (document.getElementById('sysProxyHost')) localStorage.setItem('sys_proxy_host', document.getElementById('sysProxyHost').value.trim());
+        if (document.getElementById('sysProxyPort')) localStorage.setItem('sys_proxy_port', document.getElementById('sysProxyPort').value.trim());
+        if (document.getElementById('sysProxyUser')) localStorage.setItem('sys_proxy_user', document.getElementById('sysProxyUser').value.trim());
+        if (document.getElementById('sysProxyPass')) localStorage.setItem('sys_proxy_pass', document.getElementById('sysProxyPass').value.trim());
         // AI Skills
         localStorage.setItem('ai_skills', document.getElementById('sysAiSkills').value.trim());
         toggleGlobalSettings(false);
@@ -5426,6 +5514,40 @@ return items.map(item => {
                                         <input type="password" id="sysVpsToken" placeholder="Token xác thực..." class="acc-input" style="border-color:rgba(124,58,237,0.4);">
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- PROXY CONFIG -->
+                        <div class="acc-group" id="acc_proxy">
+                            <div class="acc-header" onclick="toggleAcc('acc_proxy')">
+                                <span class="acc-icon" style="background:linear-gradient(135deg,#b45309,#d97706);">🌐</span>
+                                <span class="acc-title">Proxy (Check Web Status)</span>
+                                <span class="acc-desc">Proxy VN Rotating để kiểm tra website từ IP Việt Nam</span>
+                                <span class="acc-arrow">▾</span>
+                            </div>
+                            <div class="acc-body" style="display:none;">
+                                <p style="color:#94a3b8;font-size:11px;margin:0 0 12px 0;line-height:1.5;">Điền thông tin proxy HTTP/HTTPS Rotating (từ proxy-cheap hoặc tương tự). Tool sẽ dùng proxy này để giả lập người dùng VN khi check trạng thái web.</p>
+                                <div style="display:grid;grid-template-columns:1fr 100px;gap:8px;margin-bottom:8px;">
+                                    <div>
+                                        <label class="acc-label">Proxy Host</label>
+                                        <input type="text" id="sysProxyHost" placeholder="vn.proxy-cheap.com" class="acc-input">
+                                    </div>
+                                    <div>
+                                        <label class="acc-label">Port</label>
+                                        <input type="text" id="sysProxyPort" placeholder="31112" class="acc-input">
+                                    </div>
+                                </div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                                    <div>
+                                        <label class="acc-label">Username</label>
+                                        <input type="text" id="sysProxyUser" placeholder="pc3LO3PtGZ" class="acc-input">
+                                    </div>
+                                    <div>
+                                        <label class="acc-label">Password</label>
+                                        <input type="password" id="sysProxyPass" placeholder="••••••••" class="acc-input">
+                                    </div>
+                                </div>
+                                <p style="color:#64748b;font-size:10px;margin:8px 0 0 0;">* Lấy Host/Port từ trang proxy-cheap sau khi bấm "Tạo thông tin xác thực"</p>
                             </div>
                         </div>
 
