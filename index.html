@@ -991,6 +991,9 @@
                 seedDefaultWorkflows();
                 const seeded = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
                 if (seeded.length > 0) syncWorkflowsToFirebase(seeded);
+                if (typeof renderWfLibrary === 'function') renderWfLibrary();
+                if (typeof renderSavedWfList === 'function') renderSavedWfList();
+                updateAutomationBadge();
             }
         });
     }
