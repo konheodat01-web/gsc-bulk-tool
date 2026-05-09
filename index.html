@@ -986,7 +986,7 @@
                 
                 if (!hasV2 && !deletedV2) {
                     console.log("☁️ Auto-injecting V2 Workflow...");
-                    seedDefaultWorkflows();
+                    seedDefaultWorkflows(true);
                     filtered = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
                     syncWorkflowsToFirebase(filtered);
                 } else {
@@ -1001,7 +1001,7 @@
             } else {
                 // Firebase rỗng → chạy seed mặc định rồi push lên Firebase
                 console.log("☁️ Firebase WFL rỗng → chạy seed mặc định...");
-                seedDefaultWorkflows();
+                seedDefaultWorkflows(true);
                 const seeded = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
                 if (seeded.length > 0) syncWorkflowsToFirebase(seeded);
                 if (typeof renderWfLibrary === 'function') renderWfLibrary();
@@ -1675,8 +1675,8 @@
     let connectingFrom = null;
     let tempLine = null;
     
-    function seedDefaultWorkflows() {
-        if (localStorage.getItem("wf_seeded_v2")) return;
+    function seedDefaultWorkflows(force = false) {
+        if (!force && localStorage.getItem("wf_seeded_v2")) return;
         localStorage.removeItem("wf_seeded_v1");
         var deletedNames = JSON.parse(localStorage.getItem("wf_user_deleted") || "[]");
         var wfName = "🔍 Check Rank Tu Khoa (Serper Real-time)";
