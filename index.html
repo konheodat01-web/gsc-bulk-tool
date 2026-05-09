@@ -3852,14 +3852,55 @@
         if (!token) throw new Error('Chưa kết nối Google! Cần Service Account hoặc OAuth.');
         console.log('[execUpdateSheetNode] Đã lấy được Token:', token.substring(0, 15) + '...');
 
-        // Map data to C, D, E
-        const values = inputData.map(item => [item.C || '', item.D || '', item.E || '']);
-        const range = `C2:E${2 + values.length - 1}`;
+        // Parse colMap to determine which fields to write
+        const colMapStr = data.colMap || 'keyword,domain,rank_pc,rank_mb,total_rank';
+        const cols = colMapStr.split(',').map(c => c.trim()).filter(c => c);
+        
+        const values = inputData.map(item => {
+            return cols.map(col => {
+                if (item[col] !== undefined && item[col] !== null) return item[col];
+                return ''; // default empty
+            });
+        });
+        
+        // Calculate range dynamically based on data.range (e.g. 'A2' or 'Sheet1!A2')
+        let startCell = data.range || 'A2';
+        const match = startCell.match(/([a-zA-Z]+)(\d+)/);
+        let finalRange = startCell;
+        
+        if (match) {
+            const startColStr = match[1].toUpperCase();
+            const startRow = parseInt(match[2], 10);
+            
+            // Convert startColStr to number (A=0, B=1, Z=25, AA=26...)
+            let startColNum = 0;
+            for (let i = 0; i < startColStr.length; i++) {
+                startColNum = startColNum * 26 + (startColStr.charCodeAt(i) - 64);
+            }
+            startColNum -= 1; // 0-indexed
+            
+            // Calculate end col
+            let endColNum = startColNum + cols.length - 1;
+            let endColStr = '';
+            let temp = endColNum;
+            while (temp >= 0) {
+                endColStr = String.fromCharCode((temp % 26) + 65) + endColStr;
+                temp = Math.floor(temp / 26) - 1;
+            }
+            
+            const endRow = startRow + values.length - 1;
+            const prefix = startCell.substring(0, match.index);
+            finalRange = `${prefix}${startColStr}${startRow}:${endColStr}${endRow}`;
+        } else {
+            // Fallback if parsing fails
+            finalRange = `${startCell}:Z${1 + values.length}`;
+        }
+
         console.log('[execUpdateSheetNode] Dữ liệu sẽ ghi (values):', values);
-        console.log('[execUpdateSheetNode] Range:', range);
+        console.log('[execUpdateSheetNode] Range:', finalRange);
         console.log('[execUpdateSheetNode] Cấu hình từ node:', data);
         
-        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?valueInputOption=USER_ENTERED`, {
+        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${finalRange}?valueInputOption=USER_ENTERED`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
