@@ -981,12 +981,13 @@
                 let filtered = list.filter(w => !deletedNames.includes(w.name));
                 
                 // Tự động inject bản V2 nếu chưa có và user chưa chủ động xóa bản V2
-                const hasV2 = filtered.find(w => w.name === "🔍 Check Rank Từ Khóa (Bản Mới 2.3)");
-                const deletedV2 = deletedNames.includes("🔍 Check Rank Từ Khóa (Bản Mới 2.3)");
+                const hasV2 = filtered.find(w => w.name === "🔍 Check Rank Từ Khóa (Bản Mới 2.4)");
+                const deletedV2 = deletedNames.includes("🔍 Check Rank Từ Khóa (Bản Mới 2.4)");
+                const oldWf = filtered.find(w => w.name.includes("Check Rank"));
                 
                 if (!hasV2 && !deletedV2) {
                     console.log("☁️ Auto-injecting V2 Workflow...");
-                    seedDefaultWorkflows(true);
+                    seedDefaultWorkflows(true, oldWf);
                     filtered = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
                     syncWorkflowsToFirebase(filtered);
                 } else {
@@ -1675,7 +1676,7 @@
     let connectingFrom = null;
     let tempLine = null;
     
-    function seedDefaultWorkflows(force = false) {
+    function seedDefaultWorkflows(force = false, oldWf = null) {
         if (!force && localStorage.getItem("wf_seeded_v2")) return;
         localStorage.removeItem("wf_seeded_v1");
 
@@ -1703,7 +1704,7 @@
             "for (var i = 0; i < items.length; i++) {",
             "    var item = items[i];",
             "    var kw = (item.A || item.keyword || \"\").trim();",
-            "    var site = (item.C || item.domain || \"\").trim();",
+            "    var site = (item.D || item.domain || \"\").trim();",
             "    if (!kw || !site) { item.rank_pc='N/A'; item.rank_mb='N/A'; item.total_rank='N/A'; continue; }",
             "    item.keyword = kw; item.domain = site;",
             "    try {",
@@ -1747,11 +1748,11 @@
         }
 
         var wf = {
-            name: "🔍 Check Rank Từ Khóa (Bản Mới 2.3)",
+            name: "🔍 Check Rank Từ Khóa (Bản Mới 2.4)",
             savedAt: new Date().toISOString(),
             nodes: [
                 {id:"n1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
-                {id:"n2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"A2:C500"}},
+                {id:"n2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"A2:D500"}},
                 {id:"n3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Rank PC+Mobile (Serper)"},data:{code:RANK_CODE}},
                 {id:"n4",type:"update-sheet",   category:"app",    x:760, y:200,def:defOf("update-sheet"),  config:{},data:{sheetUrl:"",range:"K2",colMap:"rank_pc,rank_mb,total_rank"}},
                 {id:"n5",type:"custom-code",    category:"core",   x:1000,y:200,def:defOf("custom-code"),   config:{customName:"Loc Top 100 & Tao Bao Cao"},data:{code:FILTER_CODE}},
@@ -1761,6 +1762,24 @@
         };
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         lib = lib.filter(function(w) { return w.name.indexOf("Check Rank") < 0; });
+        
+        if (oldWf && oldWf.nodes) {
+            var oldInp = oldWf.nodes.find(function(n) { return n.id === "n2"; });
+            var newInp = wf.nodes.find(function(n) { return n.id === "n2"; });
+            if (oldInp && newInp) newInp.data.sheetUrl = oldInp.data.sheetUrl || "";
+            
+            var oldUpd = oldWf.nodes.find(function(n) { return n.id === "n4"; });
+            var newUpd = wf.nodes.find(function(n) { return n.id === "n4"; });
+            if (oldUpd && newUpd) newUpd.data.sheetUrl = oldUpd.data.sheetUrl || "";
+            
+            var oldTele = oldWf.nodes.find(function(n) { return n.id === "n6"; });
+            var newTele = wf.nodes.find(function(n) { return n.id === "n6"; });
+            if (oldTele && newTele) {
+                newTele.data.token = oldTele.data.token || "";
+                newTele.data.chatId = oldTele.data.chatId || "";
+            }
+        }
+        
         lib.unshift(wf);
         localStorage.setItem("wf_builder_list", JSON.stringify(lib));
         localStorage.setItem("wf_seeded_v2", "1");
