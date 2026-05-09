@@ -1801,7 +1801,7 @@
     
     function seedStatusWorkflow() {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 9;
+        var STATUS_WFL_VER  = 10;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1899,7 +1899,7 @@
             savedAt: new Date().toISOString(),
             nodes: [
                 {id:"s1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
-                {id:"s2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"A2:J500"}},
+                {id:"s2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",sheetRange:"A2:Z500"}},
                 {id:"s3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Status + CLF + Redirect"},data:{code:STATUS_CODE}},
                 {id:"s4",type:"update-sheet",   category:"app",    x:760, y:80, def:defOf("update-sheet"),  config:{customName:"Redirect -> Col D"},data:{sheetUrl:"",range:"D2",colMap:"url_redirect"}},
                 {id:"s5",type:"update-sheet",   category:"app",    x:760, y:240,def:defOf("update-sheet"),  config:{customName:"Trang Thai -> Col J"},data:{sheetUrl:"",range:"J2",colMap:"trang_thai"}},
@@ -1919,8 +1919,8 @@
                 wf.nodes[4].data.sheetUrl = oldInput.data.sheetUrl;
                 wf.nodes[5].data.sheetUrl = oldInput.data.sheetUrl;
             }
-            if (oldInput && oldInput.data && oldInput.data.range) {
-                wf.nodes[1].data.range = oldInput.data.range;
+            if (oldInput && oldInput.data && (oldInput.data.sheetRange || oldInput.data.range)) {
+                wf.nodes[1].data.sheetRange = oldInput.data.sheetRange || oldInput.data.range;
             }
             // Preserve update-sheet sheetUrls from old nodes
             ['s4','s5','s7'].forEach(function(nid) {
@@ -3824,7 +3824,8 @@
             const sheetIdMatch = data.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
             if (!sheetIdMatch) throw new Error('Link Google Sheet không hợp lệ');
             const sheetId = sheetIdMatch[1];
-            const range = data.sheetRange || 'A2:E100';
+            var rawRange = data.sheetRange || data.range || 'A2:Z500';
+            var range = /^\d+-\d+$/.test(rawRange.trim()) ? 'A' + rawRange.split('-')[0] + ':Z' + rawRange.split('-')[1] : rawRange;
             const token = await getGoogleToken();
         if (!token) throw new Error('Chưa kết nối Google! Cần Service Account hoặc OAuth.');
         
@@ -3840,7 +3841,8 @@
             return json.values.map((row, idx) => {
                 const obj = { _rowIdx: idx };
                 row.forEach((val, i) => {
-                    const colName = String.fromCharCode(65 + i);
+                    var startCol = 0; var sc2 = range.match(/^([A-Z]+)/i); if(sc2){for(var ci=0;ci<sc2[1].length;ci++)startCol=startCol*26+(sc2[1].toUpperCase().charCodeAt(ci)-64);startCol--;}
+                const colName = String.fromCharCode(65 + startCol + i);
                     obj[colName] = (val || '').trim();
                 });
                 
@@ -3851,7 +3853,7 @@
                 obj.pass = obj.D || '';
                 
                 return obj;
-            }).filter(r => r.A || r.url);
+            }).filter(r => { var keys = Object.keys(r).filter(function(k){return k !== '_rowIdx' && k !== 'url' && k !== 'adminPath' && k !== 'user' && k !== 'pass';}); return keys.some(function(k){ return r[k] !== ''; }); });
         } else {
             // Manual mode
             raw = data.manualRaw || '';
@@ -3860,7 +3862,8 @@
             const parts = line.split('|').map(p => p.trim());
             const obj = { _rowIdx: idx };
             parts.forEach((val, i) => {
-                const colName = String.fromCharCode(65 + i);
+                var startCol = 0; var sc2 = range.match(/^([A-Z]+)/i); if(sc2){for(var ci=0;ci<sc2[1].length;ci++)startCol=startCol*26+(sc2[1].toUpperCase().charCodeAt(ci)-64);startCol--;}
+                const colName = String.fromCharCode(65 + startCol + i);
                 obj[colName] = val;
             });
             // Keep backward compatibility
