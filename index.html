@@ -1678,11 +1678,6 @@
     function seedDefaultWorkflows(force = false) {
         if (!force && localStorage.getItem("wf_seeded_v2")) return;
         localStorage.removeItem("wf_seeded_v1");
-        var deletedNames = JSON.parse(localStorage.getItem("wf_user_deleted") || "[]");
-        var wfName = "🔍 Check Rank Tu Khoa (Serper Real-time)";
-        if (deletedNames.indexOf(wfName) >= 0) {
-            localStorage.setItem("wf_seeded_v2", "1"); return;
-        }
 
         var RANK_CODE = [
             "// CHECK RANK REAL-TIME via Serper API",
