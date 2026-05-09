@@ -3667,7 +3667,7 @@
             const token = await getGoogleToken();
         if (!token) throw new Error('Chưa kết nối Google! Cần Service Account hoặc OAuth.');
         
-        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`, {
+        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -3922,7 +3922,7 @@
         console.log('[execUpdateSheetNode] Range:', finalRange);
         console.log('[execUpdateSheetNode] Cấu hình từ node:', data);
         
-        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${finalRange}?valueInputOption=USER_ENTERED`, {
+        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(finalRange)}?valueInputOption=USER_ENTERED`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
