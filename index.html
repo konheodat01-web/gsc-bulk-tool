@@ -4530,6 +4530,22 @@
         
         saveCanvasToSession();
         
+        // Lưu vĩnh viễn vào localStorage + Firebase ngay lập tức
+        if (typeof saveCurrentWorkflow === 'function' && currentEditingWfIndex >= 0) {
+            const wfList = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+            if (wfList[currentEditingWfIndex]) {
+                wfList[currentEditingWfIndex].nodes = wfNodes.map(n => ({
+                    id: n.id, type: n.type, cat: n.cat || n.category,
+                    x: n.x, y: n.y, data: n.data, config: n.config
+                }));
+                wfList[currentEditingWfIndex].savedAt = new Date().toISOString();
+                localStorage.setItem('wf_builder_list', JSON.stringify(wfList));
+                if (typeof syncWorkflowsToFirebase === 'function') {
+                    syncWorkflowsToFirebase(wfList);
+                }
+            }
+        }
+        
         // Visual feedback
         const btn = document.querySelector('.btn-save-settings');
         if (btn) {
