@@ -981,8 +981,8 @@
                 let filtered = list.filter(w => !deletedNames.includes(w.name));
                 
                 // Tự động inject bản V2 nếu chưa có và user chưa chủ động xóa bản V2
-                const hasV2 = filtered.find(w => w.name === "🔍 Check Rank Từ Khóa (Bản Mới 2.0)");
-                const deletedV2 = deletedNames.includes("🔍 Check Rank Từ Khóa (Bản Mới 2.0)");
+                const hasV2 = filtered.find(w => w.name === "🔍 Check Rank Từ Khóa (Bản Mới 2.1)");
+                const deletedV2 = deletedNames.includes("🔍 Check Rank Từ Khóa (Bản Mới 2.1)");
                 
                 if (!hasV2 && !deletedV2) {
                     console.log("☁️ Auto-injecting V2 Workflow...");
@@ -1694,6 +1694,7 @@
             "        body: JSON.stringify(body)",
             "    });",
             "    var data = await res.json();",
+            "    console.log('[Serper API Debug] Kw:', keyword, 'Device:', device, 'Response:', data);",
             "    if (!data.organic) return 0;",
             "    var d = domain.replace(/^https?:\\/\\//, \"\").replace(/\\/$/, \"\").toLowerCase();",
             "    var found = data.organic.find(function(r) { return r.link && r.link.toLowerCase().indexOf(d) >= 0; });",
@@ -1746,7 +1747,7 @@
         }
 
         var wf = {
-            name: "🔍 Check Rank Từ Khóa (Bản Mới 2.0)",
+            name: "🔍 Check Rank Từ Khóa (Bản Mới 2.1)",
             savedAt: new Date().toISOString(),
             nodes: [
                 {id:"n1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
