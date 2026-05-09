@@ -1801,7 +1801,7 @@
     
     function seedStatusWorkflow() {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 7;
+        var STATUS_WFL_VER  = 8;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1899,7 +1899,7 @@
             savedAt: new Date().toISOString(),
             nodes: [
                 {id:"s1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
-                {id:"s2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"B2:B500"}},
+                {id:"s2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"A2:J500"}},
                 {id:"s3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Status + CLF + Redirect"},data:{code:STATUS_CODE}},
                 {id:"s4",type:"update-sheet",   category:"app",    x:760, y:80, def:defOf("update-sheet"),  config:{customName:"Redirect -> Col D"},data:{sheetUrl:"",range:"D2",colMap:"url_redirect"}},
                 {id:"s5",type:"update-sheet",   category:"app",    x:760, y:240,def:defOf("update-sheet"),  config:{customName:"Trang Thai -> Col J"},data:{sheetUrl:"",range:"J2",colMap:"trang_thai"}},
@@ -1919,6 +1919,17 @@
                 wf.nodes[4].data.sheetUrl = oldInput.data.sheetUrl;
                 wf.nodes[5].data.sheetUrl = oldInput.data.sheetUrl;
             }
+            if (oldInput && oldInput.data && oldInput.data.range) {
+                wf.nodes[1].data.range = oldInput.data.range;
+            }
+            // Preserve update-sheet sheetUrls from old nodes
+            ['s4','s5','s7'].forEach(function(nid) {
+                var oldN = oldNodes.find(function(n){ return n.id===nid; });
+                if (oldN && oldN.data && oldN.data.sheetUrl) {
+                    var newN = wf.nodes.find(function(n){ return n.id===nid; });
+                    if (newN) newN.data.sheetUrl = oldN.data.sheetUrl;
+                }
+            });
             lib[existingIdx] = wf;
         } else {
             lib.push(wf);
