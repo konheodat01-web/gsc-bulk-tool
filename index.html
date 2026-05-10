@@ -1822,7 +1822,7 @@
     
     function seedStatusWorkflow(skipSync) {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 24;
+        var STATUS_WFL_VER  = 25; // Bump version to force seed update
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1887,6 +1887,8 @@
             "    var item = items[i];",
             "    var url = '';",
             "    if (item.hasOwnProperty('B')) { url = (item.B || '').trim(); }",
+            "    else { url = (item.url || '').trim(); }",
+            "    if (typeof updateProgress === 'function') updateProgress(i + 1, items.length, 'Đang quét: ' + (url || '...'));",,
             "    else { url = (item.url || '').trim(); }",
             "    if (!url) { ",
             "        item.trang_thai = item.J || '';",
@@ -3972,10 +3974,20 @@
         if (wfNodes.length === 0) { alert('Canvas đang trống!'); return; }
         const orderedIds = getExecutionOrder();
         if (orderedIds.length === 0) { alert('Quy trình chưa được kết nối đúng cách!'); return; }
-        const btn = document.getElementById('wfBtnTest');
+        const btn = document.querySelector('button[onclick="runCurrentWorkflow()"]');
         const oldText = btn.innerHTML;
-        btn.innerHTML = '⏳ Đang chạy...';
+        btn.innerHTML = '<span class="spin">⏳</span> Đang chạy...';
         btn.disabled = true;
+        
+        // Hiện nút Live Logs và xoá log cũ
+        const liveLogBtn = document.getElementById('btnToggleLiveLog');
+        if (liveLogBtn) liveLogBtn.style.display = 'block';
+        const liveLogContent = document.getElementById('liveLogContent');
+        if (liveLogContent) {
+            liveLogContent.innerHTML = '';
+            window.wfAppendLiveLog('Bắt đầu chạy quy trình: ' + wf.name);
+        }
+        
         try {
             window.wfExecutionLogs = [];
             window._isStrangeError = false;
@@ -4060,6 +4072,7 @@
             }
             // Clear error highlights after run
             setTimeout(() => document.querySelectorAll('.wf-node.node-error').forEach(n => n.classList.remove('node-error')), 5000);
+            if (window.wfAppendLiveLog) window.wfAppendLiveLog('✅ Quy trình đã hoàn thành thành công!');
             alert('✅ Quy trình đã hoàn thành!');
         } catch (err) {
             console.error('[WFL] Fatal error:', err);
@@ -4139,7 +4152,11 @@
         const timeout = settings.timeout || 10000;
         
         const results = [];
+        let cur = 0;
         for (const item of inputData) {
+            cur++;
+            if (window.wfUpdateProgress) window.wfUpdateProgress(node.id, cur, inputData.length, 'Đang check ' + item.url);
+            
             let status = 'Checking...';
             let errorMsg = '';
             try {
@@ -4350,12 +4367,15 @@
         try {
             // Create a function from the user code string.
             // Wrap in an async function so they can use await if needed.
+            // Bơm thêm hàm updateProgress vào để node báo cáo tiến độ
             const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-            const customFunc = new AsyncFunction('items', codeStr);
+            const customFunc = new AsyncFunction('items', 'updateProgress', codeStr);
             
             // Execute the code with a deep clone of inputData to avoid reference bleeding unless intended
             const clonedInput = JSON.parse(JSON.stringify(inputData));
-            const result = await customFunc(clonedInput);
+            const result = await customFunc(clonedInput, (cur, tot, msg) => {
+                if (window.wfUpdateProgress) window.wfUpdateProgress(node.id, cur, tot, msg);
+            });
             
             if (!Array.isArray(result)) {
                 console.warn('Custom Code Node did not return an array. Returning original input.');
@@ -5597,6 +5617,121 @@ ${appState}`;
         setTimeout(() => toast.remove(), 2500);
     }
 
+</script>
+<script>
+    // --- NÂNG CẤP: LIVE TERMINAL & PROGRESS BADGE ---
+    window.wfAppendLiveLog = function(text) {
+        const content = document.getElementById('liveLogContent');
+        if (!content) return;
+        const line = document.createElement('div');
+        const time = new Date().toLocaleTimeString('vi-VN', {hour12:false});
+        line.innerText = `[${time}] ${text}`;
+        content.appendChild(line);
+        content.scrollTop = content.scrollHeight;
+        
+        // Giới hạn 500 dòng để không nặng máy
+        while (content.children.length > 500) {
+            content.removeChild(content.firstChild);
+        }
+    };
+
+    window.wfUpdateProgress = function(nodeId, current, total, msg) {
+        const nodeEl = document.querySelector(`.wf-node[data-id="${nodeId}"]`);
+        if (!nodeEl) return;
+        let badge = nodeEl.querySelector('.wf-progress-badge');
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.className = 'wf-progress-badge';
+            badge.style.position = 'absolute';
+            badge.style.top = '-25px';
+            badge.style.left = '50%';
+            badge.style.transform = 'translateX(-50%)';
+            badge.style.background = '#8b5cf6';
+            badge.style.color = '#fff';
+            badge.style.padding = '2px 8px';
+            badge.style.borderRadius = '12px';
+            badge.style.fontSize = '11px';
+            badge.style.fontWeight = 'bold';
+            badge.style.whiteSpace = 'nowrap';
+            badge.style.zIndex = '100';
+            badge.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+            nodeEl.appendChild(badge);
+        }
+        
+        // Create progress bar at the bottom of the node
+        let barContainer = nodeEl.querySelector('.wf-progress-bar-container');
+        if (!barContainer) {
+            barContainer = document.createElement('div');
+            barContainer.className = 'wf-progress-bar-container';
+            barContainer.style.position = 'absolute';
+            barContainer.style.bottom = '0';
+            barContainer.style.left = '0';
+            barContainer.style.width = '100%';
+            barContainer.style.height = '4px';
+            barContainer.style.background = 'rgba(255,255,255,0.1)';
+            barContainer.style.borderRadius = '0 0 8px 8px';
+            barContainer.style.overflow = 'hidden';
+            
+            let bar = document.createElement('div');
+            bar.className = 'wf-progress-bar-fill';
+            bar.style.height = '100%';
+            bar.style.width = '0%';
+            bar.style.background = '#00e5ff';
+            bar.style.transition = 'width 0.2s';
+            barContainer.appendChild(bar);
+            nodeEl.appendChild(barContainer);
+        }
+        
+        const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+        badge.innerText = `⏳ ${current}/${total} ${msg ? '- ' + msg : ''}`;
+        
+        const bar = barContainer.querySelector('.wf-progress-bar-fill');
+        if (bar) bar.style.width = `${pct}%`;
+        
+        // Update live terminal
+        if (window.wfAppendLiveLog) {
+            const nodeObj = window.wfNodes ? window.wfNodes.find(n => n.id === nodeId) : null;
+            const nodeName = nodeObj ? (nodeObj.data?.customName || nodeObj.type) : nodeId;
+            window.wfAppendLiveLog(`[${nodeName}] ${current}/${total}: ${msg || 'Đang xử lý...'}`);
+        }
+        
+        // Auto remove when complete
+        if (current >= total && total > 0) {
+            setTimeout(() => {
+                if (badge.parentNode) badge.parentNode.removeChild(badge);
+                if (barContainer.parentNode) barContainer.parentNode.removeChild(barContainer);
+            }, 3000);
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Thêm UI Live Log vào body
+        const div = document.createElement('div');
+        div.innerHTML = `
+            <button id="btnToggleLiveLog" style="position:fixed;bottom:20px;right:180px;background:#334155;color:#fff;border:none;border-radius:20px;padding:8px 16px;cursor:pointer;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-family:monospace;display:none;transition:0.2s;">👁️ Live Logs</button>
+            <div id="liveLogPanel" style="position:fixed;bottom:60px;right:20px;width:400px;height:300px;background:#0f172a;color:#10b981;border-radius:12px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.5);display:none;flex-direction:column;font-family:monospace;font-size:12px;border:1px solid #334155;transition:0.3s;">
+                <div style="padding:10px;background:#1e293b;border-radius:12px 12px 0 0;font-weight:bold;color:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
+                    <span>Terminal Execution Logs</span>
+                    <span id="closeLiveLog" style="cursor:pointer;color:#94a3b8;font-size:14px;padding:0 5px;">✖</span>
+                </div>
+                <div id="liveLogContent" style="flex:1;overflow-y:auto;padding:10px;white-space:pre-wrap;line-height:1.5;"></div>
+            </div>
+        `;
+        document.body.appendChild(div);
+        
+        document.getElementById('btnToggleLiveLog').addEventListener('click', () => {
+            const panel = document.getElementById('liveLogPanel');
+            panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+        });
+        document.getElementById('closeLiveLog').addEventListener('click', () => {
+            document.getElementById('liveLogPanel').style.display = 'none';
+        });
+        
+        // Hover effect cho nút
+        const btn = document.getElementById('btnToggleLiveLog');
+        btn.onmouseover = () => btn.style.background = '#475569';
+        btn.onmouseout = () => btn.style.background = '#334155';
+    });
 </script>
 
 </div>
