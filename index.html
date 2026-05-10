@@ -1688,6 +1688,12 @@
     let wfNodeCount = 0;
     let draggingPalette = null;
     let draggingNode = null;
+    let wfZoom = 1;
+    let wfPanX = 0;
+    let wfPanY = 0;
+    let isCanvasPanning = false;
+    let canvasPanStartX = 0;
+    let canvasPanStartY = 0;
     let connectingFrom = null;
     let tempLine = null;
     
@@ -1809,6 +1815,7 @@
         seedStatusWorkflow();
         renderPalette();
         initCanvasDrop();
+        initCanvasPanZoom();
         renderSavedWfList();
         restoreCanvasFromSession();
     }
@@ -2084,18 +2091,23 @@
             if (!draggingPalette) return;
             const canvas = document.getElementById('wfCanvas');
             const rect = canvas.getBoundingClientRect();
-            const x = Math.max(10, e.clientX - rect.left - 85);
-            const y = Math.max(10, e.clientY - rect.top  - 40);
+            const x = Math.max(10, (e.clientX - rect.left) / wfZoom - 85);
+            const y = Math.max(10, (e.clientY - rect.top) / wfZoom  - 40);
             addNode(draggingPalette.type, draggingPalette.cat, x, y);
             draggingPalette = null;
             saveCanvasToSession();
         });
         wrap.addEventListener('mousemove', e => {
             if (!connectingFrom || !tempLine) return;
-            const rect = wrap.getBoundingClientRect();
             const fromNode = wfNodes.find(n => n.id === connectingFrom.nodeId);
             if (!fromNode) return;
-            tempLine.setAttribute('d', bezierPath(fromNode.x + 170, fromNode.y + 40, e.clientX - rect.left, e.clientY - rect.top));
+            const canvas = document.getElementById('wfCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const edgeType = connectingFrom.portType || 'success';
+            const from = getPortCoords(fromNode, edgeType);
+            const toX = (e.clientX - rect.left) / wfZoom;
+            const toY = (e.clientY - rect.top) / wfZoom;
+            tempLine.setAttribute('d', bezierPath(from.x, from.y, toX, toY, edgeType));
         });
         wrap.addEventListener('click', e => {
             // Only cancel if user clicked empty canvas (not on any port or node)
@@ -2158,8 +2170,8 @@
         if (!draggingNode) return;
         const node = wfNodes.find(n => n.id === draggingNode.id);
         if (!node) return;
-        node.x = Math.max(0, draggingNode.startX + e.clientX - draggingNode.mx);
-        node.y = Math.max(0, draggingNode.startY + e.clientY - draggingNode.my);
+        node.x = Math.max(0, draggingNode.startX + (e.clientX - draggingNode.mx) / wfZoom);
+        node.y = Math.max(0, draggingNode.startY + (e.clientY - draggingNode.my) / wfZoom);
         const el = document.getElementById(draggingNode.id);
         if (el) { el.style.left = node.x + 'px'; el.style.top = node.y + 'px'; }
         renderConnections();
@@ -2207,10 +2219,69 @@
         }
     }
 
+    function updateCanvasTransform() {
+        const canvas = document.getElementById('wfCanvas');
+        if (canvas) {
+            canvas.style.transformOrigin = '0 0';
+            canvas.style.transform = `translate(${wfPanX}px, ${wfPanY}px) scale(${wfZoom})`;
+        }
+    }
+
+    function initCanvasPanZoom() {
+        const wrap = document.getElementById('wfCanvasWrap');
+        if (!wrap) return;
+        
+        wrap.style.overflow = 'hidden';
+
+        wrap.addEventListener('wheel', e => {
+            if (!e.ctrlKey) return;
+            e.preventDefault();
+            const rect = wrap.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const pointX = (mouseX - wfPanX) / wfZoom;
+            const pointY = (mouseY - wfPanY) / wfZoom;
+            
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            wfZoom = Math.min(Math.max(wfZoom * zoomFactor, 0.2), 3);
+            
+            wfPanX = mouseX - pointX * wfZoom;
+            wfPanY = mouseY - pointY * wfZoom;
+            
+            updateCanvasTransform();
+        }, { passive: false });
+
+        wrap.addEventListener('mousedown', e => {
+            if (e.button !== 0) return;
+            if (e.target === wrap || e.target.id === 'wfCanvas' || e.target.closest('#wfSvg') || e.target.closest('#wfHint')) {
+                isCanvasPanning = true;
+                canvasPanStartX = e.clientX - wfPanX;
+                canvasPanStartY = e.clientY - wfPanY;
+                wrap.style.cursor = 'grabbing';
+            }
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (isCanvasPanning) {
+                wfPanX = e.clientX - canvasPanStartX;
+                wfPanY = e.clientY - canvasPanStartY;
+                updateCanvasTransform();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isCanvasPanning) {
+                isCanvasPanning = false;
+                if (wrap) wrap.style.cursor = '';
+            }
+        });
+    }
+
     function getPortCoords(node, portType) {
         const el = document.getElementById(node.id);
-        const w = el ? el.offsetWidth  : 220;
-        const h = el ? el.offsetHeight : 90;
+        const w = (el && el.offsetWidth > 0) ? el.offsetWidth  : 250;
+        const h = (el && el.offsetHeight > 0) ? el.offsetHeight : 90;
         if (portType === 'in')      return { x: node.x,       y: node.y + h / 2 };
         if (portType === 'success') return { x: node.x + w,   y: node.y + h / 2 };
         if (portType === 'error')   return { x: node.x + w/2, y: node.y + h };
