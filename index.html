@@ -1645,6 +1645,7 @@
         { type: 'custom-code', category: 'core', icon: '💻', label: 'Chạy Code JS',     color: '#64748b', desc: 'Xử lý dữ liệu bằng mã Javascript tùy chỉnh' },
         { type: 'input',       category: 'core', icon: '📥', label: 'Nhập Dữ Liệu',     color: '#3b82f6', desc: 'Danh sách URL / domain đầu vào' },
         { type: 'tech-monitor', category: 'core', icon: '🩺', label: 'Giám Sát Node',    color: '#f59e0b', desc: 'Kiểm tra lỗi kỹ thuật của hệ thống' },
+        { type: 'ai-audit',     category: 'core', icon: '🤖', label: 'AI Audit Lỗi Lạ',   color: '#a855f7', desc: 'AI phân tích và giải thích lỗi kỹ thuật không xác định' },
         { type: 'condition',   category: 'core', icon: '⑂',  label: 'Điều Kiện / Lọc',  color: '#f97316', desc: 'Rẽ nhánh: Đúng → A, Sai → B' },
         { type: 'loop',        category: 'core', icon: '🔁', label: 'Vòng Lặp',         color: '#ec4899', desc: 'Chạy lặp qua từng phần tử' },
         
@@ -1810,7 +1811,13 @@
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
         if (deletedNames.includes(STATUS_WFL_NAME)) return;
 
-        function defOf(t) { return (window.WF_NODE_DEFS || []).find(function(d){ return d.type===t; }) || {}; }
+        function defOf(t) {
+            var all = [].concat(
+                typeof ATOMIC_BLOCKS !== 'undefined' ? ATOMIC_BLOCKS : [],
+                typeof COMPOUND_BLOCKS !== 'undefined' ? COMPOUND_BLOCKS : []
+            );
+            return all.find(function(b){ return b.type===t; }) || {type:t,category:'core',icon:'⚙️',label:t,color:'#64748b',desc:''};
+        }
 
         var STATUS_CODE = [
 
