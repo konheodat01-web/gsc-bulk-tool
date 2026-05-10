@@ -993,6 +993,8 @@
                     syncWorkflowsToFirebase(filtered);
                 } else {
                     localStorage.setItem('wf_builder_list', JSON.stringify(filtered));
+                    // Luôn đảm bảo Status WFL ở bản mới nhất sau khi Firebase sync
+                    if (typeof seedStatusWorkflow === 'function') seedStatusWorkflow(true); // skipSync=true tránh loop
                 }
                 
                 localStorage.setItem('wf_seeded_v2', '1'); // Chặn seed chạy lại
@@ -1800,7 +1802,7 @@
         restoreCanvasFromSession();
     }
     
-    function seedStatusWorkflow() {
+    function seedStatusWorkflow(skipSync) {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
         var STATUS_WFL_VER  = 14;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
@@ -1945,7 +1947,7 @@
             lib.push(wf);
         }
         localStorage.setItem("wf_builder_list", JSON.stringify(lib));
-        if (typeof syncWorkflowsToFirebase === 'function') syncWorkflowsToFirebase(lib);
+        if (!skipSync && typeof syncWorkflowsToFirebase === 'function') syncWorkflowsToFirebase(lib);
         console.log("WFL v" + STATUS_WFL_VER + " cap nhat: " + STATUS_WFL_NAME);
     }
 
