@@ -291,46 +291,55 @@
             width: max-content; height: max-content;
         }
         .wf-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
-        .wf-connection-line { fill: none; stroke: #7c3aed; stroke-width: 2; stroke-dasharray: none; opacity: 0.7; }
+        .wf-connection-line { fill: none; stroke: #7c3aed; stroke-width: 2; opacity: 0.85; marker-end: url(#arrow-success); }
+        .wf-connection-line.error-edge { stroke: #ef4444; stroke-dasharray: 6 3; marker-end: url(#arrow-error); }
         .wf-connection-line.temp { stroke-dasharray: 5 4; opacity: 0.5; }
-        
-        /* Blocks on canvas */
+
+        /* === N8N-STYLE NODES === */
         .wf-node {
             position: absolute; z-index: 2;
-            background: #1a1035; border: 1.5px solid rgba(124,58,237,0.4);
-            border-radius: 10px; min-width: 160px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            background: #1c1833; border: 1px solid rgba(255,255,255,0.08);
+            border-left: 4px solid #7c3aed;
+            border-radius: 8px; min-width: 220px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.55);
             cursor: move; user-select: none;
             transition: box-shadow 0.2s, border-color 0.2s;
         }
-        .wf-node:hover { border-color: rgba(124,58,237,0.8); box-shadow: 0 6px 30px rgba(124,58,237,0.3); }
-        .wf-node.selected { border-color: #a78bfa; box-shadow: 0 0 0 2px rgba(167,139,250,0.3); }
-        .wf-node.compound { border-color: rgba(245,158,11,0.5); }
-        .wf-node.compound:hover { border-color: rgba(245,158,11,0.9); box-shadow: 0 6px 30px rgba(245,158,11,0.25); }
+        .wf-node:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.7); border-color: rgba(255,255,255,0.18); }
+        .wf-node.selected { box-shadow: 0 0 0 2px rgba(167,139,250,0.6); }
+        .wf-node.running { box-shadow: 0 0 0 2px #7c3aed, 0 0 24px rgba(124,58,237,0.5); }
+        .wf-node.node-error { box-shadow: 0 0 0 2px #ef4444, 0 0 20px rgba(239,68,68,0.4); }
+        .wf-node.compound { border-left-color: #f59e0b; }
         .wf-node-header {
-            padding: 8px 12px; display: flex; align-items: center; gap: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.06); border-radius: 9px 9px 0 0;
+            padding: 10px 12px 10px 12px; display: flex; align-items: center; gap: 10px;
         }
-        .wf-node-icon { font-size: 18px; flex-shrink: 0; }
-        .wf-node-title { font-size: 12px; font-weight: 700; color: #e2e8f0; }
-        .wf-node-body { padding: 8px 12px; font-size: 11px; color: #64748b; }
+        .wf-node-icon { font-size: 22px; flex-shrink: 0; }
+        .wf-node-titles { flex: 1; min-width: 0; }
+        .wf-node-category { font-size: 9px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.8px; line-height: 1.2; margin-bottom: 2px; }
+        .wf-node-title { font-size: 13px; font-weight: 700; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .wf-node-body { padding: 0 12px 10px 12px; font-size: 10.5px; color: #475569; line-height: 1.4; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 6px; }
         .wf-node-del {
-            margin-left: auto; background: none; border: none; color: #475569;
-            font-size: 13px; cursor: pointer; padding: 0; line-height: 1;
+            flex-shrink: 0; background: none; border: none; color: rgba(255,255,255,0.18);
+            font-size: 14px; cursor: pointer; padding: 3px 5px; border-radius: 4px; transition: all 0.15s;
         }
-        .wf-node-del:hover { color: #ef4444; }
+        .wf-node-del:hover { color: #ef4444; background: rgba(239,68,68,0.12); }
 
-        /* Ports */
-        .wf-ports { display: flex; justify-content: space-between; align-items: center; padding: 0 0 6px; position: relative; }
+        /* === PORTS (Absolutely positioned) === */
         .wf-port {
-            width: 12px; height: 12px; border-radius: 50%;
-            background: #334155; border: 2px solid #475569;
-            cursor: crosshair; transition: all 0.15s; flex-shrink: 0;
-            position: relative;
+            position: absolute; width: 14px; height: 14px; border-radius: 50%;
+            border: 2px solid; cursor: crosshair; z-index: 10;
+            transition: transform 0.15s, background 0.15s;
+            display: flex; align-items: center; justify-content: center;
         }
-        .wf-port:hover { background: #7c3aed; border-color: #a78bfa; transform: scale(1.3); }
-        .port-in { margin-left: -6px; }
-        .port-out { margin-right: -6px; }
+        .port-in  { left: -8px; top: 50%; transform: translateY(-50%); background: #1c1833; border-color: #475569; }
+        .port-in:hover  { background: #7c3aed; border-color: #a78bfa; transform: translateY(-50%) scale(1.35); }
+        .port-success { right: -8px; top: 50%; transform: translateY(-50%); background: #1c1833; border-color: #10b981; }
+        .port-success:hover { background: #10b981; border-color: #34d399; transform: translateY(-50%) scale(1.35); }
+        .port-error { bottom: -8px; left: 50%; transform: translateX(-50%); background: #1c1833; border-color: #ef4444; }
+        .port-error:hover { background: #ef4444; border-color: #fca5a5; transform: translateX(-50%) scale(1.35); }
+        .port-label { position: absolute; font-size: 8px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+        .port-success .port-label { right: 18px; color: #10b981; }
+        .port-error .port-label { bottom: 18px; color: #ef4444; left: 50%; transform: translateX(-50%); }
 
         /* Toolbar */
         .wf-toolbar-strip {
@@ -1646,6 +1655,7 @@
         { type: 'input',       category: 'core', icon: '📥', label: 'Nhập Dữ Liệu',     color: '#3b82f6', desc: 'Danh sách URL / domain đầu vào' },
         { type: 'tech-monitor', category: 'core', icon: '🩺', label: 'Giám Sát Node',    color: '#f59e0b', desc: 'Kiểm tra lỗi kỹ thuật của hệ thống' },
         { type: 'ai-audit',     category: 'core', icon: '🤖', label: 'AI Audit Lỗi Lạ',   color: '#a855f7', desc: 'AI phân tích và giải thích lỗi kỹ thuật không xác định' },
+        { type: 'merge',      category: 'core', icon: '⑃',  label: 'Merge',             color: '#06b6d4', desc: 'Gộp các nhánh song song thành một luồng' },
         { type: 'condition',   category: 'core', icon: '⑂',  label: 'Điều Kiện / Lọc',  color: '#f97316', desc: 'Rẽ nhánh: Đúng → A, Sai → B' },
         { type: 'loop',        category: 'core', icon: '🔁', label: 'Vòng Lặp',         color: '#ec4899', desc: 'Chạy lặp qua từng phần tử' },
         
@@ -1909,21 +1919,23 @@
             _ver: STATUS_WFL_VER,
             savedAt: new Date().toISOString(),
             nodes: [
-                {id:"s1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
-                {id:"s2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",sheetRange:"A2:Z500"}},
-                {id:"s3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Status + CLF + Redirect"},data:{code:STATUS_CODE}},
-                {id:"s4",type:"update-sheet",   category:"app",    x:760, y:50, def:defOf("update-sheet"),  config:{customName:"Redirect -> Col D"},data:{sheetUrl:"",range:"D2",colMap:"url_redirect"}},
-                {id:"s5",type:"update-sheet",   category:"app",    x:760, y:230,def:defOf("update-sheet"),  config:{customName:"Trang Thai -> Col J"},data:{sheetUrl:"",range:"J2",colMap:"trang_thai"}},
-                {id:"s7",type:"update-sheet",   category:"app",    x:760, y:410,def:defOf("update-sheet"),  config:{customName:"Lich Su 301 -> Col C"},data:{sheetUrl:"",range:"C2",colMap:"lich_su_301"}},
-                {id:"s8",type:"tech-monitor",   category:"core",   x:1000,y:230,def:defOf("tech-monitor"),  config:{customName:"Giám Sát Kỹ Thuật"},data:{knownErrors:"timeout, failed to fetch, 401, 403, 404, econnrefused, chua cau hinh"}},
-                {id:"s9",type:"ai-audit",       category:"core",   x:1240,y:230,def:defOf("ai-audit"),      config:{customName:"AI Phân Tích Lỗi Lạ"},data:{apiKey:"",prompt:"Bạn là chuyên gia hạ tầng. Hệ thống gặp lỗi kỹ thuật LẠ trong quy trình Check Trạng Thái Web. Xem log lỗi sau, giải thích nguyên nhân và cách khắc phục ngắn gọn:"}},
-                {id:"s6",type:"telegram",       category:"app",    x:1480,y:230,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"Domain: {{A}} | Status: {{trang_thai}}"}}
+                {id:"s1",type:"trigger-manual",category:"trigger",x:40,  y:230,def:defOf("trigger-manual"),config:{},data:{}},
+                {id:"s2",type:"input",          category:"core",   x:310, y:230,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",sheetRange:"A2:Z500"}},
+                {id:"s3",type:"custom-code",    category:"core",   x:580, y:230,def:defOf("custom-code"),   config:{customName:"Check Status + CLF + Redirect"},data:{code:STATUS_CODE}},
+                {id:"s4",type:"update-sheet",   category:"app",    x:850, y:50, def:defOf("update-sheet"),  config:{customName:"Redirect -> Col D"},data:{sheetUrl:"",range:"D2",colMap:"url_redirect"}},
+                {id:"s5",type:"update-sheet",   category:"app",    x:850, y:230,def:defOf("update-sheet"),  config:{customName:"Trang Thai -> Col J"},data:{sheetUrl:"",range:"J2",colMap:"trang_thai"}},
+                {id:"s7",type:"update-sheet",   category:"app",    x:850, y:410,def:defOf("update-sheet"),  config:{customName:"Lich Su 301 -> Col C"},data:{sheetUrl:"",range:"C2",colMap:"lich_su_301"}},
+                {id:"sm",type:"merge",           category:"core",   x:1120,y:230,def:defOf("merge"),         config:{customName:"Chờ Ghi Sheet"},data:{}},
+                {id:"s8",type:"tech-monitor",   category:"core",   x:1390,y:230,def:defOf("tech-monitor"),  config:{customName:"Giám Sát Kỹ Thuật"},data:{knownErrors:"timeout, failed to fetch, 401, 403, 404, econnrefused, chua cau hinh"}},
+                {id:"s9",type:"ai-audit",       category:"core",   x:1660,y:230,def:defOf("ai-audit"),      config:{customName:"AI Phân Tích Lỗi Lạ"},data:{apiKey:"",prompt:"Bạn là chuyên gia hạ tầng. Hệ thống gặp lỗi kỹ thuật LẠ trong quy trình Check Trạng Thái Web. Xem log lỗi sau, giải thích nguyên nhân và cách khắc phục ngắn gọn:"}},
+                {id:"s6",type:"telegram",       category:"app",    x:1930,y:230,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"Domain: {{A}} | Status: {{trang_thai}}"}}
             ],
             edges: [
-                {from:"s1",to:"s2"},{from:"s2",to:"s3"},
-                {from:"s3",to:"s4"},{from:"s3",to:"s5"},{from:"s3",to:"s7"},
-                {from:"s4",to:"s8"},{from:"s5",to:"s8"},{from:"s7",to:"s8"},
-                {from:"s8",to:"s9"},{from:"s9",to:"s6"}
+                {from:"s1",to:"s2",type:"success"},{from:"s2",to:"s3",type:"success"},
+                {from:"s3",to:"s4",type:"success"},{from:"s3",to:"s5",type:"success"},{from:"s3",to:"s7",type:"success"},
+                {from:"s4",to:"sm",type:"success"},{from:"s5",to:"sm",type:"success"},{from:"s7",to:"sm",type:"success"},
+                {from:"s4",to:"sm",type:"error"},  {from:"s5",to:"sm",type:"error"},  {from:"s7",to:"sm",type:"error"},
+                {from:"sm",to:"s8",type:"success"},{from:"s8",to:"s9",type:"success"},{from:"s9",to:"s6",type:"success"}
             ]
         };
         if (existingIdx >= 0) {
@@ -2107,22 +2119,29 @@
         const node = wfNodes.find(n => n.id === nodeId);
         if (!node) return;
         const canvas = document.getElementById('wfCanvas');
-        const isCompound = node.cat === 'compound';
         const el = document.createElement('div');
-        el.className = 'wf-node' + (isCompound ? ' compound' : '');
+        el.className = 'wf-node' + (node.cat === 'compound' ? ' compound' : '');
         el.id = nodeId;
-        el.style.cssText = `left:${node.x}px;top:${node.y}px;`;
-        const inPort  = !node.type.includes('trigger') ? `<div class="wf-port port-in"  data-nodeid="${nodeId}" data-port="in"></div>`  : '<div></div>';
-        const outPort = node.type !== 'telegram' ? `<div class="wf-port port-out" data-nodeid="${nodeId}" data-port="out"></div>` : '<div></div>';
+        el.style.cssText = `left:${node.x}px;top:${node.y}px;border-left-color:${node.def.color};`;
+        const title = (node.config && node.config.customName) ? node.config.customName : node.def.label;
+        const catMap = { trigger:'TRIGGER', core:'LOGIC', app:'ỨNG DỤNG', seo:'SEO' };
+        const catLabel = catMap[node.def.category] || (node.def.category||'').toUpperCase();
+        const isTrigger = node.type.includes('trigger');
+        const inPort     = !isTrigger ? `<div class="wf-port port-in" data-nodeid="${nodeId}" data-port="in" title="Nhận dữ liệu vào"></div>` : '';
+        const successPort = `<div class="wf-port port-success" data-nodeid="${nodeId}" data-port="success" title="Output ✅ Thành công"></div>`;
+        const errorPort   = !isTrigger ? `<div class="wf-port port-error" data-nodeid="${nodeId}" data-port="error" title="Output ❌ Khi lỗi"></div>` : '';
         el.innerHTML = `
-            <div class="wf-node-header" style="background:${node.def.color}22;">
+            ${inPort}
+            <div class="wf-node-header">
                 <span class="wf-node-icon">${node.def.icon}</span>
-                <span class="wf-node-title">${(node.config && node.config.customName) ? node.config.customName : node.def.label}</span>
-                ${isCompound ? '<span style="font-size:9px;background:rgba(245,158,11,0.25);color:#fbbf24;padding:2px 6px;border-radius:999px;margin-left:auto;">TOOL</span>' : ''}
+                <div class="wf-node-titles">
+                    <div class="wf-node-category">${catLabel}</div>
+                    <div class="wf-node-title">${title}</div>
+                </div>
                 <button class="wf-node-del" data-delid="${nodeId}" title="Xóa">✕</button>
             </div>
             <div class="wf-node-body">${node.def.desc}</div>
-            <div class="wf-ports">${inPort}${outPort}</div>`;
+            ${successPort}${errorPort}`;
         el.addEventListener('mousedown', e => {
             if (e.target.closest('.wf-port') || e.target.closest('.wf-node-del')) return;
             e.preventDefault();
@@ -2165,17 +2184,20 @@
     
     function onPortClick(e, nodeId, portType) {
         e.stopPropagation();
-        if (portType === 'out') {
-            connectingFrom = { nodeId };
+        if (portType === 'success' || portType === 'error') {
+            connectingFrom = { nodeId, portType };
             const svg = document.getElementById('wfSvg');
             if (tempLine) tempLine.remove();
             tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             tempLine.classList.add('wf-connection-line', 'temp');
+            if (portType === 'error') tempLine.classList.add('error-edge');
             svg.appendChild(tempLine);
         } else if (portType === 'in' && connectingFrom) {
             if (connectingFrom.nodeId !== nodeId) {
-                if (!wfEdges.find(ex => ex.from === connectingFrom.nodeId && ex.to === nodeId)) {
-                    wfEdges.push({ from: connectingFrom.nodeId, to: nodeId });
+                const edgeType = connectingFrom.portType === 'error' ? 'error' : 'success';
+                const exists = wfEdges.find(ex => ex.from === connectingFrom.nodeId && ex.to === nodeId && ex.type === edgeType);
+                if (!exists) {
+                    wfEdges.push({ from: connectingFrom.nodeId, to: nodeId, type: edgeType });
                     renderConnections();
                     saveCanvasToSession();
                 }
@@ -2184,7 +2206,17 @@
             if (tempLine) { tempLine.remove(); tempLine = null; }
         }
     }
-    
+
+    function getPortCoords(node, portType) {
+        const el = document.getElementById(node.id);
+        const w = el ? el.offsetWidth  : 220;
+        const h = el ? el.offsetHeight : 90;
+        if (portType === 'in')      return { x: node.x,       y: node.y + h / 2 };
+        if (portType === 'success') return { x: node.x + w,   y: node.y + h / 2 };
+        if (portType === 'error')   return { x: node.x + w/2, y: node.y + h };
+        return { x: node.x + w, y: node.y + h / 2 };
+    }
+
     function renderConnections() {
         const svg = document.getElementById('wfSvg');
         if (!svg) return;
@@ -2193,15 +2225,23 @@
             const f = wfNodes.find(n => n.id === edge.from);
             const t = wfNodes.find(n => n.id === edge.to);
             if (!f || !t) return;
+            const edgeType = edge.type || 'success';
+            const from = getPortCoords(f, edgeType);
+            const to   = getPortCoords(t, 'in');
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             path.classList.add('wf-connection-line');
-            path.setAttribute('d', bezierPath(f.x + 170, f.y + 40, t.x, t.y + 40));
+            if (edgeType === 'error') path.classList.add('error-edge');
+            path.setAttribute('d', bezierPath(from.x, from.y, to.x, to.y, edgeType));
             svg.insertBefore(path, svg.firstChild);
         });
     }
-    
-    function bezierPath(x1, y1, x2, y2) {
-        const dx = Math.abs(x2 - x1) * 0.5;
+
+    function bezierPath(x1, y1, x2, y2, type) {
+        if (type === 'error') {
+            const dy = Math.max(Math.abs(y2 - y1) * 0.5, 60);
+            return `M ${x1} ${y1} C ${x1} ${y1+dy}, ${x2} ${y2-dy}, ${x2} ${y2}`;
+        }
+        const dx = Math.max(Math.abs(x2 - x1) * 0.5, 60);
         return `M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;
     }
     
@@ -3785,88 +3825,103 @@
         }
     
     
-    // --- WORKFLOW EXECUTION ENGINE ---
+    // --- WORKFLOW EXECUTION ENGINE (n8n-style: per-node outputs + error routing + merge) ---
     async function runCurrentWorkflow() {
-        if (typeof currentEditingNodeId !== 'undefined' && currentEditingNodeId) saveNodeSettings(); // AUTO SAVE
+        if (typeof currentEditingNodeId !== 'undefined' && currentEditingNodeId) saveNodeSettings();
         if (wfNodes.length === 0) { alert('Canvas đang trống!'); return; }
-        
         const orderedIds = getExecutionOrder();
         if (orderedIds.length === 0) { alert('Quy trình chưa được kết nối đúng cách!'); return; }
-
         const btn = document.getElementById('wfBtnTest');
         const oldText = btn.innerHTML;
         btn.innerHTML = '⏳ Đang chạy...';
         btn.disabled = true;
-
         try {
-            // State storage for data passing between nodes
-            let flowData = []; // Array of objects { url, adminPath, user, pass, results... }
             window.wfExecutionLogs = [];
             window._isStrangeError = false;
             window._strangeErrorLog = '';
-
+            // Per-node storage (n8n pattern)
+            const nodeOutputs = {}; // nodeId -> Array
+            const nodeErrors  = {}; // nodeId -> string (if failed)
             for (const nodeId of orderedIds) {
-            const node = wfNodes.find(n => n.id === nodeId);
-            if (!node) continue;
-            console.log('[WFL] ----------------------------------------');
-            console.log('[WFL] Đang chạy Node:', node.type, '| ID:', node.id);
-            console.log('[WFL] Dữ liệu đầu vào (flowData) hiện tại:', JSON.parse(JSON.stringify(flowData)));
-
-                // Highlight node
+                const node = wfNodes.find(n => n.id === nodeId);
+                if (!node) continue;
                 const nodeEl = document.getElementById(nodeId);
-                if(nodeEl) nodeEl.style.boxShadow = '0 0 20px rgba(124,58,237,0.8)';
-                
+                const inEdges = wfEdges.filter(e => e.to === nodeId);
+                // --- Determine input data ---
+                let inputData = [];
+                if (node.type.includes('trigger')) {
+                    inputData = [{}];
+                } else if (node.type === 'merge') {
+                    // Collect from ALL incoming success-path predecessors
+                    inEdges.forEach(e => {
+                        if ((e.type || 'success') === 'success' && nodeOutputs[e.from] && !nodeErrors[e.from]) {
+                            inputData = inputData.concat(nodeOutputs[e.from]);
+                        }
+                    });
+                } else {
+                    const errEdges = inEdges.filter(e => e.type === 'error' && nodeErrors[e.from]);
+                    const okEdges  = inEdges.filter(e => (e.type||'success') === 'success' && !nodeErrors[e.from] && nodeOutputs[e.from]);
+                    if (errEdges.length > 0) {
+                        inputData = [{ _error: nodeErrors[errEdges[0].from], _fromNode: errEdges[0].from }];
+                    } else if (okEdges.length > 0) {
+                        // Last success predecessor (sequential assumption for non-merge)
+                        inputData = nodeOutputs[okEdges[okEdges.length - 1].from] || [];
+                    } else if (inEdges.length > 0) {
+                        // No valid path reaches this node - skip
+                        console.log(`[WFL] SKIP ${node.type} (no valid input path)`);
+                        nodeOutputs[nodeId] = []; continue;
+                    }
+                }
+                // --- Execute ---
+                console.log(`[WFL] RUN ${node.type} | input: ${inputData.length}`);
+                if (nodeEl) { nodeEl.classList.add('running'); nodeEl.classList.remove('node-error'); }
                 const startTime = Date.now();
-                let isSuccess = true;
-                let errorMessage = '';
-
-                // EXECUTE NODE LOGIC
+                let isSuccess = true, errorMessage = '', outputData = inputData;
                 try {
                     if (node.type === 'input') {
-                        flowData = await execInputNode(node);
+                        outputData = await execInputNode(node);
                     } else if (node.type === 'http-status') {
-                        flowData = await execHttpStatusNode(node, flowData);
+                        outputData = await execHttpStatusNode(node, inputData);
                     } else if (node.type === 'custom-code') {
-                        flowData = await execCustomCodeNode(node, flowData);
+                        outputData = await execCustomCodeNode(node, inputData);
                     } else if (node.type === 'telegram') {
-                        await execTelegramNode(node, flowData);
+                        await execTelegramNode(node, inputData); outputData = inputData;
                     } else if (node.type === 'tech-monitor') {
-                        flowData = await execTechMonitorNode(node, flowData);
+                        outputData = await execTechMonitorNode(node, inputData);
                     } else if (node.type === 'ai-audit') {
-                        flowData = await execAiAuditNode(node, flowData);
+                        outputData = await execAiAuditNode(node, inputData);
                     } else if (node.type === 'update-sheet') {
-                        flowData = await execUpdateSheetNode(node, flowData);
+                        outputData = await execUpdateSheetNode(node, inputData);
+                    } else if (node.type === 'merge') {
+                        outputData = inputData; // passthrough concatenated data
                     }
                 } catch (err) {
-                    isSuccess = false;
-                    errorMessage = err.message;
-                    console.error(`[WFL] Node ${node.type} Error:`, err);
-                    if (node.config && node.config.onError === 'stop') throw err;
+                    isSuccess = false; errorMessage = err.message;
+                    console.error(`[WFL] ${node.type} Error:`, err);
                 }
-
-                // Log Execution
+                nodeOutputs[nodeId] = outputData || [];
+                if (!isSuccess) nodeErrors[nodeId] = errorMessage;
                 window.wfExecutionLogs.push({
-                    nodeId: node.id,
-                    nodeType: node.type,
+                    nodeId: node.id, nodeType: node.type,
                     status: isSuccess ? 'success' : 'fail',
                     error: errorMessage,
                     duration: Date.now() - startTime,
-                    outputCount: Array.isArray(flowData) ? flowData.length : 0
+                    outputCount: Array.isArray(outputData) ? outputData.length : 0
                 });
-
-                // Un-highlight
-                if(nodeEl) nodeEl.style.boxShadow = '';
-                await new Promise(r => setTimeout(r, 500));
+                if (nodeEl) {
+                    nodeEl.classList.remove('running');
+                    if (!isSuccess) nodeEl.classList.add('node-error');
+                }
+                await new Promise(r => setTimeout(r, 400));
             }
-
+            // Clear error highlights after run
+            setTimeout(() => document.querySelectorAll('.wf-node.node-error').forEach(n => n.classList.remove('node-error')), 5000);
             alert('✅ Quy trình đã hoàn thành!');
         } catch (err) {
-            console.error('[WFL LỖI TỔNG] Workflow Execution Error:', err);
-            console.error(err.stack);
+            console.error('[WFL] Fatal error:', err);
             alert('❌ Lỗi quy trình: ' + err.message);
         } finally {
-            btn.innerHTML = oldText;
-            btn.disabled = false;
+            btn.innerHTML = oldText; btn.disabled = false;
         }
     }
 
@@ -5486,7 +5541,16 @@ ${appState}`;
             <!-- CANVAS -->
             <div class="wf-canvas-wrap" id="wfCanvasWrap">
                 <div id="wfCanvas">
-                    <svg class="wf-svg" id="wfSvg"></svg>
+                                <svg class="wf-svg" id="wfSvg">
+                <defs>
+                    <marker id="arrow-success" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L8,3 z" fill="#7c3aed"/>
+                    </marker>
+                    <marker id="arrow-error" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+                        <path d="M0,0 L0,6 L8,3 z" fill="#ef4444"/>
+                    </marker>
+                </defs>
+            </svg>
                     <div class="wf-canvas-hint" id="wfHint">
                         <span class="hint-icon">🎨</span>
                         <strong>Kéo block từ bảng trái vào đây</strong><br>
