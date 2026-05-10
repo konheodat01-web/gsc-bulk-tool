@@ -1822,7 +1822,7 @@
     
     function seedStatusWorkflow(skipSync) {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 23;
+        var STATUS_WFL_VER  = 24;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1882,12 +1882,14 @@
             "    } catch(e) { return null; }",
             "}",
             "",
+            "var hasValidUrl = false;",
             "for (var i = 0; i < items.length; i++) {",
             "    var item = items[i];",
             "    var url = '';",
             "    if (item.hasOwnProperty('B')) { url = (item.B || '').trim(); }",
             "    else { url = (item.url || '').trim(); }",
             "    if (!url) { item.trang_thai = ''; continue; }",
+            "    hasValidUrl = true;",
             "    if (!/^https?:\\/\\//i.test(url)) url = 'https://' + url;",
             "    item.url = url;",
             "    try {",
@@ -1922,6 +1924,7 @@
             "        } else { item.lich_su_301 = oldC2; }",
             "    } catch(e) { item.trang_thai = (item.J || 'Time out'); item.url_redirect = (item.D || ''); item.lich_su_301 = (item.C || ''); }",
             "}",
+            "if (!hasValidUrl) throw new Error('CẢNH BÁO: Dữ liệu cột B hoàn toàn trống! Vui lòng kiểm tra lại Google Sheet hoặc khai báo đúng cột chứa tên miền.');",
             "return items;"
         ].join("\n");
 
@@ -2429,6 +2432,16 @@
             const parsed = JSON.parse(raw);
             let nodes = parsed.nodes || [];
             let edges = parsed.edges || [];
+            
+            // Auto-update Custom Code for Check Status to always use the latest code
+            nodes.forEach(n => {
+                if (n.config && n.config.customName === "Check Status + CLF + Redirect" && typeof STATUS_CODE !== 'undefined') {
+                    if (n.data && n.data.code !== STATUS_CODE) {
+                        n.data.code = STATUS_CODE;
+                        sessionStorage.setItem('wf_canvas', JSON.stringify(parsed));
+                    }
+                }
+            });
             
             // Auto-migrate active session to v23 layout
             const isStatusCheck = nodes.some(n => n.config && n.config.customName === "Check Status + CLF + Redirect");
