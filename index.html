@@ -1642,6 +1642,7 @@
         // Cốt lõi & Logic
         { type: 'custom-code', category: 'core', icon: '💻', label: 'Chạy Code JS',     color: '#64748b', desc: 'Xử lý dữ liệu bằng mã Javascript tùy chỉnh' },
         { type: 'input',       category: 'core', icon: '📥', label: 'Nhập Dữ Liệu',     color: '#3b82f6', desc: 'Danh sách URL / domain đầu vào' },
+        { type: 'tech-monitor', category: 'core', icon: '🩺', label: 'Giám Sát Node',    color: '#f59e0b', desc: 'Kiểm tra lỗi kỹ thuật của hệ thống' },
         { type: 'condition',   category: 'core', icon: '⑂',  label: 'Điều Kiện / Lọc',  color: '#f97316', desc: 'Rẽ nhánh: Đúng → A, Sai → B' },
         { type: 'loop',        category: 'core', icon: '🔁', label: 'Vòng Lặp',         color: '#ec4899', desc: 'Chạy lặp qua từng phần tử' },
         
@@ -1801,7 +1802,7 @@
     
     function seedStatusWorkflow() {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 13;
+        var STATUS_WFL_VER  = 14;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1810,6 +1811,7 @@
         function defOf(t) { return (window.WF_NODE_DEFS || []).find(function(d){ return d.type===t; }) || {}; }
 
         var STATUS_CODE = [
+
             "var proxyHost = localStorage.getItem('sys_proxy_host') || '';",
             "var proxyPort = localStorage.getItem('sys_proxy_port') || '';",
             "var proxyUser = localStorage.getItem('sys_proxy_user') || '';",
@@ -1901,13 +1903,18 @@
                 {id:"s1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
                 {id:"s2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",sheetRange:"A2:Z500"}},
                 {id:"s3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Status + CLF + Redirect"},data:{code:STATUS_CODE}},
-                {id:"s4",type:"update-sheet",   category:"app",    x:760, y:80, def:defOf("update-sheet"),  config:{customName:"Redirect -> Col D"},data:{sheetUrl:"",range:"D2",colMap:"url_redirect"}},
-                {id:"s5",type:"update-sheet",   category:"app",    x:760, y:240,def:defOf("update-sheet"),  config:{customName:"Trang Thai -> Col J"},data:{sheetUrl:"",range:"J2",colMap:"trang_thai"}},
-                {id:"s7",type:"update-sheet",   category:"app",    x:760, y:400,def:defOf("update-sheet"),  config:{customName:"Lich Su 301 -> Col C"},data:{sheetUrl:"",range:"C2",colMap:"lich_su_301"}},
-                {id:"s6",type:"telegram",       category:"app",    x:980, y:220,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"Check xong website."}}
+                {id:"s8",type:"tech-monitor",   category:"core",   x:760, y:50, def:defOf("tech-monitor"),  config:{customName:"Giám Sát Kỹ Thuật"},data:{knownErrors:"timeout, failed to fetch, 401, 403, 404, econnrefused, chua cau hinh"}},
+                {id:"s9",type:"ai-audit",       category:"core",   x:1000,y:50, def:defOf("ai-audit"),      config:{customName:"AI Phân Tích Lỗi Lạ"},data:{apiKey:"",prompt:"Bạn là chuyên gia hạ tầng. Hệ thống gặp lỗi kỹ thuật LẠ trong quy trình Check Trạng Thái Web. Xem log lỗi sau, giải thích nguyên nhân và cách khắc phục ngắn gọn:"}},
+                {id:"s4",type:"update-sheet",   category:"app",    x:760, y:230,def:defOf("update-sheet"),  config:{customName:"Redirect -> Col D"},data:{sheetUrl:"",range:"D2",colMap:"url_redirect"}},
+                {id:"s5",type:"update-sheet",   category:"app",    x:760, y:390,def:defOf("update-sheet"),  config:{customName:"Trang Thai -> Col J"},data:{sheetUrl:"",range:"J2",colMap:"trang_thai"}},
+                {id:"s7",type:"update-sheet",   category:"app",    x:760, y:550,def:defOf("update-sheet"),  config:{customName:"Lich Su 301 -> Col C"},data:{sheetUrl:"",range:"C2",colMap:"lich_su_301"}},
+                {id:"s6",type:"telegram",       category:"app",    x:1240,y:390,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"Check xong website."}}
             ],
             edges: [
-                {from:"s1",to:"s2"},{from:"s2",to:"s3"},{from:"s3",to:"s4"},{from:"s3",to:"s5"},{from:"s3",to:"s7"},{from:"s4",to:"s6"},{from:"s5",to:"s6"},{from:"s7",to:"s6"}
+                {from:"s1",to:"s2"},{from:"s2",to:"s3"},
+                {from:"s3",to:"s8"},{from:"s8",to:"s9"},
+                {from:"s9",to:"s4"},{from:"s9",to:"s5"},{from:"s9",to:"s7"},
+                {from:"s4",to:"s6"},{from:"s5",to:"s6"},{from:"s7",to:"s6"}
             ]
         };
         if (existingIdx >= 0) {
@@ -1915,19 +1922,22 @@
             var oldInput = oldNodes.find(function(n){ return n.id==="s2"; });
             if (oldInput && oldInput.data && oldInput.data.sheetUrl) {
                 wf.nodes[1].data.sheetUrl = oldInput.data.sheetUrl;
-                wf.nodes[3].data.sheetUrl = oldInput.data.sheetUrl;
-                wf.nodes[4].data.sheetUrl = oldInput.data.sheetUrl;
-                wf.nodes[5].data.sheetUrl = oldInput.data.sheetUrl;
             }
             if (oldInput && oldInput.data && (oldInput.data.sheetRange || oldInput.data.range)) {
                 wf.nodes[1].data.sheetRange = oldInput.data.sheetRange || oldInput.data.range;
             }
-            // Preserve update-sheet sheetUrls from old nodes
-            ['s4','s5','s7'].forEach(function(nid) {
+            // Preserve update-sheet and telegram settings from old nodes by ID
+            ['s4','s5','s7','s6'].forEach(function(nid) {
                 var oldN = oldNodes.find(function(n){ return n.id===nid; });
-                if (oldN && oldN.data && oldN.data.sheetUrl) {
+                if (oldN && oldN.data) {
                     var newN = wf.nodes.find(function(n){ return n.id===nid; });
-                    if (newN) newN.data.sheetUrl = oldN.data.sheetUrl;
+                    if (newN) {
+                        if (oldN.data.sheetUrl) newN.data.sheetUrl = oldN.data.sheetUrl;
+                        if (nid === 's6') {
+                            if (oldN.data.token)  newN.data.token  = oldN.data.token;
+                            if (oldN.data.chatId) newN.data.chatId = oldN.data.chatId;
+                        }
+                    }
                 }
             });
             lib[existingIdx] = wf;
@@ -3774,6 +3784,9 @@
         try {
             // State storage for data passing between nodes
             let flowData = []; // Array of objects { url, adminPath, user, pass, results... }
+            window.wfExecutionLogs = [];
+            window._isStrangeError = false;
+            window._strangeErrorLog = '';
 
             for (const nodeId of orderedIds) {
             const node = wfNodes.find(n => n.id === nodeId);
@@ -3786,19 +3799,44 @@
                 const nodeEl = document.getElementById(nodeId);
                 if(nodeEl) nodeEl.style.boxShadow = '0 0 20px rgba(124,58,237,0.8)';
                 
+                const startTime = Date.now();
+                let isSuccess = true;
+                let errorMessage = '';
+
                 // EXECUTE NODE LOGIC
-                if (node.type === 'input') {
-                    flowData = await execInputNode(node);
-                } else if (node.type === 'http-status') {
-                    flowData = await execHttpStatusNode(node, flowData);
-                } else if (node.type === 'custom-code') {
-                    flowData = await execCustomCodeNode(node, flowData);
-                } else if (node.type === 'telegram') {
-                    await execTelegramNode(node, flowData);
-                } else if (node.type === 'update-sheet') {
-                    flowData = await execUpdateSheetNode(node, flowData);
+                try {
+                    if (node.type === 'input') {
+                        flowData = await execInputNode(node);
+                    } else if (node.type === 'http-status') {
+                        flowData = await execHttpStatusNode(node, flowData);
+                    } else if (node.type === 'custom-code') {
+                        flowData = await execCustomCodeNode(node, flowData);
+                    } else if (node.type === 'telegram') {
+                        await execTelegramNode(node, flowData);
+                    } else if (node.type === 'tech-monitor') {
+                        flowData = await execTechMonitorNode(node, flowData);
+                    } else if (node.type === 'ai-audit') {
+                        flowData = await execAiAuditNode(node, flowData);
+                    } else if (node.type === 'update-sheet') {
+                        flowData = await execUpdateSheetNode(node, flowData);
+                    }
+                } catch (err) {
+                    isSuccess = false;
+                    errorMessage = err.message;
+                    console.error(`[WFL] Node ${node.type} Error:`, err);
+                    if (node.config && node.config.onError === 'stop') throw err;
                 }
-                
+
+                // Log Execution
+                window.wfExecutionLogs.push({
+                    nodeId: node.id,
+                    nodeType: node.type,
+                    status: isSuccess ? 'success' : 'fail',
+                    error: errorMessage,
+                    duration: Date.now() - startTime,
+                    outputCount: Array.isArray(flowData) ? flowData.length : 0
+                });
+
                 // Un-highlight
                 if(nodeEl) nodeEl.style.boxShadow = '';
                 await new Promise(r => setTimeout(r, 500));
@@ -3912,6 +3950,91 @@
             results.push({ ...item, status, error: errorMsg });
         }
         return results;
+    }
+
+    
+
+    async function execTechMonitorNode(node, inputData) {
+        const data = node.data || {};
+        const knownErrorsList = (data.knownErrors || 'timeout, failed to fetch, 401, 403, 404').split(',').map(e => e.trim().toLowerCase());
+        
+        let report = [];
+        let hasStrangeError = false;
+
+        // Check wfExecutionLogs for any failures
+        const logs = window.wfExecutionLogs || [];
+        for (const log of logs) {
+            if (log.status === 'fail' && log.error) {
+                const errLower = log.error.toLowerCase();
+                let isKnown = false;
+                for (const known of knownErrorsList) {
+                    if (errLower.includes(known)) {
+                        isKnown = true;
+                        report.push(`⚠️ [${log.nodeType}] Lỗi quen thuộc: ${log.error} (Có thể do mạng/VPS hoặc Auth).`);
+                        break;
+                    }
+                }
+                if (!isKnown) {
+                    hasStrangeError = true;
+                    window._isStrangeError = true;
+                    window._strangeErrorLog += `\nLỗi lạ tại Node [${log.nodeType}]: ${log.error}`;
+                    report.push(`🛑 [${log.nodeType}] LỖI LẠ: ${log.error}. Đã chuyển AI phân tích.`);
+                }
+            } else if (log.status === 'success' && log.outputCount === 0 && log.nodeType === 'input') {
+                report.push(`⚠️ [${log.nodeType}] Dữ liệu đầu vào bị trống! Khả năng cấu hình sai hoặc Sheet rỗng.`);
+            }
+        }
+
+        if (report.length > 0) {
+            // Attach report to the first item for Telegram to pick up
+            if (!inputData || inputData.length === 0) {
+                inputData = [ { _techReport: report.join('\n') } ];
+            } else {
+                inputData[0]._techReport = report.join('\n');
+            }
+        }
+
+        return inputData;
+    }
+
+    async function execAiAuditNode(node, inputData) {
+        if (!window._isStrangeError) {
+            console.log('AI Audit Bỏ qua: Không phát hiện lỗi kỹ thuật lạ cần AI phân tích.');
+            return inputData;
+        }
+
+        const data = node.data || {};
+        const apiKey = data.apiKey || localStorage.getItem('wf_gemini_key') || '';
+        if (!apiKey) {
+            console.warn('AI Audit Node: Missing API Key');
+            return inputData;
+        }
+
+        const promptTemplate = data.prompt || 'Bạn là chuyên gia giám sát hệ thống. Hãy xem log lỗi sau và giải thích nguyên nhân cũng như cách khắc phục ngắn gọn:';
+        const finalPrompt = promptTemplate + '\n\nLOG LỖI KỸ THUẬT:\n' + window._strangeErrorLog;
+        
+        try {
+            const reqBody = {
+                contents: [{ role: "user", parts: [{ text: finalPrompt }] }]
+            };
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reqBody)
+            });
+            
+            if (res.ok) {
+                const json = await res.json();
+                const auditResult = json.candidates?.[0]?.content?.parts?.[0]?.text || 'AI không có nhận xét.';
+                // Add audit result to each item as a global property
+                if (inputData.length === 0) inputData.push({});
+                inputData[0]._audit = auditResult;
+                console.log('%c--- AI AUDIT RESULT ---', 'color:#ec4899; font-weight:bold;', '\n', auditResult);
+            }
+        } catch (err) {
+            console.error('AI Audit Error:', err);
+        }
+        return inputData;
     }
 
     
@@ -4140,6 +4263,12 @@
             message = uniqueMessages[0];
         } else {
             message = '<b>📊 BÁO CÁO WORKFLOW</b>\n\n';
+            if (inputData[0] && inputData[0]._techReport) {
+                message += '<b>🛠️ KỸ THUẬT:</b>\n' + inputData[0]._techReport + '\n\n';
+            }
+            if (inputData[0] && inputData[0]._audit) {
+                message += '<b>🕵️ AI AUDIT:</b>\n' + inputData[0]._audit + '\n\n';
+            }
             uniqueMessages.forEach((msg, i) => {
                 message += (uniqueMessages.length > 1 ? (i+1) + '. ' : '') + msg + '\n';
             });
@@ -4478,6 +4607,25 @@
                     <div style="font-size:10px; color:#64748b; margin-top:5px;">Dùng {{keyword}} để làm biến số lấy từ input.</div>
                 </div>
             `;
+        } else if (node.type === 'tech-monitor') {
+            paramsHtml = `
+                <div class="set-group">
+                    <label class="set-label">Danh sách lỗi quen thuộc (Cách nhau bằng dấu phẩy):</label>
+                    <textarea id="setKnownErrors" class="set-input" style="height: 100px;" placeholder="timeout, failed to fetch, 401, 403, 404, not found">${data.knownErrors || 'timeout, failed to fetch, 401, 403, 404'}</textarea>
+                    <div style="font-size:10px; color:#64748b; margin-top:5px;">Các lỗi nằm trong danh sách này sẽ được báo cáo ngay lập tức mà không cần gọi AI phân tích.</div>
+                </div>
+            `;
+        } else if (node.type === 'ai-audit') {
+            paramsHtml = `
+                <div class="set-group">
+                    <label class="set-label">Gemini API Key (Bỏ trống nếu dùng mặc định):</label>
+                    <input type="password" id="setAuditApiKey" class="set-input" value="${data.apiKey || ''}" placeholder="AIzaSy...">
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Câu lệnh kiểm soát (Audit Prompt):</label>
+                    <textarea id="setAuditPrompt" class="set-input" style="height: 120px;" placeholder="Bạn là chuyên gia. Hãy xem log lỗi lạ và giải thích nguyên nhân ngắn gọn.">${data.prompt || 'Bạn là chuyên gia giám sát hạ tầng. Hệ thống vừa gặp một lỗi kỹ thuật LẠ chưa được định nghĩa. Hãy xem log lỗi sau, giải thích nguyên nhân và đề xuất cách khắc phục ngắn gọn, dễ hiểu nhất cho Sếp.'}</textarea>
+                </div>
+            `;
         } else if (node.type === 'custom-code') {
             paramsHtml = `
                 <div class="set-group">
@@ -4663,6 +4811,11 @@
             node.data.sheetUrl = document.getElementById('setUpdateSheetUrl')?.value;
             node.data.range   = document.getElementById('setUpdateSheetRange')?.value;
             node.data.colMap  = document.getElementById('setUpdateSheetCols')?.value;
+        } else if (node.type === 'tech-monitor') {
+            node.data.knownErrors = document.getElementById('setKnownErrors')?.value;
+        } else if (node.type === 'ai-audit') {
+            node.data.apiKey = document.getElementById('setAuditApiKey')?.value;
+            node.data.prompt = document.getElementById('setAuditPrompt')?.value;
         } else if (node.type === 'ai-content') {
             node.data.model = document.getElementById('setAiModel')?.value;
             node.data.prompt = document.getElementById('setAiPrompt')?.value;
