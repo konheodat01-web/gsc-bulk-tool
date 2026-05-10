@@ -2426,10 +2426,39 @@
         try {
             const raw = sessionStorage.getItem('wf_canvas');
             if (!raw) return;
-            const { nodes, edges, count } = JSON.parse(raw);
-            wfNodeCount = count || 0;
-            wfEdges = edges || [];
-            (nodes || []).forEach(n => {
+            const parsed = JSON.parse(raw);
+            let nodes = parsed.nodes || [];
+            let edges = parsed.edges || [];
+            
+            // Auto-migrate active session to v23 layout
+            const isStatusCheck = nodes.some(n => n.config && n.config.customName === "Check Status + CLF + Redirect");
+            const hasTechMonitor = nodes.some(n => n.type === "tech-monitor");
+            if (isStatusCheck && !hasTechMonitor) {
+                const id_tm = "s8_mig";
+                const id_ai = "s9_mig";
+                const id_tele = "s10_mig";
+                nodes.push({id:id_tm, type:"tech-monitor", cat:"core", x: 800, y: 480, config:{customName:"Giám Sát Lỗi Kỹ Thuật"}, data:{knownErrors:"timeout, failed to fetch, 401, 403, 404, econnrefused, chua cau hinh"}});
+                nodes.push({id:id_ai, type:"ai-audit", cat:"core", x: 1060, y: 480, config:{customName:"AI Phân Tích Lỗi"}, data:{apiKey:"",prompt:"Bạn là chuyên gia hạ tầng. Hệ thống gặp lỗi kỹ thuật LẠ trong quy trình Check Trạng Thái Web. Xem log lỗi sau, giải thích nguyên nhân và cách khắc phục ngắn gọn:"}});
+                nodes.push({id:id_tele, type:"telegram", cat:"app", x: 1310, y: 480, config:{customName:"Báo Cáo Sự Cố"}, data:{token:"",chatId:"",template:"⚠️ LỖI HỆ THỐNG:\\n{{errorMsg}}\\n\\n🤖 AI Phân Tích:\\n{{ai_analysis}}"}});
+                
+                nodes.forEach(n => {
+                    if (n.type === 'input' || n.type === 'custom-code' || n.type === 'update-sheet') {
+                        edges.push({from: n.id, to: id_tm, type: "error"});
+                    }
+                });
+                edges.push({from: id_tm, to: id_ai, type: "success"});
+                edges.push({from: id_ai, to: id_tele, type: "success"});
+                
+                // Cập nhật lại session storage ngay lập tức
+                parsed.nodes = nodes;
+                parsed.edges = edges;
+                sessionStorage.setItem('wf_canvas', JSON.stringify(parsed));
+                setTimeout(() => alert("Hệ thống đã tự động nâng cấp luồng đang mở của anh lên v23 (Tự thêm 3 Node Báo Lỗi bên dưới và nối sẵn Dây Đỏ). Anh không cần phải Xóa hay làm gì thêm nữa!"), 1000);
+            }
+            
+            wfNodeCount = parsed.count || 0;
+            wfEdges = edges;
+            nodes.forEach(n => {
                 const def = allBlocks().find(b => b.type === n.type);
                 if (!def) return;
                 wfNodes.push({ ...n, def });
