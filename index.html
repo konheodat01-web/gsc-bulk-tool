@@ -1943,8 +1943,9 @@
                     if (newN) {
                         if (oldN.data.sheetUrl) newN.data.sheetUrl = oldN.data.sheetUrl;
                         if (nid === 's6') {
-                            if (oldN.data.token)  newN.data.token  = oldN.data.token;
-                            if (oldN.data.chatId) newN.data.chatId = oldN.data.chatId;
+                            if (oldN.data.token)    newN.data.token    = oldN.data.token;
+                            if (oldN.data.chatId)   newN.data.chatId   = oldN.data.chatId;
+                            if (oldN.data.template) newN.data.template = oldN.data.template; // preserve custom template
                         }
                     }
                 }
@@ -3972,6 +3973,13 @@
 
         // Check wfExecutionLogs for any failures
         const logs = window.wfExecutionLogs || [];
+
+        // Phát hiện: toàn bộ các node trước đều cho ra 0 dữ liệu (luồng rỗng toàn bộ)
+        const allZeroOutput = logs.length > 0 && logs.every(function(l) { return l.outputCount === 0 || l.outputCount === undefined; });
+        if (allZeroOutput) {
+            report.push('⚠️ [HỆ THỐNG] Toàn bộ luồng dữ liệu bị RỔNG. Không có URL nào được xử lý!');
+        }
+
         for (const log of logs) {
             if (log.status === 'fail' && log.error) {
                 const errLower = log.error.toLowerCase();
@@ -3987,7 +3995,7 @@
                     hasStrangeError = true;
                     window._isStrangeError = true;
                     window._strangeErrorLog += `\nLỗi lạ tại Node [${log.nodeType}]: ${log.error}`;
-                    report.push(`🛑 [${log.nodeType}] LỖI LẠ: ${log.error}. Đã chuyển AI phân tích.`);
+                    report.push(`🛑 [${log.nodeType}] LỔI LẠ: ${log.error}. Đã chuyển AI phân tích.`);
                 }
             } else if (log.status === 'success' && log.outputCount === 0 && log.nodeType === 'input') {
                 report.push(`⚠️ [${log.nodeType}] Dữ liệu đầu vào bị trống! Khả năng cấu hình sai hoặc Sheet rỗng.`);
@@ -4163,6 +4171,12 @@
              console.log('[execUpdateSheetNode] inputData rỗng, bỏ qua ghi sheet.');
              return inputData;
         }
+        // Nếu chỉ có monitoring meta (không có URL thật), bỏ qua ghi sheet
+        const hasRealData = inputData.some(function(item) { return item.url || item.A; });
+        if (!hasRealData) {
+            console.log('[execUpdateSheetNode] Chỉ có monitoring data, không có URL thật → bỏ qua ghi sheet.');
+            return inputData;
+        }
         const data = node.data || {};
         if (!data.sheetUrl) throw new Error('Chưa cấu hình Link Sheet trong nút Cập nhật Sheet. Vui lòng nhấp đúp vào nút để nhập link!');
         
@@ -4244,7 +4258,6 @@
     }
 
     async function execTelegramNode(node, inputData) {
-        if (!inputData || inputData.length === 0) return;
         const data = node.data || {};
         const template = data.template || 'Website {{url}} status: {{status}}';
         
@@ -4257,30 +4270,44 @@
             return;
         }
 
+        // Extract monitoring reports from first item
+        const firstItem = (inputData && inputData.length > 0) ? inputData[0] : {};
+        const techReport = firstItem._techReport || '';
+        const auditReport = firstItem._audit || '';
+
+        // If no real data AND no monitoring reports => nothing to send
+        if ((!inputData || inputData.length === 0) && !techReport && !auditReport) return;
+
         const uniqueMessages = [];
-        inputData.forEach((item) => {
-            let rowMsg = template.replace(/\{{1,2}([\w_]+)\}{1,2}/g, (match, key) => {
-                return item[key] !== undefined ? item[key] : match;
+        if (inputData && inputData.length > 0) {
+            inputData.forEach((item) => {
+                let rowMsg = template.replace(/\{{1,2}([\w_]+)\}{1,2}/g, (match, key) => {
+                    return item[key] !== undefined ? item[key] : match;
+                });
+                if (!uniqueMessages.includes(rowMsg)) {
+                    uniqueMessages.push(rowMsg);
+                }
             });
-            if (!uniqueMessages.includes(rowMsg)) {
-                uniqueMessages.push(rowMsg);
-            }
-        });
+        }
 
         let message = '';
         if (uniqueMessages.length === 1 && (uniqueMessages[0].includes('BÁO CÁO') || template.includes('baocao') || template.includes('_msg'))) {
             message = uniqueMessages[0];
         } else {
             message = '<b>📊 BÁO CÁO WORKFLOW</b>\n\n';
-            if (inputData[0] && inputData[0]._techReport) {
-                message += '<b>🛠️ KỸ THUẬT:</b>\n' + inputData[0]._techReport + '\n\n';
+            if (techReport) {
+                message += '<b>🛠️ KỸ THUẬT:</b>\n' + techReport + '\n\n';
             }
-            if (inputData[0] && inputData[0]._audit) {
-                message += '<b>🕵️ AI AUDIT:</b>\n' + inputData[0]._audit + '\n\n';
+            if (auditReport) {
+                message += '<b>🕵️ AI AUDIT:</b>\n' + auditReport + '\n\n';
             }
-            uniqueMessages.forEach((msg, i) => {
-                message += (uniqueMessages.length > 1 ? (i+1) + '. ' : '') + msg + '\n';
-            });
+            if (uniqueMessages.length > 0) {
+                uniqueMessages.forEach((msg, i) => {
+                    message += (uniqueMessages.length > 1 ? (i+1) + '. ' : '') + msg + '\n';
+                });
+            } else if (!techReport && !auditReport) {
+                message += 'Check xong website.';
+            }
         }
         
         // Custom send fetch to use node-specific token/chatId
