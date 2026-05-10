@@ -4361,13 +4361,8 @@
             return result;
         } catch (err) {
             console.error('Custom Code Node Error:', err);
-            // Preserve existing D/J/C values to prevent overwriting sheet data with empty
-            return inputData.map(function(item) { return Object.assign({}, item, {
-                error: 'Loi Code JS: ' + err.message,
-                url_redirect: (item.url_redirect !== undefined ? item.url_redirect : (item.D || '')),
-                trang_thai:   (item.trang_thai   !== undefined ? item.trang_thai   : (item.J || '')),
-                lich_su_301:  (item.lich_su_301  !== undefined ? item.lich_su_301  : (item.C || ''))
-            }); });
+            // Re-throw the error so the workflow engine routes it to the ERROR edge (Red Wire)
+            throw err;
         }
     }
 
