@@ -1815,11 +1815,13 @@
     
     function seedStatusWorkflow(skipSync) {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 14;
+        var STATUS_WFL_VER  = 16;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
         if (deletedNames.includes(STATUS_WFL_NAME)) return;
+        // Version-gate: skip if stored version >= current version
+        if (existingIdx >= 0 && lib[existingIdx]._ver >= STATUS_WFL_VER) return;
 
         function defOf(t) {
             var all = [].concat(
@@ -1919,22 +1921,21 @@
             _ver: STATUS_WFL_VER,
             savedAt: new Date().toISOString(),
             nodes: [
-                {id:"s1",type:"trigger-manual",category:"trigger",x:40,  y:230,def:defOf("trigger-manual"),config:{},data:{}},
-                {id:"s2",type:"input",          category:"core",   x:310, y:230,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",sheetRange:"A2:Z500"}},
-                {id:"s3",type:"custom-code",    category:"core",   x:580, y:230,def:defOf("custom-code"),   config:{customName:"Check Status + CLF + Redirect"},data:{code:STATUS_CODE}},
-                {id:"s4",type:"update-sheet",   category:"app",    x:850, y:50, def:defOf("update-sheet"),  config:{customName:"Redirect -> Col D"},data:{sheetUrl:"",range:"D2",colMap:"url_redirect"}},
-                {id:"s5",type:"update-sheet",   category:"app",    x:850, y:230,def:defOf("update-sheet"),  config:{customName:"Trang Thai -> Col J"},data:{sheetUrl:"",range:"J2",colMap:"trang_thai"}},
-                {id:"s7",type:"update-sheet",   category:"app",    x:850, y:410,def:defOf("update-sheet"),  config:{customName:"Lich Su 301 -> Col C"},data:{sheetUrl:"",range:"C2",colMap:"lich_su_301"}},
-                {id:"sm",type:"merge",           category:"core",   x:1120,y:230,def:defOf("merge"),         config:{customName:"Chờ Ghi Sheet"},data:{}},
-                {id:"s8",type:"tech-monitor",   category:"core",   x:1390,y:230,def:defOf("tech-monitor"),  config:{customName:"Giám Sát Kỹ Thuật"},data:{knownErrors:"timeout, failed to fetch, 401, 403, 404, econnrefused, chua cau hinh"}},
-                {id:"s9",type:"ai-audit",       category:"core",   x:1660,y:230,def:defOf("ai-audit"),      config:{customName:"AI Phân Tích Lỗi Lạ"},data:{apiKey:"",prompt:"Bạn là chuyên gia hạ tầng. Hệ thống gặp lỗi kỹ thuật LẠ trong quy trình Check Trạng Thái Web. Xem log lỗi sau, giải thích nguyên nhân và cách khắc phục ngắn gọn:"}},
-                {id:"s6",type:"telegram",       category:"app",    x:1930,y:230,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"Domain: {{A}} | Status: {{trang_thai}}"}}
+                {id:"s1",type:"trigger-manual",category:"trigger",x:30,  y:180,def:defOf("trigger-manual"),config:{},data:{}},
+                {id:"s2",type:"input",          category:"core",   x:280, y:180,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",sheetRange:"A2:Z500"}},
+                {id:"s3",type:"custom-code",    category:"core",   x:530, y:180,def:defOf("custom-code"),   config:{customName:"Check Status + CLF + Redirect"},data:{code:STATUS_CODE}},
+                {id:"s4",type:"update-sheet",   category:"app",    x:800, y:40, def:defOf("update-sheet"),  config:{customName:"Redirect → Col D"},data:{sheetUrl:"",range:"D2",colMap:"url_redirect"}},
+                {id:"s5",type:"update-sheet",   category:"app",    x:800, y:180,def:defOf("update-sheet"),  config:{customName:"Trạng Thái → Col J"},data:{sheetUrl:"",range:"J2",colMap:"trang_thai"}},
+                {id:"s7",type:"update-sheet",   category:"app",    x:800, y:320,def:defOf("update-sheet"),  config:{customName:"Lịch Sử 301 → Col C"},data:{sheetUrl:"",range:"C2",colMap:"lich_su_301"}},
+                {id:"sm",type:"merge",           category:"core",   x:1060,y:180,def:defOf("merge"),         config:{customName:"Merge (Chờ 3 Nhanh)"},data:{}},
+                {id:"s8",type:"tech-monitor",   category:"core",   x:1310,y:180,def:defOf("tech-monitor"),  config:{customName:"Giám Sát Kỹ Thuật"},data:{knownErrors:"timeout, failed to fetch, 401, 403, 404, econnrefused, chua cau hinh"}},
+                {id:"s9",type:"ai-audit",       category:"core",   x:1560,y:180,def:defOf("ai-audit"),      config:{customName:"AI Phân Tích Lỗi Lạ"},data:{apiKey:"",prompt:"Bạn là chuyên gia hạ tầng. Hệ thống gặp lỗi kỹ thuật LẠ trong quy trình Check Trạng Thái Web. Xem log lỗi sau, giải thích nguyên nhân và cách khắc phục ngắn gọn:"}},
+                {id:"s6",type:"telegram",       category:"app",    x:1810,y:180,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"Domain: {{A}} | Status: {{trang_thai}}"}}
             ],
             edges: [
                 {from:"s1",to:"s2",type:"success"},{from:"s2",to:"s3",type:"success"},
                 {from:"s3",to:"s4",type:"success"},{from:"s3",to:"s5",type:"success"},{from:"s3",to:"s7",type:"success"},
                 {from:"s4",to:"sm",type:"success"},{from:"s5",to:"sm",type:"success"},{from:"s7",to:"sm",type:"success"},
-                {from:"s4",to:"sm",type:"error"},  {from:"s5",to:"sm",type:"error"},  {from:"s7",to:"sm",type:"error"},
                 {from:"sm",to:"s8",type:"success"},{from:"s8",to:"s9",type:"success"},{from:"s9",to:"s6",type:"success"}
             ]
         };
@@ -1947,8 +1948,8 @@
             if (oldInput && oldInput.data && (oldInput.data.sheetRange || oldInput.data.range)) {
                 wf.nodes[1].data.sheetRange = oldInput.data.sheetRange || oldInput.data.range;
             }
-            // Preserve update-sheet and telegram settings from old nodes by ID
-            ['s4','s5','s7','s6'].forEach(function(nid) {
+            // Preserve all output node settings + merge node
+            ['s4','s5','s7','sm','s6'].forEach(function(nid) {
                 var oldN = oldNodes.find(function(n){ return n.id===nid; });
                 if (oldN && oldN.data) {
                     var newN = wf.nodes.find(function(n){ return n.id===nid; });
@@ -1958,7 +1959,6 @@
                             if (oldN.data.token)    newN.data.token    = oldN.data.token;
                             if (oldN.data.chatId)   newN.data.chatId   = oldN.data.chatId;
                             if (oldN.data.template) {
-                                // Tự động upgrade template vô nghĩa cũ lên dạng thông minh
                                 if (oldN.data.template === "Check xong website.") {
                                     newN.data.template = "Domain: {{A}} | Status: {{trang_thai}}";
                                 } else {
@@ -2238,11 +2238,15 @@
 
     function bezierPath(x1, y1, x2, y2, type) {
         if (type === 'error') {
-            const dy = Math.max(Math.abs(y2 - y1) * 0.5, 60);
-            return `M ${x1} ${y1} C ${x1} ${y1+dy}, ${x2} ${y2-dy}, ${x2} ${y2}`;
+            // Error: exits bottom-center, arrives left-center
+            // Route: go down, then right, then up to target
+            const midY = Math.max(y1 + 40, y2 + 40);
+            return `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
         }
-        const dx = Math.max(Math.abs(x2 - x1) * 0.5, 60);
-        return `M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;
+        // Success: exits right, arrives left - n8n style clamped bezier
+        const dx = x2 - x1;
+        const cx = Math.max(Math.min(Math.abs(dx) * 0.45, 120), 40);
+        return `M ${x1} ${y1} C ${x1+cx} ${y1}, ${x2-cx} ${y2}, ${x2} ${y2}`;
     }
     
     function hideHint() { const h = document.getElementById('wfHint'); if(h) h.style.opacity = '0'; }
@@ -3852,12 +3856,15 @@
                 if (node.type.includes('trigger')) {
                     inputData = [{}];
                 } else if (node.type === 'merge') {
-                    // Collect from ALL incoming success-path predecessors
-                    inEdges.forEach(e => {
-                        if ((e.type || 'success') === 'success' && nodeOutputs[e.from] && !nodeErrors[e.from]) {
+                    // Collect from ALL success-connected predecessors (regardless of their success/fail)
+                    // This ensures merge always fires after all branches have been ATTEMPTED
+                    const successPreds = inEdges.filter(e => (e.type || 'success') === 'success');
+                    successPreds.forEach(e => {
+                        if (nodeOutputs[e.from] && nodeOutputs[e.from].length > 0) {
                             inputData = inputData.concat(nodeOutputs[e.from]);
                         }
                     });
+                    if (inputData.length === 0) inputData = [{}]; // at least one item so merge fires
                 } else {
                     const errEdges = inEdges.filter(e => e.type === 'error' && nodeErrors[e.from]);
                     const okEdges  = inEdges.filter(e => (e.type||'success') === 'success' && !nodeErrors[e.from] && nodeOutputs[e.from]);
