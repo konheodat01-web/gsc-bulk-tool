@@ -4089,7 +4089,10 @@
             }
         });
             const json = await res.json();
-            if (!json.values) throw new Error('Không lấy được dữ liệu từ Sheet (Có thể chưa Share Public?)');
+            if (!json.values) {
+                console.warn('Google Sheet trả về rỗng (không có mảng values). Có thể sheet đang trống trơn.');
+                return []; // Trả về mảng rỗng để các node sau tự xử lý (ví dụ: bóp cò Cảnh báo cột B rỗng)
+            }
             
             // Trả về dữ liệu thô kèm theo mapping để dễ dùng trong nút JS (cột A, B, C, D...)
             return json.values.map((row, idx) => {
