@@ -1822,7 +1822,7 @@
     
     function seedStatusWorkflow(skipSync) {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 22;
+        var STATUS_WFL_VER  = 23;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1884,8 +1884,10 @@
             "",
             "for (var i = 0; i < items.length; i++) {",
             "    var item = items[i];",
-            "    var url = (item.B || item.url || '').trim();",
-            "    if (!url) { item.trang_thai = 'Trống'; continue; }",
+            "    var url = '';",
+            "    if (item.hasOwnProperty('B')) { url = (item.B || '').trim(); }",
+            "    else { url = (item.url || '').trim(); }",
+            "    if (!url) { item.trang_thai = ''; continue; }",
             "    if (!/^https?:\\/\\//i.test(url)) url = 'https://' + url;",
             "    item.url = url;",
             "    try {",
@@ -1934,16 +1936,21 @@
                 {id:"s4",type:"update-sheet",   category:"app",    x:800, y:40, def:defOf("update-sheet"),  config:{customName:"Redirect → Col D"},data:{sheetUrl:"",range:"D2",colMap:"url_redirect"}},
                 {id:"s5",type:"update-sheet",   category:"app",    x:800, y:180,def:defOf("update-sheet"),  config:{customName:"Trạng Thái → Col J"},data:{sheetUrl:"",range:"J2",colMap:"trang_thai"}},
                 {id:"s7",type:"update-sheet",   category:"app",    x:800, y:320,def:defOf("update-sheet"),  config:{customName:"Lịch Sử 301 → Col C"},data:{sheetUrl:"",range:"C2",colMap:"lich_su_301"}},
-                {id:"sm",type:"merge",           category:"core",   x:1060,y:180,def:defOf("merge"),         config:{customName:"Merge (Chờ 3 Nhanh)"},data:{}},
-                {id:"s8",type:"tech-monitor",   category:"core",   x:1310,y:180,def:defOf("tech-monitor"),  config:{customName:"Giám Sát Kỹ Thuật"},data:{knownErrors:"timeout, failed to fetch, 401, 403, 404, econnrefused, chua cau hinh"}},
-                {id:"s9",type:"ai-audit",       category:"core",   x:1560,y:180,def:defOf("ai-audit"),      config:{customName:"AI Phân Tích Lỗi Lạ"},data:{apiKey:"",prompt:"Bạn là chuyên gia hạ tầng. Hệ thống gặp lỗi kỹ thuật LẠ trong quy trình Check Trạng Thái Web. Xem log lỗi sau, giải thích nguyên nhân và cách khắc phục ngắn gọn:"}},
-                {id:"s6",type:"telegram",       category:"app",    x:1810,y:180,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"Domain: {{A}} | Status: {{trang_thai}}"}}
+                {id:"sm",type:"merge",           category:"core",   x:1060,y:180,def:defOf("merge"),         config:{customName:"Merge (Chờ 3 Nhánh)"},data:{}},
+                {id:"s6",type:"telegram",       category:"app",    x:1310,y:180,def:defOf("telegram"),      config:{customName:"Báo Cáo Thành Công"},data:{token:"",chatId:"",template:"Domain: {{A}} | Status: {{trang_thai}}"}},
+                
+                {id:"s8",type:"tech-monitor",   category:"core",   x:800,y:480,def:defOf("tech-monitor"),  config:{customName:"Giám Sát Lỗi Kỹ Thuật"},data:{knownErrors:"timeout, failed to fetch, 401, 403, 404, econnrefused, chua cau hinh"}},
+                {id:"s9",type:"ai-audit",       category:"core",   x:1060,y:480,def:defOf("ai-audit"),      config:{customName:"AI Phân Tích Lỗi"},data:{apiKey:"",prompt:"Bạn là chuyên gia hạ tầng. Hệ thống gặp lỗi kỹ thuật LẠ trong quy trình Check Trạng Thái Web. Xem log lỗi sau, giải thích nguyên nhân và cách khắc phục ngắn gọn:"}},
+                {id:"s10",type:"telegram",      category:"app",    x:1310,y:480,def:defOf("telegram"),      config:{customName:"Báo Cáo Sự Cố"},data:{token:"",chatId:"",template:"⚠️ LỖI HỆ THỐNG:\n{{errorMsg}}\n\n🤖 AI Phân Tích:\n{{ai_analysis}}"}}
             ],
             edges: [
                 {from:"s1",to:"s2",type:"success"},{from:"s2",to:"s3",type:"success"},
                 {from:"s3",to:"s4",type:"success"},{from:"s3",to:"s5",type:"success"},{from:"s3",to:"s7",type:"success"},
                 {from:"s4",to:"sm",type:"success"},{from:"s5",to:"sm",type:"success"},{from:"s7",to:"sm",type:"success"},
-                {from:"sm",to:"s8",type:"success"},{from:"s8",to:"s9",type:"success"},{from:"s9",to:"s6",type:"success"}
+                {from:"sm",to:"s6",type:"success"},
+                {from:"s2",to:"s8",type:"error"},{from:"s3",to:"s8",type:"error"},
+                {from:"s4",to:"s8",type:"error"},{from:"s5",to:"s8",type:"error"},{from:"s7",to:"s8",type:"error"},
+                {from:"s8",to:"s9",type:"success"},{from:"s9",to:"s10",type:"success"}
             ]
         };
         if (existingIdx >= 0) {
@@ -1965,26 +1972,28 @@
                         if (nid === 's6') {
                             if (oldN.data.token)    newN.data.token    = oldN.data.token;
                             if (oldN.data.chatId)   newN.data.chatId   = oldN.data.chatId;
-                            if (oldN.data.template) {
-                                if (oldN.data.template === "Check xong website.") {
-                                    newN.data.template = "Domain: {{A}} | Status: {{trang_thai}}";
-                                } else {
-                                    newN.data.template = oldN.data.template;
-                                }
-                            }
                         }
                     }
                 }
             });
+            // Also preserve token/chatId for the new s10 error telegram node
+            var newS10 = wf.nodes.find(function(n){ return n.id==='s10'; });
+            var oldS6 = oldNodes.find(function(n){ return n.id==='s6'; });
+            if (newS10 && oldS6 && oldS6.data) {
+                if (oldS6.data.token) newS10.data.token = oldS6.data.token;
+                if (oldS6.data.chatId) newS10.data.chatId = oldS6.data.chatId;
+            }
             
-            // Preserve x and y coordinates for all nodes
-            wf.nodes.forEach(function(newN) {
-                var oldN = oldNodes.find(function(n){ return n.id === newN.id; });
-                if (oldN && oldN.x !== undefined && oldN.y !== undefined) {
-                    newN.x = oldN.x;
-                    newN.y = oldN.y;
-                }
-            });
+            // Preserve x and y coordinates for all nodes EXCEPT when rolling out v23 redesign
+            if (STATUS_WFL_VER !== 23) {
+                wf.nodes.forEach(function(newN) {
+                    var oldN = oldNodes.find(function(n){ return n.id === newN.id; });
+                    if (oldN && oldN.x !== undefined && oldN.y !== undefined) {
+                        newN.x = oldN.x;
+                        newN.y = oldN.y;
+                    }
+                });
+            }
             
             lib[existingIdx] = wf;
         } else {
