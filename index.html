@@ -1822,7 +1822,7 @@
     
     function seedStatusWorkflow(skipSync) {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 18;
+        var STATUS_WFL_VER  = 22;
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1976,6 +1976,16 @@
                     }
                 }
             });
+            
+            // Preserve x and y coordinates for all nodes
+            wf.nodes.forEach(function(newN) {
+                var oldN = oldNodes.find(function(n){ return n.id === newN.id; });
+                if (oldN && oldN.x !== undefined && oldN.y !== undefined) {
+                    newN.x = oldN.x;
+                    newN.y = oldN.y;
+                }
+            });
+            
             lib[existingIdx] = wf;
         } else {
             lib.push(wf);
