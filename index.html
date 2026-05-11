@@ -617,16 +617,7 @@
         <div class="card">
             <h3 style="margin-top:0">Check Admin WP Login </h3>
             
-            <div style="display:flex; gap:10px; margin-bottom:15px; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px;">
-                <div style="flex:1">
-                    <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:5px;">User Bảo Mật Cấp 1 (Tùy chọn)</label>
-                    <input type="text" id="basicAuthUser" placeholder="user_cap1" style="width:100%; padding:8px; border-radius:6px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:white; font-size:12px;">
-                </div>
-                <div style="flex:1">
-                    <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:5px;">Pass Bảo Mật Cấp 1 (Tùy chọn)</label>
-                    <input type="text" id="basicAuthPass" placeholder="pass_cap1" style="width:100%; padding:8px; border-radius:6px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:white; font-size:12px;">
-                </div>
-            </div>
+            
             <div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
             <label style="font-size:11px; color:var(--text-muted); display:block;">🎯 Website + Admin Path + User + Pass <span style="color:#64748b">(1 dòng 1 web)</span></label>
@@ -2786,6 +2777,8 @@
         const dstLines = document.getElementById('dstList8').value.split('\n').filter(l => l.trim());
         if (!dstLines.length) return alert('Nhập ít nhất 1 URL Web Đích sếp ơi!');
         const checkAdmin = true;
+        const basicUser = localStorage.getItem('basicAuthUser') || '';
+        const basicPass = localStorage.getItem('basicAuthPass') || '';
         const tbody = document.getElementById('checkAdminResultBody');
         tbody.innerHTML = '';
 
@@ -2814,50 +2807,55 @@
             `;
             tbody.appendChild(tr);
 
-            await checkAdminOnlyRow(i, dst, adminPath, user, pass);
+            await checkAdminOnlyRow(i, dst, adminPath, user, pass, basicUser, basicPass);
             await new Promise(r => setTimeout(r, 400));
         }
     }
 
-    async function checkAdminOnlyRow(i, dst, adminPath, user, pass) {
+    async function checkAdminOnlyRow(i, dst, adminPath, user, pass, basicUser, basicPass) {
         document.getElementById(`cAd8_${i}`).innerHTML = '⏳...';
         document.getElementById(`cLo8_${i}`).innerHTML = '⏳...';
-        const dstBase = stripLocalePath(dst);
         
-        let loginUrl = '';
-        if (adminPath === 'wp-admin') {
-            for (const p of WP_ADMIN_PATHS) {
-                const u = dstBase + p;
-                const r = await fetchStatus(u);
-                if (r.code === 200 && r.html && (r.html.includes('wp-login.php') || r.html.includes('user_login') || r.html.includes('log') || r.html.match(/<input[^>]*name=["']log["']/i))) {
-                    loginUrl = u; break;
-                }
-            }
-        } else {
-            loginUrl = dstBase + adminPath;
+        const apiUrl = localStorage.getItem('wpVpsUrl') ? localStorage.getItem('wpVpsUrl').replace(/\/$/, '') + '/check-wp-admin' : '';
+        if (!apiUrl) {
+            document.getElementById(`cAd8_${i}`).innerHTML = '<span style="color:var(--danger)">❌ Lỗi</span>';
+            document.getElementById(`cLo8_${i}`).innerHTML = 'Chưa điền API VPS trong Cài đặt Hệ thống';
+            return;
         }
 
-        if (loginUrl) {
-            document.getElementById(`cAd8_${i}`).innerHTML = `<a href="${loginUrl}" target="_blank" style="color:var(--success)">✅ Tìm thấy</a>`;
-            if (user && pass) {
-                const r2 = await fetchStatus(loginUrl);
-                if (r2.html && r2.html.includes('id="loginform"')) {
-                    document.getElementById(`cLo8_${i}`).innerHTML = '<span style="color:var(--success)">✅ Form OK</span> (Chưa check auto login)';
-                } else {
-                    document.getElementById(`cLo8_${i}`).innerHTML = '<span style="color:var(--danger)">❌ Lỗi Form</span>';
-                }
+        const dstBase = stripLocalePath(dst);
+        let targetUrl = adminPath === 'wp-admin' ? dstBase + 'wp-login.php' : dstBase + adminPath;
+
+        try {
+            const res = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: targetUrl,
+                    username: user,
+                    password: pass,
+                    basicUser: basicUser,
+                    basicPass: basicPass
+                })
+            });
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                document.getElementById(`cAd8_${i}`).innerHTML = `<a href="${targetUrl}" target="_blank" style="color:var(--success)">✅ OK</a>`;
+                document.getElementById(`cLo8_${i}`).innerHTML = `<span style="color:var(--success)">${data.message}</span>`;
             } else {
-                document.getElementById(`cLo8_${i}`).innerHTML = '-';
+                document.getElementById(`cAd8_${i}`).innerHTML = `<a href="${targetUrl}" target="_blank" style="color:var(--warning)">⚠️ ${data.status}</a>`;
+                document.getElementById(`cLo8_${i}`).innerHTML = `<span style="color:var(--danger)">${data.message || data.error || 'Lỗi'}</span>`;
             }
-        } else {
-            document.getElementById(`cAd8_${i}`).innerHTML = '<span style="color:var(--danger)">❌ Không thấy</span>';
-            document.getElementById(`cLo8_${i}`).innerHTML = '-';
+        } catch (error) {
+            document.getElementById(`cAd8_${i}`).innerHTML = '<span style="color:var(--danger)">❌ Lỗi API</span>';
+            document.getElementById(`cLo8_${i}`).innerHTML = `Không gọi được API: ${error.message}`;
         }
     }
 
     async function recheckAdminRow(i) {
         const tr = document.getElementById(`arow_${i}`);
-        await checkAdminOnlyRow(i, tr.dataset.dst, tr.dataset.adminPath, tr.dataset.user, tr.dataset.pass);
+        await checkAdminOnlyRow(i, tr.dataset.dst, tr.dataset.adminPath, tr.dataset.user, tr.dataset.pass, localStorage.getItem('basicAuthUser')||'', localStorage.getItem('basicAuthPass')||'');
     }
 
 
@@ -5778,6 +5776,10 @@ ${appState}`;
     }
 
     function saveSystemSettings() {
+        localStorage.setItem('wpVpsUrl', document.getElementById('sysWpVpsUrl').value);
+        localStorage.setItem('basicAuthUser', document.getElementById('sysWpVpsUrl').value = localStorage.getItem('wpVpsUrl') || '';
+        document.getElementById('sysWpBasicUser').value);
+        localStorage.setItem('basicAuthPass', document.getElementById('sysWpBasicPass').value);
         // AI
         localStorage.setItem('sys_ai_engine', document.getElementById('sysAiEngine').value);
         localStorage.setItem('gemini_api_key', document.getElementById('sysGeminiKey').value.trim());
@@ -6379,6 +6381,29 @@ return items.map(item => {
                                 </div>
                             </div>
                         </div>
+                        <!-- WP CONFIG -->
+                        <div class="acc-group" id="acc_wp_admin">
+                            <div class="acc-header" onclick="toggleAcc('acc_wp_admin')">
+                                <span class="acc-icon" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">🔐</span>
+                                <span class="acc-title">Bảo Mật Cấp 1 WP</span>
+                                <span class="acc-desc">Basic Auth tự động vượt rào chắn trước trang wp-login</span>
+                                <span class="acc-arrow">▾</span>
+                            </div>
+                            <div class="acc-body" style="display:none;">
+                                <p style="color:#94a3b8;font-size:11px;margin:0 0 12px 0;line-height:1.5;">Nếu PBN của bạn cài mã bảo vệ cấp 1 (HTTP Basic Auth), nhập User/Pass chung vào đây. Tool sẽ tự động dùng khi gặp lỗi 401.</p>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                                    <div>
+                                        </div><div style="grid-column: span 2; margin-bottom: 12px;"><label class="acc-label">URL API VPS (Puppeteer)</label><input type="text" id="sysWpVpsUrl" placeholder="https://103.82.195.87:3000" class="acc-input" style="border-color:rgba(14,165,233,0.4);"></div><div><label class="acc-label">User Bảo Mật Cấp 1</label>
+                                        <input type="text" id="sysWpBasicUser" placeholder="Tài khoản cấp 1..." class="acc-input" style="border-color:rgba(14,165,233,0.4);">
+                                    </div>
+                                    <div>
+                                        <label class="acc-label">Pass Bảo Mật Cấp 1</label>
+                                        <input type="password" id="sysWpBasicPass" placeholder="Mật khẩu cấp 1..." class="acc-input" style="border-color:rgba(14,165,233,0.4);">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
 
                     </div>
 
