@@ -2427,7 +2427,12 @@
     
     function saveCanvasToSession() {
         sessionStorage.setItem('wf_canvas', JSON.stringify({
-            nodes: wfNodes.map(n => ({ id:n.id, type:n.type, cat:n.cat, x:n.x, y:n.y })),
+            nodes: wfNodes.map(n => ({
+                id: n.id, type: n.type, cat: n.cat,
+                x: n.x, y: n.y,
+                data:   n.data   ? JSON.parse(JSON.stringify(n.data))   : {},
+                config: n.config ? JSON.parse(JSON.stringify(n.config)) : {}
+            })),
             edges: wfEdges, count: wfNodeCount
         }));
     }
@@ -2486,6 +2491,24 @@
             });
             renderConnections();
             if (wfNodes.length > 0) hideHint();
+
+            // Khôi phục currentEditingWfIndex: tìm workflow đang open trong localStorage
+            // Dựa theo customName của node đặc trưng (custom-code hoặc node đầu tiên)
+            try {
+                const wfList = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+                const sessionWfName = sessionStorage.getItem('wf_editing_name');
+                if (sessionWfName && wfList.length > 0) {
+                    const idx = wfList.findIndex(w => w.name === sessionWfName);
+                    if (idx >= 0) currentEditingWfIndex = idx;
+                } else if (wfList.length > 0 && wfNodes.length > 0) {
+                    // Fallback: match theo node IDs
+                    const sessionIds = new Set(wfNodes.map(n => n.id));
+                    const idx = wfList.findIndex(w =>
+                        w.nodes && w.nodes.some(n => sessionIds.has(n.id))
+                    );
+                    if (idx >= 0) currentEditingWfIndex = idx;
+                }
+            } catch(_) {}
         } catch(e) { console.warn('Canvas restore failed', e); }
     }
     
@@ -4633,6 +4656,9 @@
     function editWorkflow(idx) {
         currentEditingWfIndex = idx;
         loadWorkflowRaw(idx);
+        // Lưu tên để sau F5 có thể khôi phục currentEditingWfIndex
+        const wfList = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        if (wfList[idx]) sessionStorage.setItem('wf_editing_name', wfList[idx].name);
         showBuilder();
     }
 
