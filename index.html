@@ -1822,7 +1822,7 @@
     
     function seedStatusWorkflow(skipSync) {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 25; // Bump version to force seed update
+        var STATUS_WFL_VER  = 26; // v26: live progress tracking (node glow, mini bar, toast ETA)
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
