@@ -5739,8 +5739,8 @@ ${appState}`;
         // Thêm UI Live Log vào body
         const div = document.createElement('div');
         div.innerHTML = `
-            <button id="btnToggleLiveLog" style="position:fixed;bottom:20px;right:180px;background:#334155;color:#fff;border:none;border-radius:20px;padding:8px 16px;cursor:pointer;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-family:monospace;display:none;transition:0.2s;">👁️ Live Logs</button>
-            <div id="liveLogPanel" style="position:fixed;bottom:60px;right:20px;width:400px;height:300px;background:#0f172a;color:#10b981;border-radius:12px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.5);display:none;flex-direction:column;font-family:monospace;font-size:12px;border:1px solid #334155;transition:0.3s;">
+            <button id="btnToggleLiveLog" style="position:fixed;bottom:20px;left:150px;background:#334155;color:#fff;border:none;border-radius:20px;padding:8px 16px;cursor:pointer;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-family:monospace;display:none;transition:0.2s;">👁️ Live Logs</button>
+            <div id="liveLogPanel" style="position:fixed;bottom:60px;left:150px;right:auto;width:420px;height:280px;background:#0f172a;color:#10b981;border-radius:12px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.5);display:none;flex-direction:column;font-family:monospace;font-size:12px;border:1px solid #334155;transition:0.3s;">
                 <div style="padding:10px;background:#1e293b;border-radius:12px 12px 0 0;font-weight:bold;color:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
                     <span>Terminal Execution Logs</span>
                     <span id="closeLiveLog" style="cursor:pointer;color:#94a3b8;font-size:14px;padding:0 5px;">✖</span>
@@ -6265,13 +6265,13 @@ return items.map(item => {
     #wfTerminalFooter { padding:5px 12px; background:#050d1a; border-top:1px solid rgba(255,255,255,0.05); display:none; }
     #wfTerminalFooter.active { display:block; }
     /* Global Toast */
-    #wfProgressToast { position:fixed !important; bottom:76px !important; left:18px !important; right:auto !important; background:#0f0a23; border:1px solid rgba(124,58,237,0.45); border-radius:14px; padding:14px 18px; width:270px; z-index:9999; display:none; box-shadow:0 12px 40px rgba(0,0,0,0.6); }
+    #wfProgressToast { position:fixed !important; bottom:76px !important; left:150px !important; right:auto !important; background:#0f0a23; border:1px solid rgba(124,58,237,0.45); border-radius:14px; padding:14px 18px; width:270px; z-index:9999; display:none; box-shadow:0 12px 40px rgba(0,0,0,0.6); }
     #wfProgressToast.active { display:block; animation:slideUpToast 0.25s ease; }
     @keyframes slideUpToast { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
     </style>
 
 <!-- ===== LIVE PROGRESS TOAST ===== -->
-<div id="wfProgressToast" style="left:18px;right:auto;">
+<div id="wfProgressToast" style="left:150px;right:auto;">
     <div style="font-size:11px;color:#a78bfa;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
         <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;animation:nodeRunPulse 1s infinite;"></span>
         Workflow đang chạy...
