@@ -242,7 +242,7 @@ function analyzeSEO(doc, url, keyword, expectedCategory) {
         }
     }
 
-    // 1. Title (45-60)
+    // 1. Title (45-65)
     let titleEl = doc.querySelector('title');
     let titleText = titleEl ? titleEl.textContent.trim() : '';
     let titleStatus = 'none';
@@ -251,17 +251,17 @@ function analyzeSEO(doc, url, keyword, expectedCategory) {
         if (!titleText) {
             score -= 15;
             details.push('❌ Thiếu thẻ Title.');
-        } else if (titleText.length >= 45 && titleText.length <= 60) {
+        } else if (titleText.length >= 45 && titleText.length <= 65) {
             titleStatus = 'pass';
             details.push(`✅ Thẻ Title chuẩn (${titleText.length} ký tự).`);
         } else {
             score -= 5;
             titleStatus = 'warn';
-            details.push(`⚠️ Thẻ Title dài ${titleText.length} ký tự (Chuẩn: 45-60).`);
+            details.push(`⚠️ Thẻ Title dài ${titleText.length} ký tự (Chuẩn: 45-65).`);
         }
     }
 
-    // 2. Meta Description (140-160)
+    // 2. Meta Description (140-165)
     let descEl = doc.querySelector('meta[name="description"]');
     let descText = descEl ? (descEl.getAttribute('content') || '').trim() : '';
     let descStatus = 'none';
@@ -270,13 +270,13 @@ function analyzeSEO(doc, url, keyword, expectedCategory) {
         if (!descText) {
             score -= 15;
             details.push('❌ Thiếu thẻ Meta Description.');
-        } else if (descText.length >= 140 && descText.length <= 160) {
+        } else if (descText.length >= 140 && descText.length <= 165) {
             descStatus = 'pass';
             details.push(`✅ Thẻ Description chuẩn (${descText.length} ký tự).`);
         } else {
             score -= 5;
             descStatus = 'warn';
-            details.push(`⚠️ Thẻ Description dài ${descText.length} ký tự (Chuẩn: 140-160).`);
+            details.push(`⚠️ Thẻ Description dài ${descText.length} ký tự (Chuẩn: 140-165).`);
         }
     }
 
