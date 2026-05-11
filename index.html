@@ -458,7 +458,8 @@
     <div class="tab-nav">
         <button class="tab-btn active" onclick="switchTab('tab0')">📊 Tổng Quan</button>
         <button class="tab-btn" onclick="switchTab('tab1')">🔌 Quản lý GSC</button>
-        <button class="tab-btn" onclick="switchTab('tab2')">🔍 Check 301 & WP</button>
+        <button class="tab-btn" onclick="switchTab('tab2')">🔍 Check 301</button>
+        <button class="tab-btn" onclick="switchTab('tab8')">🔐 Check Admin WP</button>
         <button class="tab-btn" onclick="switchTab('tab3')">🔗 Outbound Audit</button>
         <button class="tab-btn" onclick="switchTab('tab4')">🤖 Check Mở Bot</button>
         <button class="tab-btn" onclick="switchTab('tab5')">📝 SEO Content</button>
@@ -569,7 +570,7 @@
     <!-- TAB 2: 301 & WP -->
     <div id="tab2" class="tab-content">
         <div class="card">
-            <h3 style="margin-top:0">Check Website &amp; 301 Status <button class="help-btn" onclick="showHelp('check301')" title="Hướng dẫn sử dụng">?</button></h3>
+            <h3 style="margin-top:0">Check 301 Status <button class="help-btn" onclick="showHelp('check301')" title="Hướng dẫn sử dụng">?</button></h3>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
@@ -587,12 +588,10 @@
                 </div>
             </div>
             <div style="margin-top:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
-                <label style="display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;">
-                    <input type="checkbox" id="chkAdmin" checked style="width:16px; height:16px; cursor:pointer;"> Check Admin &amp; Login
-                </label>
+                
             </div>
             <div style="margin-top:10px; display: flex; gap: 10px;">
-                <button class="btn btn-success" onclick="startCheck()">🔍 Quét Trạng Thái (Full)</button>
+                <button class="btn btn-success" onclick="startCheck()">🔍 Quét 301</button>
                 <button id="btnCheck301Only" class="btn btn-primary" onclick="startCheck301Only()" style="background-color: var(--primary);">🔄 Chỉ Check 301 (Xuất List)</button>
             </div>
             <div id="check301OutputContainer" style="margin-top: 15px; display: none;">
@@ -604,9 +603,45 @@
         <div class="card" style="margin-top:20px;">
             <table>
                 <thead>
-                    <tr><th width="14%">Web Gốc</th><th width="16%">Website (301 Đích)</th><th width="7%">Status</th><th width="5%">Code</th><th width="14%">So khớp 301</th><th width="16%">Brand Gốc (Footer)</th><th width="10%">Admin</th><th width="8%">Login</th><th width="10%">Lại</th></tr>
+                    <tr><th width="14%">Web Gốc</th><th width="16%">Website (301 Đích)</th><th width="7%">Status</th><th width="5%">Code</th><th width="14%">So khớp 301</th><th width="16%">Brand Gốc (Footer)</th><th width="10%">Lại</th></tr>
                 </thead>
                 <tbody id="checkResultBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB 3: OUTBOUND AUDIT -->
+    
+    <!-- TAB 8: ADMIN WP -->
+<div id="tab8" class="tab-content">
+        <div class="card">
+            <h3 style="margin-top:0">Check Admin WP Login </h3>
+            <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <label style="font-size:11px; color:var(--text-muted); display:block;">🎯 Website + Admin Path + User + Pass <span style="color:#64748b">(1 dòng 1 web)</span></label>
+            <button class="btn btn-outline" onclick="importFromSheet('dstList8')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58;">📊 Nạp vùng dữ liệu</button>
+        </div>
+        <textarea id="dstList8" placeholder="xn--abc.jpn.com wp-admin admin pass123" style="height:160px;"></textarea>
+    </div>
+            <div style="margin-top:10px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                
+            </div>
+            <div style="margin-top:10px; display: flex; gap: 10px;">
+                <button class="btn btn-success" onclick="startCheckAdmin()">🔐 Quét Trạng Thái Admin</button>
+                
+            </div>
+            <div id="checkAdminOutputContainer" style="margin-top: 15px; display: none;">
+                <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--primary);">Kết quả danh sách 301:</label>
+                <textarea id="checkAdminOutput" readonly style="height:150px; border-color:var(--primary); background:rgba(59, 130, 246, 0.05);"></textarea>
+                <button class="btn" style="margin-top:10px; width:100%;" onclick="copyToClipboard(this, document.getElementById('check301Output').value)">📋 Copy Kết Quả</button>
+            </div>
+        </div>
+        <div class="card" style="margin-top:20px;">
+            <table>
+                <thead>
+                    <tr><th width="14%">Web Gốc</th><th width="16%">Website (301 Đích)</th><th width="7%">Status</th><th width="5%">Code</th><th width="14%">So khớp 301</th><th width="16%">Brand Gốc (Footer)</th><th width="10%">Admin</th><th width="8%">Login</th><th width="10%">Lại</th></tr>
+                </thead>
+                <tbody id="checkAdminResultBody"></tbody>
             </table>
         </div>
     </div>
@@ -2735,12 +2770,92 @@
         if(count === 0) alert("Không tìm thấy mục nào bị lỗi xác minh.");
     }
 
+        // --- TAB 8 LOGIC ---
+    async function startCheckAdmin() {
+        const dstLines = document.getElementById('dstList8').value.split('\n').filter(l => l.trim());
+        if (!dstLines.length) return alert('Nhập ít nhất 1 URL Web Đích sếp ơi!');
+        const checkAdmin = true;
+        const tbody = document.getElementById('checkAdminResultBody');
+        tbody.innerHTML = '';
+
+        for (let i = 0; i < dstLines.length; i++) {
+            const dp = (dstLines[i] || '').trim().split(/\s+/);
+            let dst = dp[0];
+            if (!dst.startsWith('http')) dst = 'https://' + dst;
+            if (!dst.endsWith('/')) dst += '/';
+            const adminPath = dp[1] || 'wp-admin';
+            const user = dp[2] || '';
+            const pass = dp[3] || '';
+            const dstShort = dst.replace(/^https?:\/\//,'').replace(/\/$/,'');
+
+            const tr = document.createElement('tr');
+            tr.id = `arow_${i}`;
+            tr.dataset.dst = dst;
+            tr.dataset.adminPath = adminPath;
+            tr.dataset.user = user;
+            tr.dataset.pass = pass;
+            tr.innerHTML = `
+                <td style="font-size:11px; word-break:break-all;"><a href="${dst}" target="_blank" style="color:var(--primary)">${dstShort}</a></td>
+                <td style="font-size:11px; color:#a78bfa;">/${adminPath}</td>
+                <td id="cAd8_${i}">...</td>
+                <td id="cLo8_${i}">...</td>
+                <td><button class="btn-mini" onclick="recheckAdminRow(${i})">🔄</button></td>
+            `;
+            tbody.appendChild(tr);
+
+            await checkAdminOnlyRow(i, dst, adminPath, user, pass);
+            await new Promise(r => setTimeout(r, 400));
+        }
+    }
+
+    async function checkAdminOnlyRow(i, dst, adminPath, user, pass) {
+        document.getElementById(`cAd8_${i}`).innerHTML = '⏳...';
+        document.getElementById(`cLo8_${i}`).innerHTML = '⏳...';
+        const dstBase = stripLocalePath(dst);
+        
+        let loginUrl = '';
+        if (adminPath === 'wp-admin') {
+            for (const p of WP_ADMIN_PATHS) {
+                const u = dstBase + p;
+                const r = await fetchStatus(u);
+                if (r.code === 200 && r.html && (r.html.includes('wp-login.php') || r.html.includes('user_login') || r.html.includes('log') || document.createElement('div').innerHTML = r.html, r.html.match(/<input[^>]*name=["']log["']/i))) {
+                    loginUrl = u; break;
+                }
+            }
+        } else {
+            loginUrl = dstBase + adminPath;
+        }
+
+        if (loginUrl) {
+            document.getElementById(`cAd8_${i}`).innerHTML = `<a href="${loginUrl}" target="_blank" style="color:var(--success)">✅ Tìm thấy</a>`;
+            if (user && pass) {
+                const r2 = await fetchStatus(loginUrl);
+                if (r2.html && r2.html.includes('id="loginform"')) {
+                    document.getElementById(`cLo8_${i}`).innerHTML = '<span style="color:var(--success)">✅ Form OK</span> (Chưa check auto login)';
+                } else {
+                    document.getElementById(`cLo8_${i}`).innerHTML = '<span style="color:var(--danger)">❌ Lỗi Form</span>';
+                }
+            } else {
+                document.getElementById(`cLo8_${i}`).innerHTML = '-';
+            }
+        } else {
+            document.getElementById(`cAd8_${i}`).innerHTML = '<span style="color:var(--danger)">❌ Không thấy</span>';
+            document.getElementById(`cLo8_${i}`).innerHTML = '-';
+        }
+    }
+
+    async function recheckAdminRow(i) {
+        const tr = document.getElementById(`arow_${i}`);
+        await checkAdminOnlyRow(i, tr.dataset.dst, tr.dataset.adminPath, tr.dataset.user, tr.dataset.pass);
+    }
+
+
     // --- TAB 2 LOGIC ---
     async function startCheck() {
         const srcLines = document.getElementById('srcList').value.split('\n').filter(l => l.trim());
         if (!srcLines.length) return alert('Nhập ít nhất 1 URL Web Gốc sếp ơi!');
         const dstLines = document.getElementById('dstList').value.split('\n');
-        const checkAdmin = document.getElementById('chkAdmin').checked;
+        const checkAdmin = false;
         const tbody = document.getElementById('checkResultBody');
         tbody.innerHTML = '';
 
