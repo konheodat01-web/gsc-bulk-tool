@@ -4002,7 +4002,26 @@
         const oldText = btn.innerHTML;
         btn.innerHTML = '<span class="spin">⏳</span> Đang chạy...';
         btn.disabled = true;
-        
+        window._wfCancelRequested = false;
+
+        // Hiện nút DỪNG ngay trên toolbar
+        let stopBtn = document.getElementById('wfToolbarStopBtn');
+        if (!stopBtn) {
+            stopBtn = document.createElement('button');
+            stopBtn.id = 'wfToolbarStopBtn';
+            stopBtn.className = 'wf-tool-btn danger';
+            stopBtn.innerHTML = '⛔ Dừng lại';
+            stopBtn.onclick = function() {
+                window._wfCancelRequested = true;
+                this.textContent = '⏳ Đang dừng...';
+                this.disabled = true;
+            };
+            btn.parentNode.insertBefore(stopBtn, btn.nextSibling);
+        }
+        stopBtn.style.display = 'inline-block';
+        stopBtn.textContent = '⛔ Dừng lại';
+        stopBtn.disabled = false;
+
         // Hiện nút Live Logs và xoá log cũ
         const liveLogBtn = document.getElementById('btnToggleLiveLog');
         if (liveLogBtn) liveLogBtn.style.display = 'block';
@@ -4019,6 +4038,11 @@
             const nodeOutputs = {}; // nodeId -> Array
             const nodeErrors  = {}; // nodeId -> string (if failed)
             for (const nodeId of orderedIds) {
+                // ✅ Check cancel trước mỗi node
+                if (window._wfCancelRequested) {
+                    if (window.wfAppendLiveLog) window.wfAppendLiveLog('⛔ Đã dừng theo yêu cầu.');
+                    break;
+                }
                 const node = wfNodes.find(n => n.id === nodeId);
                 if (!node) continue;
                 const nodeEl = document.getElementById(nodeId);
@@ -4102,6 +4126,15 @@
             alert('❌ Lỗi quy trình: ' + err.message);
         } finally {
             btn.innerHTML = oldText; btn.disabled = false;
+            // Ẩn nút Dừng
+            const stopBtnFinal = document.getElementById('wfToolbarStopBtn');
+            if (stopBtnFinal) stopBtnFinal.style.display = 'none';
+            window._wfCancelRequested = false;
+            // Ẩn toast sau 3s
+            setTimeout(() => {
+                const t = document.getElementById('wfProgressToast');
+                if (t) t.classList.remove('active');
+            }, 3000);
         }
     }
 
