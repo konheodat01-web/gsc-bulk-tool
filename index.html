@@ -3983,15 +3983,14 @@
         const liveLogBtn = document.getElementById('btnToggleLiveLog');
         if (liveLogBtn) liveLogBtn.style.display = 'block';
         const liveLogContent = document.getElementById('liveLogContent');
-        if (liveLogContent) {
-            liveLogContent.innerHTML = '';
-            window.wfAppendLiveLog('Bắt đầu chạy quy trình: ' + wf.name);
-        }
-        
+        if (liveLogContent) liveLogContent.innerHTML = '';
+
         try {
             window.wfExecutionLogs = [];
             window._isStrangeError = false;
             window._strangeErrorLog = '';
+            const _wfName = document.getElementById('wfNameInput')?.value?.trim() || 'Workflow';
+            if (window.wfAppendLiveLog) window.wfAppendLiveLog('▶️ Bắt đầu: ' + _wfName);
             // Per-node storage (n8n pattern)
             const nodeOutputs = {}; // nodeId -> Array
             const nodeErrors  = {}; // nodeId -> string (if failed)
