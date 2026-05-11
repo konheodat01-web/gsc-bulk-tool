@@ -1822,7 +1822,7 @@
     
     function seedStatusWorkflow(skipSync) {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 26; // Bump version to force seed update
+        var STATUS_WFL_VER  = 25; // Bump version to force seed update
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -3985,7 +3985,7 @@
         const liveLogContent = document.getElementById('liveLogContent');
         if (liveLogContent) {
             liveLogContent.innerHTML = '';
-            window.wfAppendLiveLog('Bắt đầu chạy quy trình mới...');
+            window.wfAppendLiveLog('Bắt đầu chạy quy trình: ' + wf.name);
         }
         
         try {
@@ -6213,7 +6213,137 @@ return items.map(item => {
     .acc-label { display:block; color:#94a3b8; font-size:10px; font-weight:700; margin-bottom:5px; text-transform:uppercase; letter-spacing:0.06em; }
     .acc-input { width:100%; background:#0f172a; border:1px solid rgba(255,255,255,0.1); border-radius:9px; padding:9px 12px; color:white; font-size:13px; outline:none; box-sizing:border-box; }
     .acc-input:focus { border-color:rgba(139,92,246,0.6); }
+
+    /* ===== LIVE PROGRESS TRACKING ===== */
+    @keyframes nodeRunPulse {
+        0%,100% { box-shadow: 0 0 0 2px #7c3aed, 0 0 18px rgba(124,58,237,0.45); }
+        50%      { box-shadow: 0 0 0 2px #10b981, 0 0 26px rgba(16,185,129,0.5); }
+    }
+    .wf-node.running { animation: nodeRunPulse 1.4s ease-in-out infinite; }
+    .wf-node-progress { padding: 5px 12px 8px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .wf-node-progress-bar { background:rgba(0,0,0,0.35); border-radius:999px; height:4px; overflow:hidden; margin-bottom:3px; }
+    .wf-node-progress-fill { height:100%; background:linear-gradient(90deg,#7c3aed,#10b981); border-radius:999px; transition:width 0.35s ease; }
+    .wf-node-progress-label { font-size:9px; color:#94a3b8; text-align:right; }
+    /* Terminal Panel */
+    #wfTerminalPanel { background:#050d1a; border-top:1px solid rgba(124,58,237,0.25); overflow-y:auto; font-family:'Courier New',monospace; font-size:11px; padding:8px 12px; display:none; max-height:200px; }
+    #wfTerminalPanel.active { display:block; }
+    .term-line { padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.03); display:flex; gap:8px; align-items:flex-start; }
+    .term-time { color:#475569; flex-shrink:0; font-size:10px; }
+    .term-msg  { color:#cbd5e1; flex:1; word-break:break-all; }
+    .term-count { color:#8b5cf6; font-weight:bold; flex-shrink:0; font-size:10px; }
+    #wfTerminalFooter { padding:5px 12px; background:#050d1a; border-top:1px solid rgba(255,255,255,0.05); display:none; }
+    #wfTerminalFooter.active { display:block; }
+    /* Global Toast */
+    #wfProgressToast { position:fixed; bottom:76px; right:18px; background:#0f0a23; border:1px solid rgba(124,58,237,0.45); border-radius:14px; padding:14px 18px; width:270px; z-index:9999; display:none; box-shadow:0 12px 40px rgba(0,0,0,0.6); }
+    #wfProgressToast.active { display:block; animation:slideUpToast 0.25s ease; }
+    @keyframes slideUpToast { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
     </style>
+
+<!-- ===== LIVE PROGRESS TOAST ===== -->
+<div id="wfProgressToast">
+    <div style="font-size:11px;color:#a78bfa;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10b981;animation:nodeRunPulse 1s infinite;"></span>
+        Workflow đang chạy...
+    </div>
+    <div id="wfToastNodeName" style="font-size:10px;color:#64748b;margin-bottom:4px;"></div>
+    <div id="wfToastLabel" style="font-size:11px;color:#94a3b8;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+    <div style="background:rgba(0,0,0,0.35);border-radius:999px;height:6px;overflow:hidden;margin-bottom:10px;">
+        <div id="wfToastBar" style="height:100%;background:linear-gradient(90deg,#7c3aed,#10b981);border-radius:999px;width:0%;transition:width 0.35s;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#475569;">
+        <span id="wfToastCount">0/0</span>
+        <span id="wfToastEta"></span>
+    </div>
+    <button id="wfCancelBtn" onclick="window._wfCancelRequested=true;this.textContent='⏳ Đang dừng...';this.disabled=true;" 
+            style="margin-top:10px;width:100%;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#f87171;border-radius:7px;padding:6px;font-size:11px;cursor:pointer;font-weight:600;">
+        ⛔ Dừng lại
+    </button>
+</div>
+
+<script>
+// ===== WORKFLOW LIVE PROGRESS TRACKING (Override) =====
+window._wfProgressStartTime = null;
+window._wfRunningNodeId = null;
+window._wfCancelRequested = false;
+
+window.wfUpdateProgress = function(nodeId, current, total, message) {
+    if (!nodeId || !total) return;
+    const pct = Math.min(100, Math.round((current / total) * 100));
+
+    // --- ETA ---
+    if (window._wfRunningNodeId !== nodeId) {
+        window._wfRunningNodeId = nodeId;
+        window._wfProgressStartTime = Date.now();
+    }
+    if (!window._wfProgressStartTime) window._wfProgressStartTime = Date.now();
+    const elapsed = (Date.now() - window._wfProgressStartTime) / 1000;
+    const rate = current / Math.max(elapsed, 0.001);
+    const remaining = (total - current) / rate;
+    const etaStr = (!isFinite(remaining) || remaining < 0) ? '...'
+        : remaining > 60 ? '~' + Math.floor(remaining/60) + 'p' + Math.floor(remaining%60) + 's'
+        : '~' + Math.ceil(remaining) + 's';
+
+    // 1. Mini progress bar bên trong node trên canvas
+    const nodeEl = document.getElementById(nodeId);
+    if (nodeEl) {
+        let prog = nodeEl.querySelector('.wf-node-progress');
+        if (!prog) {
+            prog = document.createElement('div');
+            prog.className = 'wf-node-progress';
+            prog.innerHTML = '<div class="wf-node-progress-bar"><div class="wf-node-progress-fill" style="width:0%"></div></div><div class="wf-node-progress-label"></div>';
+            nodeEl.appendChild(prog);
+        }
+        prog.querySelector('.wf-node-progress-fill').style.width = pct + '%';
+        prog.querySelector('.wf-node-progress-label').textContent = current + '/' + total + ' · ' + pct + '% · ETA ' + etaStr;
+    }
+
+    // 2. Live Terminal Log (dùng lại liveLogContent panel sẵn có)
+    var shortMsg = message && message.length > 70 ? message.substring(0, 67) + '...' : (message || '');
+    if (window.wfAppendLiveLog) {
+        window.wfAppendLiveLog('[' + current + '/' + total + '] ' + shortMsg);
+    }
+    // Hiển thị panel nếu đang ẩn
+    var liveLogPanel = document.getElementById('liveLogPanel');
+    var btnToggle = document.getElementById('btnToggleLiveLog');
+    if (liveLogPanel && liveLogPanel.style.display === 'none') {
+        if (btnToggle) btnToggle.style.display = 'block';
+        // Tự mở panel khi bắt đầu chạy
+        if (current === 1) {
+            liveLogPanel.style.display = 'flex';
+        }
+    }
+
+    // 3. Global Toast
+    var toast = document.getElementById('wfProgressToast');
+    if (toast) {
+        toast.classList.add('active');
+        var toastBar = document.getElementById('wfToastBar');
+        var toastLabel = document.getElementById('wfToastLabel');
+        var toastCount = document.getElementById('wfToastCount');
+        var toastEta = document.getElementById('wfToastEta');
+        if (toastBar) toastBar.style.width = pct + '%';
+        if (toastLabel) toastLabel.textContent = shortMsg;
+        if (toastCount) toastCount.textContent = current + '/' + total;
+        if (toastEta) toastEta.textContent = etaStr;
+    }
+};
+
+window.wfClearProgress = function(nodeId) {
+    window._wfProgressStartTime = null;
+    var nodeEl = document.getElementById(nodeId);
+    if (nodeEl) {
+        nodeEl.classList.remove('running');
+        var prog = nodeEl.querySelector('.wf-node-progress');
+        if (prog) setTimeout(function(){ prog && prog.remove(); }, 3000);
+    }
+    var toast = document.getElementById('wfProgressToast');
+    if (toast) toast.classList.remove('active');
+    var cancelBtn = document.getElementById('wfCancelBtn');
+    if (cancelBtn) { cancelBtn.textContent = '⛔ Dừng lại'; cancelBtn.disabled = false; }
+    window._wfCancelRequested = false;
+};
+
+</script>
 
 </body>
 </html>
