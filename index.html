@@ -2818,7 +2818,7 @@
             for (const p of WP_ADMIN_PATHS) {
                 const u = dstBase + p;
                 const r = await fetchStatus(u);
-                if (r.code === 200 && r.html && (r.html.includes('wp-login.php') || r.html.includes('user_login') || r.html.includes('log') || document.createElement('div').innerHTML = r.html, r.html.match(/<input[^>]*name=["']log["']/i))) {
+                if (r.code === 200 && r.html && (r.html.includes('wp-login.php') || r.html.includes('user_login') || r.html.includes('log') || r.html.match(/<input[^>]*name=["']log["']/i))) {
                     loginUrl = u; break;
                 }
             }
