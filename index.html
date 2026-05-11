@@ -5742,6 +5742,9 @@ ${appState}`;
         overlay.style.display = show ? 'flex' : 'none';
         overlay.style.pointerEvents = show ? 'auto' : 'none';
         if (show) {
+            document.getElementById('sysWpVpsUrl').value = localStorage.getItem('wpVpsUrl') || '';
+            document.getElementById('sysWpBasicUser').value = localStorage.getItem('basicAuthUser') || '';
+            document.getElementById('sysWpBasicPass').value = localStorage.getItem('basicAuthPass') || '';
             // AI Engine
             const engine = localStorage.getItem('sys_ai_engine') || 'gemini';
             document.getElementById('sysAiEngine').value = engine;
@@ -5777,8 +5780,7 @@ ${appState}`;
 
     function saveSystemSettings() {
         localStorage.setItem('wpVpsUrl', document.getElementById('sysWpVpsUrl').value);
-        localStorage.setItem('basicAuthUser', document.getElementById('sysWpVpsUrl').value = localStorage.getItem('wpVpsUrl') || '';
-        document.getElementById('sysWpBasicUser').value);
+        localStorage.setItem('basicAuthUser', document.getElementById('sysWpBasicUser').value);
         localStorage.setItem('basicAuthPass', document.getElementById('sysWpBasicPass').value);
         // AI
         localStorage.setItem('sys_ai_engine', document.getElementById('sysAiEngine').value);
