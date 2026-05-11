@@ -2824,7 +2824,30 @@
         }
 
         const dstBase = stripLocalePath(dst);
-        let targetUrl = adminPath === 'wp-admin' ? dstBase + 'wp-login.php' : dstBase + adminPath;
+        
+        let targetUrl = '';
+        if (adminPath === 'wp-admin' || !adminPath) {
+            document.getElementById(`cAd8_${i}`).innerHTML = '⏳ Dò Path...';
+            for (const p of WP_ADMIN_PATHS) {
+                const u = dstBase + p;
+                const r = await fetchStatus(u);
+                if (r.code === 200 && r.html && (r.html.includes('wp-login.php') || r.html.includes('user_login') || r.html.includes('log') || r.html.match(/<input[^>]*name=["']log["']/i))) {
+                    targetUrl = u; 
+                    const tdAdmin = document.getElementById(`arow_${i}`).children[1];
+                    tdAdmin.innerHTML = `<span style="color:var(--success)">/${p}</span>`;
+                    break;
+                }
+            }
+            if (!targetUrl) {
+                document.getElementById(`cAd8_${i}`).innerHTML = '<span style="color:var(--danger)">❌ Không tìm thấy Form</span>';
+                document.getElementById(`cLo8_${i}`).innerHTML = '-';
+                return;
+            }
+        } else {
+            targetUrl = dstBase + adminPath;
+        }
+        document.getElementById(`cAd8_${i}`).innerHTML = '⏳ Gọi VPS...';
+
 
         try {
             const res = await fetch(apiUrl, {
