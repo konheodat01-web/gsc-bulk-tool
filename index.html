@@ -1428,10 +1428,11 @@
         const t = localStorage.getItem('telegram_bot_token'), c = localStorage.getItem('tele_chat_id');
         if (!t || !c) return;
         try {
-            const res = await fetch(`https://api.telegram.org/bot${t}/sendMessage`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: c, text: msg, parse_mode: 'HTML', disable_web_page_preview: true })
+            // Dùng GET + URLSearchParams để tránh CORS preflight (POST/JSON bị chặn từ browser)
+            const params = new URLSearchParams({
+                chat_id: c, text: msg, parse_mode: 'HTML', disable_web_page_preview: '1'
             });
+            const res = await fetch(`https://api.telegram.org/bot${t}/sendMessage?${params.toString()}`);
             return res.ok;
         } catch(e) { return false; }
     }
@@ -4556,13 +4557,18 @@
             }
         }
         
-        // Custom send fetch to use node-specific token/chatId
+        // Custom send — GET+URLSearchParams tránh CORS preflight từ browser
         try {
-            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML', disable_web_page_preview: true })
+            // Telegram HTML parse_mode không hỗ trợ một số ký tự — cắt nếu quá dài
+            const safeMsg = message.length > 4096 ? message.substring(0, 4090) + '...' : message;
+            const params = new URLSearchParams({
+                chat_id: chatId, text: safeMsg, parse_mode: 'HTML', disable_web_page_preview: '1'
             });
+            const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage?${params.toString()}`);
+            if (!res.ok) {
+                const errData = await res.json().catch(()=>({}));
+                console.warn('Telegram API error:', errData.description || res.status);
+            }
         } catch(e) {
             console.error('Telegram Node Error:', e);
         }
