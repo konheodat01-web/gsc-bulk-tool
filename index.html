@@ -616,6 +616,17 @@
 <div id="tab8" class="tab-content">
         <div class="card">
             <h3 style="margin-top:0">Check Admin WP Login </h3>
+            
+            <div style="display:flex; gap:10px; margin-bottom:15px; padding:10px; background:rgba(255,255,255,0.05); border-radius:8px;">
+                <div style="flex:1">
+                    <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:5px;">User Bảo Mật Cấp 1 (Tùy chọn)</label>
+                    <input type="text" id="basicAuthUser" placeholder="user_cap1" style="width:100%; padding:8px; border-radius:6px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:white; font-size:12px;">
+                </div>
+                <div style="flex:1">
+                    <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:5px;">Pass Bảo Mật Cấp 1 (Tùy chọn)</label>
+                    <input type="text" id="basicAuthPass" placeholder="pass_cap1" style="width:100%; padding:8px; border-radius:6px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:white; font-size:12px;">
+                </div>
+            </div>
             <div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
             <label style="font-size:11px; color:var(--text-muted); display:block;">🎯 Website + Admin Path + User + Pass <span style="color:#64748b">(1 dòng 1 web)</span></label>
@@ -6535,5 +6546,17 @@ window.wfClearProgress = function(nodeId) {
 
 </script>
 
+<script>
+        const bUser = document.getElementById('basicAuthUser');
+        const bPass = document.getElementById('basicAuthPass');
+        if (bUser) {
+            bUser.value = localStorage.getItem('basicAuthUser') || '';
+            bUser.addEventListener('input', () => localStorage.setItem('basicAuthUser', bUser.value));
+        }
+        if (bPass) {
+            bPass.value = localStorage.getItem('basicAuthPass') || '';
+            bPass.addEventListener('input', () => localStorage.setItem('basicAuthPass', bPass.value));
+        }
+    </script>
 </body>
 </html>
