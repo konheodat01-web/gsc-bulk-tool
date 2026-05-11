@@ -1823,7 +1823,7 @@
     
     function seedStatusWorkflow(skipSync) {
         var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
-        var STATUS_WFL_VER  = 26; // v26: live progress tracking (node glow, mini bar, toast ETA)
+        var STATUS_WFL_VER  = 27; // v27: normalize IDN/Unicode URLs to Punycode (xn--)
         var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
         var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
         var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
@@ -1883,14 +1883,18 @@
             "    } catch(e) { return null; }",
             "}",
             "",
+            "function normalizeUrl(u) {",
+            "    if (!u) return u;",
+            "    try { return new URL(u).href; } catch(e) { return u; }",
+            "}",
+            "",
             "var hasValidUrl = false;",
             "for (var i = 0; i < items.length; i++) {",
             "    var item = items[i];",
             "    var url = '';",
             "    if (item.hasOwnProperty('B')) { url = (item.B || '').trim(); }",
             "    else { url = (item.url || '').trim(); }",
-            "    if (typeof updateProgress === 'function') updateProgress(i + 1, items.length, 'Đang quét: ' + (url || '...'));",,
-            "    else { url = (item.url || '').trim(); }",
+            "    if (typeof updateProgress === 'function') updateProgress(i + 1, items.length, 'Đang quét: ' + (url || '...'));",
             "    if (!url) { ",
             "        item.trang_thai = item.J || '';",
             "        item.url_redirect = item.D || '';",
@@ -1899,6 +1903,7 @@
             "    }",
             "    hasValidUrl = true;",
             "    if (!/^https?:\\/\\//i.test(url)) url = 'https://' + url;",
+            "    url = normalizeUrl(url);",
             "    item.url = url;",
             "    try {",
             "        // Batch 1: check VN proxy",
@@ -1907,10 +1912,11 @@
             "        var pOk = pStatus === '200';",
             "        if (pOk) {",
             "            item.trang_thai = 'OK';",
-            "            var pFinal = (pResult.finalUrl || url);",
+            "            var pFinal = normalizeUrl(pResult.finalUrl || url);",
             "            item.url_redirect = (pFinal !== url) ? pFinal : (item.D || '');",
             "            var oldC = (item.C || '').trim();",
-            "            if (item.url_redirect && oldC.indexOf(item.url_redirect) === -1) {",
+            "            var normOldC = oldC.split('\\n').map(function(x) { return normalizeUrl(x.trim()); }).join('\\n');",
+            "            if (item.url_redirect && normOldC.indexOf(item.url_redirect) === -1) {",
             "                item.lich_su_301 = oldC ? oldC + '\\n' + item.url_redirect : item.url_redirect;",
             "            } else { item.lich_su_301 = oldC; }",
             "            continue;",
@@ -1924,10 +1930,11 @@
             "        } else {",
             "            item.trang_thai = (dStatus === 'TIMEOUT') ? 'Time out' : dStatus;",
             "        }",
-            "        var dFinal = dResult ? (dResult.finalUrl || url) : url;",
+            "        var dFinal = normalizeUrl(dResult ? (dResult.finalUrl || url) : url);",
             "        item.url_redirect = (dFinal !== url) ? dFinal : (item.D || '');",
             "        var oldC2 = (item.C || '').trim();",
-            "        if (item.url_redirect && oldC2.indexOf(item.url_redirect) === -1) {",
+            "        var normOldC2 = oldC2.split('\\n').map(function(x) { return normalizeUrl(x.trim()); }).join('\\n');",
+            "        if (item.url_redirect && normOldC2.indexOf(item.url_redirect) === -1) {",
             "            item.lich_su_301 = oldC2 ? oldC2 + '\\n' + item.url_redirect : item.url_redirect;",
             "        } else { item.lich_su_301 = oldC2; }",
             "    } catch(e) { item.trang_thai = (item.J || 'Time out'); item.url_redirect = (item.D || ''); item.lich_su_301 = (item.C || ''); }",
