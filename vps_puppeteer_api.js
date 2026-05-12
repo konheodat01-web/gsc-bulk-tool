@@ -133,8 +133,10 @@ app.all('/gsc-get-tag', async (req, res) => {
         // Vào trang chủ GSC
         await page.goto('https://search.google.com/search-console', { waitUntil: 'networkidle2' });
 
+        logStep(`Kiểm tra auth... URL hiện tại: ${page.url()}`);
         // Nếu bị đá ra trang login, nghĩa là Cookie đã chết!
         if (page.url().includes('accounts.google.com')) {
+            logStep(`Bị đá ra login. Cookie chết.`);
             await browser.close();
             return res.status(401).json({ status: 'fail', message: `Cookie đã hết hạn hoặc bị Google chặn. Vui lòng lấy Cookie mới! (Path: ${userDataDir})` });
         }
@@ -147,7 +149,10 @@ app.all('/gsc-get-tag', async (req, res) => {
                 let node = iter.iterateNext();
                 let lastNode = null;
                 while (node) { lastNode = node; node = iter.iterateNext(); }
-                if (lastNode) lastNode.click();
+                if (lastNode) {
+                    lastNode.removeAttribute('target');
+                    lastNode.click();
+                }
             });
             await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
         }
@@ -172,8 +177,10 @@ app.all('/gsc-get-tag', async (req, res) => {
             });
             
             // Đợi menu trượt xuống
+            logStep(`Đợi 2s sau dropdown`);
             await new Promise(r => setTimeout(r, 2000));
             
+            logStep(`Click Thêm tài sản`);
             console.log("Click Thêm tài sản...");
             await page.evaluate(() => {
                 const menuItems = document.querySelectorAll('[role="menuitem"]');
@@ -185,17 +192,22 @@ app.all('/gsc-get-tag', async (req, res) => {
                 }
             });
             
+            logStep(`Đợi 2s form Add property hiện`);
             // Đợi form Add Property bật lên
             await new Promise(r => setTimeout(r, 2000));
         }
 
+        logStep(`Đợi input[type=url] 10s`);
         // Đợi ô nhập URL xuất hiện và điền domain
         await page.waitForSelector('input[type="url"]', { timeout: 10000 });
         
+        logStep(`Clear input`);
         // Clear input trước khi điền để tránh dính chữ cũ
         await page.click('input[type="url"]', { clickCount: 3 });
+        logStep(`Gõ URL: ${url}`);
         await page.type('input[type="url"]', url);
         
+        logStep(`Click nút Tiếp tục`);
         // Bấm nút Tiếp tục (Continue) thay vì chỉ ấn Enter
         await page.evaluate(() => {
             const buttons = document.querySelectorAll('div[role="button"]');
@@ -207,6 +219,7 @@ app.all('/gsc-get-tag', async (req, res) => {
             }
         });
 
+        logStep(`Đợi Thẻ HTML 15s`);
         // Đợi thẻ HTML xuất hiện và click chọn
         // NẾU BỊ TIMEOUT Ở ĐÂY (15000ms exceeded) CÓ THỂ DO:
         // 1. Domain đã được xác minh từ trước -> Không hiện bảng mã nữa
@@ -217,13 +230,17 @@ app.all('/gsc-get-tag', async (req, res) => {
             return false;
         }, { timeout: 15000 });
         
+        logStep(`Đợi meta tag 5s`);
         await page.waitForSelector('meta[name="google-site-verification"]', { timeout: 5000 });
+        logStep(`Extract HTML`);
         const metaTag = await page.evaluate(() => document.querySelector('meta[name="google-site-verification"]')?.outerHTML);
         
+        logStep(`Đóng trình duyệt, OK`);
         await browser.close();
         if (metaTag) return res.json({ status: 'success', metaTag });
         return res.json({ status: 'fail', message: 'Không tìm thấy thẻ meta xác minh.' });
     } catch (error) {
+        logStep(`EXCEPTION BẮT ĐƯỢC: ${error.message}`);
         if (browser) {
             try {
                 const pages = await browser.pages();
@@ -232,13 +249,15 @@ app.all('/gsc-get-tag', async (req, res) => {
                     const path = require('path');
                     // Lưu HTML để chắc cú
                     try {
-                        const html = await pages[0].content();
+                        const activePage = pages[pages.length - 1];
+                        const html = await activePage.content();
                         fs.writeFileSync(path.join(__dirname, 'error.html'), html);
                     } catch(e) { console.error("Lỗi lấy HTML:", e.message); }
                     
                     // Chụp ảnh
                     try {
-                        await pages[0].screenshot({ path: path.join(__dirname, 'error.png'), fullPage: true });
+                        const activePage = pages[pages.length - 1];
+                        await activePage.screenshot({ path: path.join(__dirname, 'error.png'), fullPage: true });
                     } catch(e) { console.error("Lỗi chụp ảnh:", e.message); }
                 }
             } catch(ex) {}
