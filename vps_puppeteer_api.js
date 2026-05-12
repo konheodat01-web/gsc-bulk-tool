@@ -253,6 +253,18 @@ app.all('/gsc-get-tag', async (req, res) => {
             return false;
         }, { timeout: 10000 });
         
+        logStep(`Chuyển sang tab URL Prefix`);
+        await page.evaluate(() => {
+            // Tìm tab Tiền tố URL (URL Prefix) và click nó để kích hoạt
+            const iter = document.evaluate("//div[@role='tab']//span[contains(text(), 'URL prefix') or contains(text(), 'Tiền tố URL')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+            const tabNode = iter.singleNodeValue;
+            if (tabNode) {
+                const clickableTab = tabNode.closest('div[role="tab"]');
+                if (clickableTab) clickableTab.click();
+            }
+        });
+        await new Promise(r => setTimeout(r, 500)); // Đợi tab chuyển
+        
         logStep(`Clear input`);
         // Tìm selector chính xác của ô nhập
         const inputSelector = await page.evaluate(() => {
@@ -267,17 +279,9 @@ app.all('/gsc-get-tag', async (req, res) => {
         logStep(`Gõ URL: ${url}`);
         await page.type(inputSelector, url);
         
-        logStep(`Click nút Tiếp tục`);
-        // Bấm nút Tiếp tục (Continue) thay vì chỉ ấn Enter
-        await page.evaluate(() => {
-            const buttons = document.querySelectorAll('div[role="button"]');
-            for (let btn of buttons) {
-                if (btn.textContent && (btn.textContent.trim() === 'Continue' || btn.textContent.trim() === 'Tiếp tục')) {
-                    btn.click();
-                    return;
-                }
-            }
-        });
+        logStep(`Ấn Enter để Tiếp tục`);
+        // Ấn Enter trực tiếp từ ô input thay vì cố tìm nút Continue (vì có 2 nút Continue trên màn hình)
+        await page.keyboard.press('Enter');
 
         logStep(`Đợi Thẻ HTML 15s`);
         // Đợi thẻ HTML xuất hiện và click chọn
