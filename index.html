@@ -2675,8 +2675,8 @@
         // Tự động dùng HTTPS (port 3001) nếu trang đang chạy HTTPS để tránh Mixed Content
         const useHttps = location.protocol === 'https:';
         const apiUrl = useHttps
-            ? 'https://' + vpsIp.replace(/https?:\/\//, '').split(':')[0] + ':3001'
-            : (vpsIp.includes('http') ? vpsIp.replace(':3000','') : 'http://' + vpsIp) + ':3000';
+            ? 'https://' + vpsIp.replace(/https?:\/\//, '').split(':')[0] + ':3000'
+            : (vpsIp.includes('http') ? vpsIp.replace(/:300\d/,'') : 'http://' + vpsIp) + ':3002';
         if(lines.length === 0) return alert("Vui lòng nhập ít nhất 1 domain!");
         
         const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';

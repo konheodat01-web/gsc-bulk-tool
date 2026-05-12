@@ -300,16 +300,16 @@ app.all('/gsc-submit-sitemap', async (req, res) => {
     }
 });
 
-const HTTP_PORT = 3000;
-const HTTPS_PORT = 3001;
+const HTTP_PORT = 3002;
+const HTTPS_PORT = 3000;
 
-// Khởi động HTTP server (port 3000)
+// Khởi động HTTP server (port 3002)
 http.createServer(app).listen(HTTP_PORT, () => console.log('VPS API chạy HTTP tại port ' + HTTP_PORT));
 
-// Khởi động HTTPS server (port 3001) với self-signed cert
+// Khởi động HTTPS server (port 3000) với self-signed cert
 try {
-    const certPath = './ssl/cert.pem';
-    const keyPath  = './ssl/key.pem';
+    const certPath = __dirname + '/ssl/cert.pem';
+    const keyPath  = __dirname + '/ssl/key.pem';
     if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
         const httpsOptions = {
             key:  fs.readFileSync(keyPath),
