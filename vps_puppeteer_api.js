@@ -327,10 +327,33 @@ app.all('/gsc-get-tag', async (req, res) => {
             return res.json({ status: 'success', metaTag: 'AUTO_VERIFIED', message: 'Domain này đã được xác minh trước đó.' });
         }
 
-        logStep(`Đợi meta tag 5s`);
-        await page.waitForSelector('meta[name="google-site-verification"]', { timeout: 5000 });
+        logStep(`Đợi nội dung mã HTML 5s`);
+        await page.waitForFunction(() => {
+            const elements = Array.from(document.querySelectorAll('*'));
+            for (let el of elements) {
+                if ((el.value || '').includes('<meta name="google-site-verification"')) return true;
+                if ((el.textContent || '').includes('<meta name="google-site-verification"')) return true;
+            }
+            return false;
+        }, { timeout: 5000 });
+        
         logStep(`Extract HTML`);
-        const metaTag = await page.evaluate(() => document.querySelector('meta[name="google-site-verification"]')?.outerHTML);
+        const metaTag = await page.evaluate(() => {
+            const elements = Array.from(document.querySelectorAll('*'));
+            for (let el of elements) {
+                if (el.value && el.value.includes('<meta name="google-site-verification"')) {
+                    const match = el.value.match(/<meta name="google-site-verification"[^>]*>/);
+                    if (match) return match[0];
+                }
+            }
+            for (let el of elements) {
+                if (el.textContent && el.textContent.includes('<meta name="google-site-verification"')) {
+                    const match = el.textContent.match(/<meta name="google-site-verification"[^>]*>/);
+                    if (match) return match[0];
+                }
+            }
+            return null;
+        });
         
         logStep(`Đóng trình duyệt, OK`);
         await browser.close();
