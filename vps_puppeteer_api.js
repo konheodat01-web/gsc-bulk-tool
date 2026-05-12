@@ -414,18 +414,50 @@ app.all('/gsc-click-verify', async (req, res) => {
             } catch (e) {}
         }
         
-        await page.goto('https://search.google.com/search-console/ownership?resource_id=' + encodeURIComponent(url), { waitUntil: 'domcontentloaded' });
+        await page.goto('https://search.google.com/search-console', { waitUntil: 'domcontentloaded' });
         
+        // Cố gắng tìm ô nhập URL luôn (khi chưa có site nào)
+        let urlInput = await page.$('input[type="url"]');
+        if (!urlInput) {
+            // Mở dropdown Add property
+            await page.evaluate(() => {
+                const btn = document.querySelector('div[role="button"][jsaction="click:cOuCgd;"]');
+                if(btn) btn.click();
+            });
+            await new Promise(r => setTimeout(r, 2000));
+            
+            // Bấm thêm tài sản
+            await page.evaluate(() => {
+                const addBtns = Array.from(document.querySelectorAll('div[role="menuitem"]'));
+                for(let b of addBtns) {
+                    if((b.innerText||'').includes('Add property') || (b.innerText||'').includes('Thêm tài sản')) {
+                        b.click(); return;
+                    }
+                }
+            });
+            await new Promise(r => setTimeout(r, 2000));
+        }
+        
+        // Bấm tab URL Prefix
+        await page.evaluate(() => {
+            const tabs = document.querySelectorAll('div[role="tab"]');
+            if (tabs.length >= 2) tabs[1].click();
+        });
+        await new Promise(r => setTimeout(r, 500));
+        
+        // Clear ô nhập (nếu có chữ cũ) và gõ URL
+        await page.evaluate(() => { const i = document.querySelector('input[type="url"]'); if(i) i.value = ''; });
+        await page.type('input[type="url"]', url);
+        await new Promise(r => setTimeout(r, 500));
+        
+        // Bấm Enter để mở bảng Verify
+        await page.keyboard.press('Enter');
+        
+        // Đợi 4s cho bảng Verify hiện ra
+        await new Promise(r => setTimeout(r, 4000));
+
         await page.evaluate(async () => {
             const wait = (ms) => new Promise(r => setTimeout(r, ms));
-            
-            // 0. Nếu đang ở trang lỗi "Không có quyền", click nút "XÁC MINH QUYỀN SỞ HỮU CỦA BẠN"
-            const verifyBtnText = document.evaluate("//*[contains(text(), 'XÁC MINH QUYỀN SỞ HỮU') or contains(text(), 'VERIFY YOUR OWNERSHIP')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-            if (verifyBtnText) {
-                const btn = verifyBtnText.closest('[role="button"]') || verifyBtnText.closest('button') || verifyBtnText.closest('a') || verifyBtnText;
-                btn.click();
-                await wait(2000); // Đợi bảng chọn phương thức hiện ra
-            }
             
             // 1. Tìm và click mở tab 'Thẻ HTML' (HTML tag)
             const tagLabel = document.evaluate("//*[text()='HTML tag' or text()='Thẻ HTML']", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
@@ -454,7 +486,7 @@ app.all('/gsc-click-verify', async (req, res) => {
         await new Promise(r => setTimeout(r, 5000));
         const content = await page.content();
         
-        if (content.includes('Ownership verified') || content.includes('Đã xác minh')) {
+        if (content.includes('Ownership verified') || content.includes('Đã xác minh') || content.includes('Auto-verified') || content.includes('Tự động xác minh')) {
             await browser.close();
             return res.json({ status: 'success', message: 'Xác minh thành công!' });
         }
