@@ -89,7 +89,7 @@ app.post('/gsc-click-verify', async (req, res) => {
     try {
         browser = await puppeteer.launch({ headless: 'new', userDataDir: USER_DATA_DIR, args: ['--no-sandbox'] });
         const page = await browser.newPage();
-        await page.goto(\`https://search.google.com/search-console/ownership?resource_id=\${encodeURIComponent(url)}\`, { waitUntil: 'networkidle2' });
+        await page.goto(`https://search.google.com/search-console/ownership?resource_id=${encodeURIComponent(url)}`, { waitUntil: 'networkidle2' });
         const btnVerify = await page.$x("//span[contains(text(), 'Verify') or contains(text(), 'Xác minh')]");
         if (btnVerify.length > 0) await btnVerify[btnVerify.length - 1].click();
         await page.waitForTimeout(5000);
@@ -105,4 +105,4 @@ app.post('/gsc-click-verify', async (req, res) => {
 });
 
 const PORT = 3000;
-app.listen(PORT, () => console.log(\`VPS API đang chạy tại http://localhost:\${PORT}\`));
+app.listen(PORT, () => console.log(`VPS API đang chạy tại http://localhost:${PORT}`));
