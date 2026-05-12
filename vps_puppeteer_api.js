@@ -394,6 +394,37 @@ app.all('/gsc-submit-sitemap', async (req, res) => {
 const HTTP_PORT = 3002;
 const HTTPS_PORT = 3001;
 
+// API ĐỂ DEBUG: CHỤP ẢNH MÀN HÌNH VPS
+app.all('/debug', async (req, res) => {
+    let browser = null;
+    try {
+        const userDataDir = getProfilePath('gmail_2');
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
+        const page = await browser.newPage();
+        await page.setViewport({ width: 1920, height: 1080 });
+        const cookiesPath = path.join(userDataDir, 'cookies.json');
+        if (fs.existsSync(cookiesPath)) {
+            try {
+                const cookies = JSON.parse(fs.readFileSync(cookiesPath, 'utf8'));
+                for (let cookie of cookies) {
+                    if (!cookie.url) cookie.url = (cookie.secure ? "https://" : "http://") + cookie.domain.replace(/^\./, '');
+                    await page.setCookie(cookie);
+                }
+            } catch (e) {}
+        }
+        await page.goto('https://search.google.com/search-console', { waitUntil: 'networkidle2' });
+        await new Promise(r => setTimeout(r, 5000));
+        const screenshotBuffer = await page.screenshot({ fullPage: true });
+        await browser.close();
+        res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': screenshotBuffer.length });
+        return res.end(screenshotBuffer);
+    } catch (e) {
+        if (browser) await browser.close();
+        return res.status(500).send("Lỗi: " + e.message);
+    }
+});
+
+
 // Khởi động HTTP server (port 3002)
 http.createServer(app).listen(HTTP_PORT, () => console.log('VPS API chạy HTTP tại port ' + HTTP_PORT));
 
