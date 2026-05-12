@@ -534,23 +534,9 @@
     <div id="tab1" class="tab-content">
         <div class="card">
             <h3 style="margin-top:0">Bước 1: Quản lý Tài khoản Google <button class="help-btn" onclick="showHelp('gsc-account')" title="Hướng dẫn sử dụng">?</button></h3>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Tích chọn tài khoản muốn sử dụng để chạy Automation. Nếu bị lỗi chết Cookie, dán JSON mới vào ô tương ứng rồi bấm Đồng bộ lên VPS.</p>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
-                <!-- Cột trái: Chọn tài khoản -->
-                <div style="border-right: 1px solid rgba(255,255,255,0.1); padding-right: 20px;">
-                    <p style="font-size:12px; color:var(--text-muted); margin-top:0; margin-bottom:12px;">Chọn tài khoản muốn sử dụng để Add Web:</p>
-                    <div id="vpsProfileCheckboxes" style="display:flex; flex-wrap:wrap; gap:10px; width:100%; padding:5px; margin-bottom:15px;"></div>
-                </div>
-
-                <!-- Cột phải: Cập nhật Cookie -->
-                <div>
-                    <p style="font-size:12px; color:var(--text-muted); margin-top:0; margin-bottom:12px;">Đồng bộ Cookie mới lên VPS cho tài khoản đang chọn:</p>
-                    <textarea id="syncCookieData" placeholder="Dán nội dung mảng JSON copy từ tiện ích Export Cookie..." style="width: 100%; height: 80px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; color: #fff; font-size: 12px; font-family: monospace; resize: none; margin-bottom: 10px;"></textarea>
-                    <button class="btn btn-primary" id="btnSyncCookie" onclick="syncCookieToVPS()" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px;">
-                        <span>🔄</span> Đồng bộ Cookie Lên VPS
-                    </button>
-                </div>
-            </div>
+            <div id="vpsProfileCheckboxes" style="display:flex; flex-direction:column; gap:10px; width:100%; margin-bottom:15px; margin-top: 15px;"></div>
         </div>
         <div class="card" style="margin-top:20px;">
             <h3 style="margin-top:0">Bước 2: Website &amp; Sitemap <button class="help-btn" onclick="showHelp('gsc-sitemap')" title="Hướng dẫn sử dụng">?</button></h3>
@@ -1305,28 +1291,19 @@
     // =====================================================================
     // HÀM ĐỒNG BỘ COOKIE LÊN VPS
     // =====================================================================
-    async function syncCookieToVPS() {
-        const selectedProfiles = getSelectedVPSProfiles();
-        if (selectedProfiles.length === 0) {
-            alert('Vui lòng chọn ÍT NHẤT MỘT TÀI KHOẢN (cột bên trái) để đồng bộ Cookie!');
-            return;
-        }
-        if (selectedProfiles.length > 1) {
-            alert('Chỉ được chọn DUY NHẤT 1 TÀI KHOẢN để đồng bộ mỗi lần! Vui lòng bỏ chọn các tài khoản khác.');
-            return;
-        }
+    async function syncCookieForId(profileId) {
+        const inputEl = document.getElementById(`cookie_input_${profileId}`);
+        const btnEl = document.getElementById(`btn_sync_${profileId}`);
+        const cookieData = inputEl.value.trim();
         
-        const cookieData = document.getElementById('syncCookieData').value.trim();
         if (!cookieData) {
-            alert('Vui lòng dán nội dung Cookie JSON vào ô trống!');
+            alert('Vui lòng dán nội dung Cookie JSON vào ô trống của tài khoản ' + profileId + '!');
             return;
         }
         
-        const profileId = selectedProfiles[0].id;
-        const btn = document.getElementById('btnSyncCookie');
-        const oldHtml = btn.innerHTML;
-        btn.innerHTML = '⏳ Đang đồng bộ...';
-        btn.disabled = true;
+        const oldHtml = btnEl.innerHTML;
+        btnEl.innerHTML = '⏳ Đang đồng bộ...';
+        btnEl.parentNode.disabled = true;
         
         try {
             const res = await fetch(apiUrl + '/update-cookie', {
@@ -1337,15 +1314,15 @@
             const data = await res.json();
             if (data.status === 'success') {
                 alert(`✅ THÀNH CÔNG!\n\n${data.message}`);
-                document.getElementById('syncCookieData').value = ''; // Xóa trắng sau khi thành công
+                inputEl.value = ''; // Xóa trắng sau khi thành công
             } else {
                 alert(`❌ LỖI TỪ MÁY CHỦ:\n\n${data.message}`);
             }
         } catch (e) {
-            alert(`❌ LỖI KẾT NỐI:\n\nKhông thể kết nối đến VPS. Vui lòng kiểm tra lại API URL hoặc PM2 trên VPS.\n\nChi tiết: ${e.message}`);
+            alert(`❌ LỖI KẾT NỐI:\n\nKhông thể kết nối đến VPS.\nChi tiết: ${e.message}`);
         } finally {
-            btn.innerHTML = oldHtml;
-            btn.disabled = false;
+            btnEl.innerHTML = oldHtml;
+            btnEl.parentNode.disabled = false;
         }
     }
 
@@ -2715,7 +2692,18 @@
             const parts = line.split('|');
             const id = parts[0].trim();
             const name = (parts[1] || id).trim();
-            h += '<label style="cursor:pointer; display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.1); padding:5px 10px; border-radius:4px; font-size:12px;"><input type="checkbox" class="vps-profile-cb" value="'+id+'" data-name="'+name+'" '+(i===0?'checked':'')+'> '+name+' ('+id+')</label>';
+            h += `
+            <div style="display:flex; align-items:center; gap:15px; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border: 1px solid rgba(255,255,255,0.1);">
+                <label style="cursor:pointer; display:flex; align-items:center; gap:5px; font-size:13px; font-weight: bold; width: 220px; flex-shrink: 0; margin-bottom:0;">
+                    <input type="checkbox" class="vps-profile-cb" value="${id}" data-name="${name}" ${i===0?'checked':''}>
+                    ${name} (${id})
+                </label>
+                <textarea id="cookie_input_${id}" placeholder="Dán mã Cookie JSON mới vào đây..." style="flex-grow: 1; height: 35px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 7px 10px; color: #fff; font-size: 11px; font-family: monospace; resize: none; overflow: hidden; white-space: nowrap;"></textarea>
+                <button class="btn btn-primary" onclick="syncCookieForId('${id}')" style="flex-shrink: 0; padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                    <span id="btn_sync_${id}">🔄 Đồng bộ VPS</span>
+                </button>
+            </div>
+            `;
         });
         container.innerHTML = h;
     }
