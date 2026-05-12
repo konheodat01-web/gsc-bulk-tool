@@ -87,6 +87,7 @@ app.get('/init-profile', async (req, res) => {
             executablePath: getChromeExecutablePath(),
             headless: false, // Bật giao diện để đăng nhập
             userDataDir: userDataDir,
+            ignoreDefaultArgs: ['--enable-automation'],
             args: LAUNCH_ARGS
         });
         const page = await browser.newPage();
