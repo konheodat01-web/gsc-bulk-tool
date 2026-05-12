@@ -115,7 +115,7 @@ app.all('/gsc-get-tag', async (req, res) => {
         await page.goto('https://search.google.com/search-console/welcome', { waitUntil: 'networkidle2' });
         if (page.url().includes('accounts.google.com')) {
             await browser.close();
-            return res.status(401).json({ status: 'fail', message: 'Hết phiên đăng nhập.' });
+            return res.status(401).json({ status: 'fail', message: `Hết phiên đăng nhập. (Path: ${userDataDir})` });
         }
         await page.waitForSelector('input[type="url"]', { timeout: 10000 });
         await page.type('input[type="url"]', url);
