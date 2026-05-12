@@ -6688,5 +6688,33 @@ window.wfClearProgress = function(nodeId) {
             bPass.addEventListener('input', () => localStorage.setItem('basicAuthPass', bPass.value));
         }
     </script>
+
+<script>
+    // Auto inject Demo Workflow for n8n once
+    setTimeout(() => {
+        if (!localStorage.getItem('n8n_demo_injected_v1')) {
+            let lib = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+            var n8nWf = {
+                id: Date.now() + 1000,
+                name: "Demo: Bắn Từ Khóa sang n8n",
+                version: 1.0,
+                nodes: [
+                    { id: "n1", type: "input", x: 100, y: 150, data: { value: "Đau mỏi vai gáy\nThuốc trị thoái hóa cột sống" }, label: "1. Nhập Từ Khóa", inputIds: [], outputIds: ["n2"] },
+                    { id: "n2", type: "n8n-webhook", x: 450, y: 150, data: { webhookUrl: "https://<ip-vps>:5678/webhook/tao-bai-viet", method: "POST", customData: "{\"keywords\": \"{{input}}\"}" }, label: "2. Bắn sang n8n", inputIds: ["n1"], outputIds: [] }
+                ],
+                connections: [
+                    { id: "c1", from: "n1", to: "n2" }
+                ],
+                updatedAt: Date.now()
+            };
+            lib.unshift(n8nWf);
+            localStorage.setItem('wf_builder_list', JSON.stringify(lib));
+            localStorage.setItem('n8n_demo_injected_v1', '1');
+            if (typeof syncWorkflowsToFirebase === 'function') syncWorkflowsToFirebase(lib);
+            if (typeof renderWorkflowLibrary === 'function') renderWorkflowLibrary();
+            console.log('✅ Injected Demo n8n Workflow!');
+        }
+    }, 2000);
+</script>
 </body>
 </html>
