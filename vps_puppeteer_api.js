@@ -410,25 +410,50 @@ app.all('/gsc-click-verify', async (req, res) => {
         }
         
         await page.goto('https://search.google.com/search-console/ownership?resource_id=' + encodeURIComponent(url), { waitUntil: 'networkidle2' });
-        await page.evaluate(() => {
+        
+        await page.evaluate(async () => {
+            const wait = (ms) => new Promise(r => setTimeout(r, ms));
+            // 1. Tìm và click mở tab 'Thẻ HTML' (HTML tag)
+            const tagLabel = document.evaluate("//*[text()='HTML tag' or text()='Thẻ HTML']", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            if (tagLabel) {
+                const clickableLabel = tagLabel.closest('[role="button"]') || tagLabel.closest('[jsaction]') || tagLabel.closest('div.F93BIf') || tagLabel;
+                clickableLabel.click();
+                await wait(1000); // Đợi tab mở ra
+            }
+            
+            // 2. Tìm tất cả các nút Xác minh (Verify)
             const iter = document.evaluate("//*[text()='Verify' or text()='Xác minh' or text()='VERIFY' or text()='XÁC MINH']", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
             let node = iter.iterateNext();
-            let lastNode = null;
-            while (node) { lastNode = node; node = iter.iterateNext(); }
-            if (lastNode) {
-                const btn = lastNode.closest('[role="button"]') || lastNode.closest('button') || lastNode;
-                btn.click();
+            let buttons = [];
+            while (node) { 
+                const btn = node.closest('[role="button"]') || node.closest('button') || node;
+                buttons.push(btn);
+                node = iter.iterateNext(); 
+            }
+            
+            // 3. Click nút Xác minh CUỐI CÙNG (thường là nút của Thẻ HTML sau khi mở)
+            if (buttons.length > 0) {
+                buttons[buttons.length - 1].click();
             }
         });
+        
         await new Promise(r => setTimeout(r, 5000));
         const content = await page.content();
-        await browser.close();
+        
         if (content.includes('Ownership verified') || content.includes('Đã xác minh')) {
+            await browser.close();
             return res.json({ status: 'success', message: 'Xác minh thành công!' });
         }
+        
+        try {
+            await page.screenshot({ path: path.join(__dirname, 'error_verify.png') });
+            fs.writeFileSync(path.join(__dirname, 'error_verify.html'), content);
+        } catch(e){}
+        await browser.close();
         return res.json({ status: 'fail', message: 'Lỗi xác minh.' });
     } catch (error) {
-        if (browser) await browser.close(); return res.status(500).json({ error: true, message: error.message });
+        if (browser) await browser.close(); 
+        return res.status(500).json({ error: true, message: error.message });
     }
 });
 
