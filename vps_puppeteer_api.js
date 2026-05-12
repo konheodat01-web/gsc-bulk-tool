@@ -411,11 +411,14 @@ app.all('/gsc-click-verify', async (req, res) => {
         
         await page.goto('https://search.google.com/search-console/ownership?resource_id=' + encodeURIComponent(url), { waitUntil: 'networkidle2' });
         await page.evaluate(() => {
-            const iter = document.evaluate("//span[contains(text(), 'Verify') or contains(text(), 'Xác minh')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+            const iter = document.evaluate("//*[text()='Verify' or text()='Xác minh' or text()='VERIFY' or text()='XÁC MINH']", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
             let node = iter.iterateNext();
             let lastNode = null;
             while (node) { lastNode = node; node = iter.iterateNext(); }
-            if (lastNode) lastNode.click();
+            if (lastNode) {
+                const btn = lastNode.closest('[role="button"]') || lastNode.closest('button') || lastNode;
+                btn.click();
+            }
         });
         await new Promise(r => setTimeout(r, 5000));
         const content = await page.content();
