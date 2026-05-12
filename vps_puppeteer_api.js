@@ -127,17 +127,19 @@ app.all('/gsc-get-tag', async (req, res) => {
             } catch (e) { console.error("Lỗi bơm cookie cứng:", e.message); }
         }
 
-        await page.goto('https://search.google.com/search-console/welcome', { waitUntil: 'networkidle2' });
+        // Thay vì vào trang /welcome (hay bị redirect nếu acc đã có web), ta nhảy thẳng vào trang Xác minh của chính domain đó luôn!
+        await page.goto('https://search.google.com/search-console/ownership?resource_id=' + encodeURIComponent(url), { waitUntil: 'networkidle2' });
+        
         if (page.url().includes('accounts.google.com')) {
             await browser.close();
             return res.status(401).json({ status: 'fail', message: `Hết phiên đăng nhập. (Path: ${userDataDir})` });
         }
-        await page.waitForSelector('input[type="url"]', { timeout: 10000 });
-        await page.type('input[type="url"]', url);
-        await page.keyboard.press('Enter');
+
+        // Đợi thẻ HTML xuất hiện (vì vào link ownership là nó tự bung bảng xác minh)
         await page.waitForXPath("//div[contains(text(), 'HTML tag') or contains(text(), 'Thẻ HTML')]", { timeout: 15000 });
         const htmlTagTabs = await page.$x("//div[contains(text(), 'HTML tag') or contains(text(), 'Thẻ HTML')]");
         if (htmlTagTabs.length > 0) await htmlTagTabs[0].click();
+        
         await page.waitForSelector('meta[name="google-site-verification"]', { timeout: 5000 });
         const metaTag = await page.evaluate(() => document.querySelector('meta[name="google-site-verification"]')?.outerHTML);
         await browser.close();
