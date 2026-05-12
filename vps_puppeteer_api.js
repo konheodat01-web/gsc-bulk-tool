@@ -175,10 +175,24 @@ app.all('/gsc-get-tag', async (req, res) => {
 
         // Đợi ô nhập URL xuất hiện và điền domain
         await page.waitForSelector('input[type="url"]', { timeout: 10000 });
+        
+        // Clear input trước khi điền để tránh dính chữ cũ
+        await page.click('input[type="url"]', { clickCount: 3 });
         await page.type('input[type="url"]', url);
-        await page.keyboard.press('Enter');
+        
+        // Bấm nút Tiếp tục (Continue) thay vì chỉ ấn Enter
+        await page.evaluate(() => {
+            const iter = document.evaluate("//*[contains(text(), 'Continue') or contains(text(), 'Tiếp tục')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+            let node = iter.iterateNext();
+            let lastNode = null;
+            while (node) { lastNode = node; node = iter.iterateNext(); }
+            if (lastNode) lastNode.click();
+        });
 
         // Đợi thẻ HTML xuất hiện và click chọn
+        // NẾU BỊ TIMEOUT Ở ĐÂY (15000ms exceeded) CÓ THỂ DO:
+        // 1. Domain đã được xác minh từ trước -> Không hiện bảng mã nữa
+        // 2. Mạng quá chậm
         await page.waitForFunction(() => {
             const el = document.evaluate("//div[contains(text(), 'HTML tag') or contains(text(), 'Thẻ HTML')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
             if (el) { el.click(); return true; }
