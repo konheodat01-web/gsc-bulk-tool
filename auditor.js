@@ -51,8 +51,8 @@ async function startAnalysis() {
     document.getElementById('progressBar').style.width = '0%';
     
     // Reset giao diện và ẩn toàn bộ các cột kiểm tra mặc định
-    document.querySelector('table').className = '';
-    const tbody = document.getElementById('resultBody');
+    document.getElementById('resultTable').className = 'dashboard-table';
+    const tbody = document.getElementById('auditorResultBody');
     tbody.innerHTML = '';
     globalResults = [];
 
@@ -674,7 +674,7 @@ function renderResult(index, data) {
     if (data.error) return; // Mạng lỗi đã render ở trên
 
     // Cập nhật trạng thái hiển thị của các cột nếu có lỗi
-    let table = document.querySelector('table');
+    let table = document.getElementById('resultTable');
     if (data.titleStatus === 'fail' || data.titleStatus === 'warn') table.classList.add('show-title');
     if (data.descStatus === 'fail' || data.descStatus === 'warn') table.classList.add('show-desc');
     if (data.h1Status === 'fail' || data.h1Status === 'warn') table.classList.add('show-h1');
