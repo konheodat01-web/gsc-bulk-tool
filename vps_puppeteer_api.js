@@ -161,6 +161,13 @@ app.all('/gsc-get-tag', async (req, res) => {
             });
             logStep(`Đã bấm Start Now, đợi chuyển trang...`);
             await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
+            
+            // KIỂM TRA LẠI LẦN NỮA SAU KHI CLICK START NOW
+            if (page.url().includes('accounts.google.com')) {
+                logStep(`Bị đá ra login sau khi bấm Start Now. Cookie chết.`);
+                await browser.close();
+                return res.status(401).json({ status: 'fail', message: `Cookie đã hết hạn hoặc bị Google chặn. Vui lòng lấy Cookie mới! (Path: ${userDataDir})` });
+            }
         }
 
         logStep(`Kiểm tra ô nhập URL...`);
