@@ -132,11 +132,24 @@ app.all('/gsc-get-tag', async (req, res) => {
 
         // Vào trang chủ GSC
         await page.goto('https://search.google.com/search-console', { waitUntil: 'networkidle2' });
-        
-        // Nếu bị đá ra trang login hoặc trang giới thiệu (marketing page), nghĩa là Cookie đã chết!
-        if (page.url().includes('accounts.google.com') || page.url().includes('search-console/about')) {
+
+        // Nếu bị đá ra trang login, nghĩa là Cookie đã chết!
+        if (page.url().includes('accounts.google.com')) {
             await browser.close();
             return res.status(401).json({ status: 'fail', message: `Cookie đã hết hạn hoặc bị Google chặn. Vui lòng lấy Cookie mới! (Path: ${userDataDir})` });
+        }
+
+        // Xử lý trường hợp tài khoản mới toanh chưa từng dùng GSC (sẽ bị chuyển sang trang /about)
+        if (page.url().includes('search-console/about')) {
+            console.log("Phát hiện tài khoản mới, đang bấm nút Start Now...");
+            await page.evaluate(() => {
+                const iter = document.evaluate("//*[contains(text(), 'Start now') or contains(text(), 'Bắt đầu')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+                let node = iter.iterateNext();
+                let lastNode = null;
+                while (node) { lastNode = node; node = iter.iterateNext(); }
+                if (lastNode) lastNode.click();
+            });
+            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
         }
 
         // Cố gắng tìm ô nhập URL. Nếu chưa có, ta phải click mở Dropdown chọn "Thêm tài sản"
