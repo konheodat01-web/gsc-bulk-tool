@@ -143,6 +143,7 @@ app.all('/gsc-get-tag', async (req, res) => {
 
         // Xử lý trường hợp tài khoản mới toanh chưa từng dùng GSC (sẽ bị chuyển sang trang /about)
         if (page.url().includes('search-console/about')) {
+            logStep(`Phát hiện tài khoản mới ở trang /about, tìm nút Start Now...`);
             console.log("Phát hiện tài khoản mới, đang bấm nút Start Now...");
             await page.evaluate(() => {
                 const iter = document.evaluate("//*[contains(text(), 'Start now') or contains(text(), 'Bắt đầu')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
@@ -154,16 +155,20 @@ app.all('/gsc-get-tag', async (req, res) => {
                     lastNode.click();
                 }
             });
+            logStep(`Đã bấm Start Now, đợi chuyển trang...`);
             await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
         }
 
+        logStep(`Kiểm tra ô nhập URL...`);
         // Cố gắng tìm ô nhập URL. Nếu chưa có, ta phải click mở Dropdown chọn "Thêm tài sản"
         let inputExists = await page.$('input[type="url"]');
         if (!inputExists) {
+            logStep(`Không có sẵn ô nhập URL, đợi GSC load 4s...`);
             console.log("Đang ở Dashboard, đợi GSC load giao diện...");
             // GSC tải rất chậm, cần đợi 4s để các nút bấm được render đầy đủ
             await new Promise(r => setTimeout(r, 4000));
             
+            logStep(`Mở Dropdown...`);
             console.log("Click mở Dropdown chọn Property...");
             await page.evaluate(() => {
                 const nav = document.querySelector('nav');
@@ -495,6 +500,18 @@ app.all('/debug-html', (req, res) => {
     }
 });
 
+// API ĐỂ DEBUG: XEM NHẬT KÝ CHẠY
+app.all('/debug-log', (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    const logPath = path.join(__dirname, 'debug_status.txt');
+    if (fs.existsSync(logPath)) {
+        res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end(fs.readFileSync(logPath));
+    } else {
+        res.status(404).send('Chưa có log nào!');
+    }
+});
 
 // Khởi động HTTP server (port 3002)
 http.createServer(app).listen(HTTP_PORT, () => console.log('VPS API chạy HTTP tại port ' + HTTP_PORT));
