@@ -127,15 +127,39 @@ app.all('/gsc-get-tag', async (req, res) => {
             } catch (e) { console.error("Lỗi bơm cookie cứng:", e.message); }
         }
 
-        // Thay vì vào trang /welcome (hay bị redirect nếu acc đã có web), ta nhảy thẳng vào trang Xác minh của chính domain đó luôn!
-        await page.goto('https://search.google.com/search-console/ownership?resource_id=' + encodeURIComponent(url), { waitUntil: 'networkidle2' });
+        // Vào trang chủ GSC
+        await page.goto('https://search.google.com/search-console', { waitUntil: 'networkidle2' });
         
         if (page.url().includes('accounts.google.com')) {
             await browser.close();
             return res.status(401).json({ status: 'fail', message: `Hết phiên đăng nhập. (Path: ${userDataDir})` });
         }
 
-        // Đợi thẻ HTML xuất hiện (vì vào link ownership là nó tự bung bảng xác minh)
+        // Cố gắng tìm ô nhập URL. Nếu chưa có, ta phải click mở Dropdown chọn "Thêm tài sản"
+        let inputExists = await page.$('input[type="url"]');
+        if (!inputExists) {
+            await page.evaluate(() => {
+                const dropdowns = Array.from(document.querySelectorAll('div[role="button"][aria-haspopup="listbox"]'));
+                if (dropdowns.length > 0) dropdowns[0].click();
+            });
+            await new Promise(r => setTimeout(r, 1000));
+            
+            await page.evaluate(() => {
+                const iter = document.evaluate("//div[contains(text(), 'Add property') or contains(text(), 'Thêm tài sản')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+                let node = iter.iterateNext();
+                let lastNode = null;
+                while (node) { lastNode = node; node = iter.iterateNext(); }
+                if (lastNode) lastNode.click();
+            });
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        // Đợi ô nhập URL xuất hiện và điền domain
+        await page.waitForSelector('input[type="url"]', { timeout: 10000 });
+        await page.type('input[type="url"]', url);
+        await page.keyboard.press('Enter');
+
+        // Đợi thẻ HTML xuất hiện và click chọn
         await page.waitForFunction(() => {
             const el = document.evaluate("//div[contains(text(), 'HTML tag') or contains(text(), 'Thẻ HTML')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
             if (el) { el.click(); return true; }
