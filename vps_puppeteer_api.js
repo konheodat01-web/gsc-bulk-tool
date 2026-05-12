@@ -141,21 +141,26 @@ app.all('/gsc-get-tag', async (req, res) => {
         // Cố gắng tìm ô nhập URL. Nếu chưa có, ta phải click mở Dropdown chọn "Thêm tài sản"
         let inputExists = await page.$('input[type="url"]');
         if (!inputExists) {
+            console.log("Đang ở Dashboard, đợi GSC load giao diện...");
+            // GSC tải rất chậm, cần đợi 4s để các nút bấm được render đầy đủ
+            await new Promise(r => setTimeout(r, 4000));
+            
+            console.log("Click mở Dropdown chọn Property...");
             await page.evaluate(() => {
-                // Thử tìm tất cả các thẻ có class liên quan đến selector property hoặc div chứa icon tam giác chúc xuống
-                // Thường nút chọn property nằm trong sidebar (nav)
                 const nav = document.querySelector('nav');
                 if (nav) {
                     const dropdowns = Array.from(nav.querySelectorAll('div[role="button"]'));
                     if (dropdowns.length > 0) dropdowns[0].click();
                 } else {
-                    // Fallback
                     const dropdowns = Array.from(document.querySelectorAll('div[role="button"][aria-haspopup="listbox"]'));
                     if (dropdowns.length > 0) dropdowns[0].click();
                 }
             });
-            await new Promise(r => setTimeout(r, 1500));
             
+            // Đợi menu trượt xuống
+            await new Promise(r => setTimeout(r, 2000));
+            
+            console.log("Click Thêm tài sản...");
             await page.evaluate(() => {
                 const iter = document.evaluate("//*[contains(text(), 'Add property') or contains(text(), 'Thêm tài sản')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
                 let node = iter.iterateNext();
@@ -163,7 +168,9 @@ app.all('/gsc-get-tag', async (req, res) => {
                 while (node) { lastNode = node; node = iter.iterateNext(); }
                 if (lastNode) lastNode.click();
             });
-            await new Promise(r => setTimeout(r, 1500));
+            
+            // Đợi form Add Property bật lên
+            await new Promise(r => setTimeout(r, 2000));
         }
 
         // Đợi ô nhập URL xuất hiện và điền domain
