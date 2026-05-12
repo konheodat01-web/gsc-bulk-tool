@@ -98,7 +98,7 @@ app.get('/init-profile', async (req, res) => {
         await page.evaluateOnNewDocument(() => {
             Object.defineProperty(navigator, 'webdriver', { get: () => false });
         });
-        await page.goto('https://accounts.google.com/', { waitUntil: 'networkidle2' });
+        await page.goto('https://accounts.google.com/', { waitUntil: 'domcontentloaded' });
         res.json({ status: 'success', message: 'Mở cửa sổ Chrome mới, đăng nhập và đóng lại.' });
     } catch (error) { res.status(500).json({ error: true, message: error.message }); }
 });
@@ -161,7 +161,7 @@ app.all('/gsc-get-tag', async (req, res) => {
         await page.setViewport({ width: 1920, height: 1080 });
 
         // Vào trang chủ GSC
-        await page.goto('https://search.google.com/search-console', { waitUntil: 'networkidle2' });
+        await page.goto('https://search.google.com/search-console', { waitUntil: 'domcontentloaded' });
 
         logStep(`Kiểm tra auth... URL hiện tại: ${page.url()}`);
         // Nếu bị đá ra trang login, nghĩa là Cookie đã chết!
@@ -186,7 +186,7 @@ app.all('/gsc-get-tag', async (req, res) => {
                 }
             });
             logStep(`Đã bấm Start Now, đợi chuyển trang...`);
-            await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
+            await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
             
             // KIỂM TRA LẠI LẦN NỮA SAU KHI CLICK START NOW
             if (page.url().includes('accounts.google.com')) {
@@ -409,7 +409,7 @@ app.all('/gsc-click-verify', async (req, res) => {
             } catch (e) {}
         }
         
-        await page.goto('https://search.google.com/search-console/ownership?resource_id=' + encodeURIComponent(url), { waitUntil: 'networkidle2' });
+        await page.goto('https://search.google.com/search-console/ownership?resource_id=' + encodeURIComponent(url), { waitUntil: 'domcontentloaded' });
         
         await page.evaluate(async () => {
             const wait = (ms) => new Promise(r => setTimeout(r, ms));
@@ -471,7 +471,7 @@ app.all('/wp-inject-tag', async (req, res) => {
         // 1. Đăng nhập
         const loginUrl = wpUrl.replace(/\/$/, '') + '/' + adminPath.replace(/^\//, '');
         console.log('WP Inject - Logging into:', loginUrl);
-        await page.goto(loginUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+        await page.goto(loginUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
         
         const userField = await page.$('#user_login');
         if (!userField) throw new Error('Không tìm thấy form đăng nhập WP');
@@ -480,7 +480,7 @@ app.all('/wp-inject-tag', async (req, res) => {
         await page.type('#user_pass', pass);
         await Promise.all([
             page.click('#wp-submit'),
-            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {})
+            page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {})
         ]);
         
         if (page.url().includes('wp-login.php')) {
@@ -489,7 +489,7 @@ app.all('/wp-inject-tag', async (req, res) => {
 
         // 2. Tìm hoặc Cài đặt WPCode
         const installUrl = wpUrl.replace(/\/$/, '') + '/wp-admin/plugin-install.php?s=wpcode&tab=search&type=term';
-        await page.goto(installUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+        await page.goto(installUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
         
         const wpcodeCard = await page.$('.plugin-card-insert-headers-and-footers');
         if (wpcodeCard) {
@@ -512,7 +512,7 @@ app.all('/wp-inject-tag', async (req, res) => {
                 console.log('WP Inject - Activating WPCode...');
                 await Promise.all([
                     activateBtn.click(),
-                    page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {})
+                    page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {})
                 ]);
             }
         }
@@ -520,7 +520,7 @@ app.all('/wp-inject-tag', async (req, res) => {
         // 3. Chèn Mã vào Header
         console.log('WP Inject - Inserting Meta Tag...');
         const wpcodeSettingsUrl = wpUrl.replace(/\/$/, '') + '/wp-admin/admin.php?page=wpcode-headers-footers';
-        await page.goto(wpcodeSettingsUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+        await page.goto(wpcodeSettingsUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
         
         // WPCode sử dụng CodeMirror. Ta cần nhét mã vào qua JS.
         await page.evaluate((tag) => {
@@ -540,7 +540,7 @@ app.all('/wp-inject-tag', async (req, res) => {
             if(submitBtn) submitBtn.click();
         }, metaTag);
         
-        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
+        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
         
         await browser.close();
         return res.json({ status: 'success', message: 'Đã chèn mã xác minh vào WPCode' });
@@ -564,7 +564,7 @@ app.all('/gsc-submit-sitemap', async (req, res) => {
         browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
         const page = await browser.newPage();
         
-        await page.goto('https://search.google.com/search-console/sitemaps?resource_id=' + encodeURIComponent(url), { waitUntil: 'networkidle2' });
+        await page.goto('https://search.google.com/search-console/sitemaps?resource_id=' + encodeURIComponent(url), { waitUntil: 'domcontentloaded' });
         
         let results = [];
         for (const sitemap of sitemaps) {
