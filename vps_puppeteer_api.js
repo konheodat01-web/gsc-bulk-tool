@@ -418,6 +418,15 @@ app.all('/gsc-click-verify', async (req, res) => {
         
         await page.evaluate(async () => {
             const wait = (ms) => new Promise(r => setTimeout(r, ms));
+            
+            // 0. Nếu đang ở trang lỗi "Không có quyền", click nút "XÁC MINH QUYỀN SỞ HỮU CỦA BẠN"
+            const verifyBtnText = document.evaluate("//*[contains(text(), 'XÁC MINH QUYỀN SỞ HỮU') or contains(text(), 'VERIFY YOUR OWNERSHIP')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            if (verifyBtnText) {
+                const btn = verifyBtnText.closest('[role="button"]') || verifyBtnText.closest('button') || verifyBtnText.closest('a') || verifyBtnText;
+                btn.click();
+                await wait(2000); // Đợi bảng chọn phương thức hiện ra
+            }
+            
             // 1. Tìm và click mở tab 'Thẻ HTML' (HTML tag)
             const tagLabel = document.evaluate("//*[text()='HTML tag' or text()='Thẻ HTML']", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
             if (tagLabel) {
