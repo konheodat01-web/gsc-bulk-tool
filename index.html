@@ -1301,7 +1301,7 @@
             return;
         }
 
-        const vpsIp = document.getElementById('vpsIp').value;
+        const vpsIp = localStorage.getItem('vps_ip') || '';
         if(!vpsIp) { alert("Vui lòng điền IP VPS ở phần Cài đặt chung (Bánh răng góc phải)!"); return; }
         const useHttps = location.protocol === 'https:';
         const apiUrl = useHttps
