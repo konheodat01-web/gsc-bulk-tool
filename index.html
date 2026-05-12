@@ -542,8 +542,8 @@
             <div style="margin-top: 20px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid var(--primary); border-radius: 4px;">
                 <h4 style="margin-top:0; font-size:13px; color: var(--primary); margin-bottom: 10px;">🤖 CHẾ ĐỘ VPS TỰ ĐỘNG (Không cần Popup)</h4>
                 <div style="display:flex; gap:10px; margin-bottom: 10px;">
-                    <input type="text" id="vpsIp" placeholder="Nhập IP VPS (Ví dụ: 103.82.195.87)" style="flex:1; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; padding: 8px; border-radius: 4px;">
-                    <input type="text" id="vpsProfileId" placeholder="Profile ID (VD: gmail_1)" style="flex:1; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; padding: 8px; border-radius: 4px;">
+                    
+                    <input type="text" id="vpsProfileId" placeholder="Nhập Profile ID (Ví dụ: gmail_1, gmail_2...)" style="flex:1; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; padding: 8px; border-radius: 4px;">
                 </div>
                 <button class="btn btn-primary" onclick="startVpsProcess()" style="width: 100%; background: var(--primary); border: none; padding: 10px; border-radius: 4px; color: white; font-weight: bold; cursor: pointer;">🚀 Bắt đầu Add & Lấy Mã (Qua VPS)</button>
             </div>
@@ -2655,11 +2655,11 @@
     
     // --- VPS AUTOMATION LOGIC ---
     async function startVpsProcess() {
-        const vpsIp = document.getElementById('vpsIp').value.trim();
+        const vpsIp = localStorage.getItem('vps_ip') || '';
         const profileId = document.getElementById('vpsProfileId').value.trim();
         const lines = document.getElementById('domainList').value.split('\n').filter(l => l.trim());
         
-        if(!vpsIp || !profileId) return alert("Vui lòng nhập IP VPS và Profile ID!");
+        if(!vpsIp) return alert("Sếp chưa điền IP VPS ở phần Cài đặt chung (icon Bánh răng góc phải)!"); if(!profileId) return alert("Vui lòng nhập Profile ID (VD: gmail_1)!");
         if(lines.length === 0) return alert("Vui lòng nhập ít nhất 1 domain!");
         
         const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';
