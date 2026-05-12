@@ -283,17 +283,46 @@ app.all('/gsc-get-tag', async (req, res) => {
         // Ấn Enter trực tiếp từ ô input thay vì cố tìm nút Continue (vì có 2 nút Continue trên màn hình)
         await page.keyboard.press('Enter');
 
-        logStep(`Đợi Thẻ HTML 15s`);
-        // Đợi thẻ HTML xuất hiện và click chọn
-        // NẾU BỊ TIMEOUT Ở ĐÂY (15000ms exceeded) CÓ THỂ DO:
-        // 1. Domain đã được xác minh từ trước -> Không hiện bảng mã nữa
-        // 2. Mạng quá chậm
+        logStep(`Đợi Thẻ HTML hoặc Auto-verified 15s`);
+        // Đợi thẻ HTML xuất hiện HOẶC thông báo đã xác minh tự động
         await page.waitForFunction(() => {
+            // Kiểm tra xem có Thẻ HTML không
             const el = document.evaluate("//div[contains(text(), 'HTML tag') or contains(text(), 'Thẻ HTML')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
             if (el) { el.click(); return true; }
+            
+            // Kiểm tra xem đã xác minh tự động chưa
+            const elements = Array.from(document.querySelectorAll('*'));
+            for (let e of elements) {
+                if (e.textContent) {
+                    const txt = e.textContent.toLowerCase();
+                    if (txt.includes('tự động xác minh') || txt.includes('auto verified') || txt.includes('đã được xác minh') || txt.includes('đã tự động xác minh')) {
+                        return true;
+                    }
+                }
+            }
             return false;
         }, { timeout: 15000 });
         
+        // Kiểm tra trạng thái hiện tại
+        const isAutoVerified = await page.evaluate(() => {
+            const elements = Array.from(document.querySelectorAll('*'));
+            for (let e of elements) {
+                if (e.textContent) {
+                    const txt = e.textContent.toLowerCase();
+                    if (txt.includes('tự động xác minh') || txt.includes('auto verified') || txt.includes('đã được xác minh') || txt.includes('đã tự động xác minh')) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+
+        if (isAutoVerified) {
+            logStep(`Trạng thái: Đã tự động xác minh`);
+            await browser.close();
+            return res.json({ status: 'success', metaTag: 'AUTO_VERIFIED', message: 'Domain này đã được xác minh trước đó.' });
+        }
+
         logStep(`Đợi meta tag 5s`);
         await page.waitForSelector('meta[name="google-site-verification"]', { timeout: 5000 });
         logStep(`Extract HTML`);
