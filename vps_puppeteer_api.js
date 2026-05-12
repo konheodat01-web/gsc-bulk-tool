@@ -656,6 +656,17 @@ app.all('/debug-log', (req, res) => {
     }
 });
 
+app.all('/debug-verify-img', (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    const imgPath = path.join(__dirname, 'error_verify.png');
+    if (fs.existsSync(imgPath)) {
+        res.sendFile(imgPath);
+    } else {
+        res.status(404).send('Not found');
+    }
+});
+
 // Khởi động HTTP server (port 3002)
 http.createServer(app).listen(HTTP_PORT, () => console.log('VPS API chạy HTTP tại port ' + HTTP_PORT));
 
