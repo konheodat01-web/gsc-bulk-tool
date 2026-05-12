@@ -1303,6 +1303,10 @@
 
         const vpsIp = localStorage.getItem('vps_ip') || '';
         if(!vpsIp) { alert("Vui lòng điền IP VPS ở phần Cài đặt chung (Bánh răng góc phải)!"); return; }
+        
+        // Lưu lại Cookie để không bị mất khi F5
+        localStorage.setItem('cookie_json_' + profileId, cookieData);
+
         const useHttps = location.protocol === 'https:';
         const apiUrl = useHttps
             ? 'https://' + vpsIp.replace(/https?:\/\//, '').split(':')[0] + ':3001'
@@ -2705,7 +2709,7 @@
                     <input type="checkbox" class="vps-profile-cb" value="${id}" data-name="${name}" ${i===0?'checked':''}>
                     ${name} (${id})
                 </label>
-                <textarea id="cookie_input_${id}" placeholder="Dán mã Cookie JSON mới vào đây..." style="flex-grow: 1; height: 35px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 7px 10px; color: #fff; font-size: 11px; font-family: monospace; resize: none; overflow: hidden; white-space: nowrap;"></textarea>
+                <textarea id="cookie_input_${id}" placeholder="Dán mã Cookie JSON mới vào đây..." style="flex-grow: 1; height: 35px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 7px 10px; color: #fff; font-size: 11px; font-family: monospace; resize: none; overflow: hidden; white-space: nowrap;">${localStorage.getItem('cookie_json_' + id) || ''}</textarea>
                 <button class="btn btn-primary" onclick="syncCookieForId('${id}')" style="flex-shrink: 0; padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 5px;">
                     <span id="btn_sync_${id}">🔄 Đồng bộ VPS</span>
                 </button>
