@@ -225,10 +225,12 @@ app.all('/gsc-get-tag', async (req, res) => {
             logStep(`Click Thêm tài sản`);
             console.log("Click Thêm tài sản...");
             await page.evaluate(() => {
-                const menuItems = document.querySelectorAll('[role="menuitem"]');
-                for (let item of menuItems) {
-                    if (item.textContent && (item.textContent.includes('Add property') || item.textContent.includes('Thêm tài sản'))) {
-                        item.click();
+                const elements = Array.from(document.querySelectorAll('*'));
+                for (let el of elements) {
+                    const txt = el.textContent ? el.textContent.trim() : '';
+                    if (txt === 'Add property' || txt === 'Thêm tài sản') {
+                        let clickable = el.closest('[role="option"]') || el.closest('[role="menuitem"]') || el.closest('div[jsaction]') || el;
+                        clickable.click();
                         return;
                     }
                 }
