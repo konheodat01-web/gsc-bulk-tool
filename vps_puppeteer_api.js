@@ -108,7 +108,7 @@ app.post('/gsc-get-tag', async (req, res) => {
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
-        browser = await puppeteer.launch({ headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
         const page = await browser.newPage();
         await page.goto('https://search.google.com/search-console/welcome', { waitUntil: 'networkidle2' });
         if (page.url().includes('accounts.google.com')) {
@@ -138,7 +138,7 @@ app.post('/gsc-click-verify', async (req, res) => {
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
-        browser = await puppeteer.launch({ headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
         const page = await browser.newPage();
         await page.goto('https://search.google.com/search-console/ownership?resource_id=' + encodeURIComponent(url), { waitUntil: 'networkidle2' });
         const btnVerify = await page.$x("//span[contains(text(), 'Verify') or contains(text(), 'Xác minh')]");

@@ -536,17 +536,7 @@
             <h3 style="margin-top:0">Bước 1: Quản lý Tài khoản Google <button class="help-btn" onclick="showHelp('gsc-account')" title="Hướng dẫn sử dụng">?</button></h3>
             <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Thêm các tài khoản GSC của bạn vào đây. Chọn tài khoản muốn sử dụng để Add Web.</p>
             
-            <div id="accountList" style="margin-bottom:15px;"></div>
-            <button class="btn btn-outline" onclick="addGoogleAccount()" style="font-size:12px; padding:6px 12px; border-color:var(--primary); color:var(--primary);">➕ Thêm Tài Khoản Google (API Popup)</button>
-            
-            <div style="margin-top: 20px; padding: 15px; background: rgba(59, 130, 246, 0.1); border-left: 4px solid var(--primary); border-radius: 4px;">
-                <h4 style="margin-top:0; font-size:13px; color: var(--primary); margin-bottom: 10px;">🤖 CHẾ ĐỘ VPS TỰ ĐỘNG (Không cần Popup)</h4>
-                <div style="display:flex; gap:10px; margin-bottom: 10px;">
-                    
-                    <div id="vpsProfileCheckboxes" style="display:flex; flex-wrap:wrap; gap:10px; width:100%; padding:5px;"></div>
-                </div>
-                <button class="btn btn-primary" onclick="startVpsProcess()" style="width: 100%; background: var(--primary); border: none; padding: 10px; border-radius: 4px; color: white; font-weight: bold; cursor: pointer;">🚀 Bắt đầu Add & Lấy Mã (Qua VPS)</button>
-            </div>
+            <div id="vpsProfileCheckboxes" style="display:flex; flex-wrap:wrap; gap:10px; width:100%; padding:5px; margin-bottom:15px;"></div>
 
         </div>
         <div class="card" style="margin-top:20px;">
@@ -564,7 +554,7 @@
                 </div>
             </div>
             <div style="margin-top:15px; display:flex; gap:10px;">
-                <button id="btnStart" class="btn btn-success" onclick="startProcess()" disabled>🚀 Bắt đầu Add & Lấy Mã</button>
+                <button id="btnStart" class="btn btn-success" onclick="startVpsProcess()">🚀 Bắt đầu Add & Lấy Mã (Qua VPS)</button>
                 <button id="btnRetryVerify" class="btn btn-outline" onclick="retryFailedVerifications()" style="border-color:var(--danger); color:var(--danger); font-size:13px;">🔄 Thử lại xác minh lỗi</button>
             </div>
         </div>
@@ -2743,58 +2733,6 @@
 
     
     // --- TAB 1 LOGIC ---
-    async function startProcess() {
-        if(activeAccountEmails.length === 0) return alert("Vui lòng chọn ít nhất 1 tài khoản GSC!");
-        const lines = document.getElementById('domainList').value.split('\n').filter(l => l.trim());
-        const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';
-        
-        document.querySelector('#gscTable thead').innerHTML = `<tr><th width="20%">Website URL</th><th width="20%">Tài khoản</th><th width="12%">Trạng thái</th><th width="25%">Mã HTML</th><th width="10%">Xác minh</th><th width="13%">Sitemaps</th></tr>`;
-        let rowId = 0;
-
-        for (let email of activeAccountEmails) {
-            const acc = gscAccounts.find(a => a.email === email);
-            if(!acc || !acc.token || Date.now() > acc.expiresAt) continue;
-            const token = acc.token;
-            
-            let existingMap = new Map();
-            try {
-                const res = await fetch('https://www.googleapis.com/webmasters/v3/sites', { headers: { 'Authorization': `Bearer ${token}` } });
-                const data = await res.json();
-                if (data.siteEntry) data.siteEntry.forEach(e => { let u = e.siteUrl; if(!u.endsWith('/')) u+='/'; existingMap.set(u.toLowerCase(), e.permissionLevel); });
-            } catch(e) {}
-
-            for (let i = 0; i < lines.length; i++) {
-                let url = lines[i].trim(); if(!url.startsWith('http')) url='https://'+url; if(!url.endsWith('/')) url+='/';
-                const currentId = rowId++;
-                const tr = document.createElement('tr'); 
-                tr.dataset.siteUrl = url;
-                tr.dataset.email = email;
-                tr.innerHTML = `<td>${url}</td><td><span style="font-size:11px; color:var(--primary); font-weight:bold;">${email}</span></td><td id="st_${currentId}">...</td><td id="mt_${currentId}">-</td><td id="vr_${currentId}">-</td><td class="sitemap-cell">-</td>`;
-                tbody.appendChild(tr);
-                
-                const perm = existingMap.get(url.toLowerCase());
-                try {
-                    if (perm) {
-                        document.getElementById(`st_${currentId}`).innerHTML = `<span class="status-badge status-info">✅ Đã có (${perm==='siteOwner'?'Owner':'User'})</span>`;
-                        if (perm==='siteOwner') { 
-                            document.getElementById(`mt_${currentId}`).innerText='-'; 
-                            document.getElementById(`vr_${currentId}`).innerHTML='<span class="status-badge status-success">Xong</span>'; 
-                            const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
-                            submitSitemapsForUrl(url, tr.querySelector('.sitemap-cell'), smNames, token);
-                        }
-                        else await fetchMeta(url, currentId, token, email);
-                    } else {
-                        await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
-                        document.getElementById(`st_${currentId}`).innerHTML = '<span class="status-badge status-success">Đã Add</span>';
-                        await fetchMeta(url, currentId, token, email);
-                    }
-                } catch(e) { document.getElementById(`st_${currentId}`).innerText='Lỗi'; }
-                await new Promise(r => setTimeout(r, 200));
-            }
-        }
-        await sendToTelegram(`<b>✅ HOÀN TẤT ADD GSC</b>\nĐã xử lý <b>${lines.length}</b> website cho <b>${activeAccountEmails.length}</b> tài khoản.`);
-    }
-
     async function fetchMeta(url, id, token, email) {
         const res = await fetch(`https://www.googleapis.com/siteVerification/v1/token`, {
             method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
