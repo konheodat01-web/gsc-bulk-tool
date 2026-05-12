@@ -34,6 +34,10 @@ function getChromeExecutablePath() {
     if (!fs.existsSync(profilesDir)) fs.mkdirSync(profilesDir);
     const userDataDir = path.join(profilesDir, profileId);
 
+    // BƯỚC ĐỘT PHÁ: Lưu file cookies.json vào thư mục profile để VPS API tự động bơm mỗi lần chạy!
+    fs.writeFileSync(path.join(userDataDir, 'cookies.json'), JSON.stringify(cookies, null, 2));
+    console.log(`Đã sao chép an toàn cookies vào ${path.join(userDataDir, 'cookies.json')}`);
+
     const browser = await puppeteer.launch({
         executablePath: getChromeExecutablePath(),
         headless: 'new',

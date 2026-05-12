@@ -113,6 +113,20 @@ app.all('/gsc-get-tag', async (req, res) => {
     try {
         browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
         const page = await browser.newPage();
+        
+        // Bơm cứng cookie từ file cookies.json (nếu có) để chống Chrome Linux tự xóa cookie
+        const cookiesPath = path.join(userDataDir, 'cookies.json');
+        if (fs.existsSync(cookiesPath)) {
+            try {
+                const cookies = JSON.parse(fs.readFileSync(cookiesPath, 'utf8'));
+                for (let cookie of cookies) {
+                    if (!cookie.url) cookie.url = (cookie.secure ? "https://" : "http://") + cookie.domain.replace(/^\./, '');
+                    await page.setCookie(cookie);
+                }
+                console.log(`Đã bơm cứng ${cookies.length} cookie từ cookies.json vào phiên chạy.`);
+            } catch (e) { console.error("Lỗi bơm cookie cứng:", e.message); }
+        }
+
         await page.goto('https://search.google.com/search-console/welcome', { waitUntil: 'networkidle2' });
         if (page.url().includes('accounts.google.com')) {
             await browser.close();
@@ -143,6 +157,18 @@ app.all('/gsc-click-verify', async (req, res) => {
     try {
         browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
         const page = await browser.newPage();
+        
+        const cookiesPath = path.join(userDataDir, 'cookies.json');
+        if (fs.existsSync(cookiesPath)) {
+            try {
+                const cookies = JSON.parse(fs.readFileSync(cookiesPath, 'utf8'));
+                for (let cookie of cookies) {
+                    if (!cookie.url) cookie.url = (cookie.secure ? "https://" : "http://") + cookie.domain.replace(/^\./, '');
+                    await page.setCookie(cookie);
+                }
+            } catch (e) {}
+        }
+        
         await page.goto('https://search.google.com/search-console/ownership?resource_id=' + encodeURIComponent(url), { waitUntil: 'networkidle2' });
         const btnVerify = await page.$x("//span[contains(text(), 'Verify') or contains(text(), 'Xác minh')]");
         if (btnVerify.length > 0) await btnVerify[btnVerify.length - 1].click();
