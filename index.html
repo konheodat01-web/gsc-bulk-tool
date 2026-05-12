@@ -1841,6 +1841,22 @@
         }
         
         lib.unshift(wf);
+
+        var n8nWf = {
+            id: Date.now() + 1000,
+            name: "Demo: Từ Khóa sang n8n",
+            version: 1.0,
+            nodes: [
+                { id: "n1", type: "input", x: 100, y: 150, data: { value: "Đau mỏi vai gáy\nThuốc trị thoái hóa cột sống" }, label: "Nhập Từ Khóa", inputIds: [], outputIds: ["n2"] },
+                { id: "n2", type: "n8n-webhook", x: 450, y: 150, data: { webhookUrl: "https://<ip-vps>:5678/webhook/tao-bai-viet", method: "POST", customData: "{\"keywords\": \"{{input}}\"}" }, label: "Gọi n8n Xử Lý", inputIds: ["n1"], outputIds: [] }
+            ],
+            connections: [
+                { id: "c1", from: "n1", to: "n2" }
+            ],
+            updatedAt: Date.now()
+        };
+        lib.unshift(n8nWf);
+
         localStorage.setItem("wf_builder_list", JSON.stringify(lib));
         localStorage.setItem("wf_seeded_v2", "1");
         // KHÔNG sync lên Firebase ở đây — seed chỉ là fallback local
