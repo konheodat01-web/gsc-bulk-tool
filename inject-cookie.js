@@ -49,6 +49,15 @@ function getChromeExecutablePath() {
         if (!cookie.url) {
             cookie.url = (cookie.secure ? "https://" : "http://") + cookie.domain.replace(/^\./, '');
         }
+        // Chuyển đổi định dạng expirationDate của Cookie-Editor sang expires của Puppeteer
+        if (cookie.expirationDate) {
+            cookie.expires = cookie.expirationDate;
+            delete cookie.expirationDate;
+        } else if (!cookie.expires) {
+            // Nếu không có hạn, set bừa 1 năm nữa để nó không bị coi là Session Cookie (bị xóa khi đóng trình duyệt)
+            cookie.expires = Date.now() / 1000 + 31536000;
+        }
+        
         try {
             await page.setCookie(cookie);
         } catch (e) {
