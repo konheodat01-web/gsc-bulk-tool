@@ -301,7 +301,7 @@ app.all('/gsc-submit-sitemap', async (req, res) => {
 });
 
 const HTTP_PORT = 3002;
-const HTTPS_PORT = 3000;
+const HTTPS_PORT = 3001;
 
 // Khởi động HTTP server (port 3002)
 http.createServer(app).listen(HTTP_PORT, () => console.log('VPS API chạy HTTP tại port ' + HTTP_PORT));
