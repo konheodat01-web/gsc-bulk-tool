@@ -1,13 +1,16 @@
 const express = require('express');
 const cors = require('cors');
-const puppeteer = require('puppeteer');
 const fs = require('fs');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+// Kích hoạt plugin ngụy trang
+puppeteer.use(StealthPlugin());
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Thư mục gốc chứa các Profile Google
 const PROFILES_ROOT = './google_profiles';
 if (!fs.existsSync(PROFILES_ROOT)) fs.mkdirSync(PROFILES_ROOT);
 
@@ -16,15 +19,22 @@ function getProfilePath(id) {
     return PROFILES_ROOT + '/' + profileId;
 }
 
+// Cấu hình Chrome ngụy trang
+const LAUNCH_ARGS = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-blink-features=AutomationControlled',
+    '--ignore-certificate-errors'
+];
+
 // =====================================================================
 // 1. API: /check-wp-admin
 // =====================================================================
 app.post('/check-wp-admin', async (req, res) => {
     const { url, username, password, basicUser, basicPass } = req.body;
-    if (!url || !username || !password) return res.status(400).json({ error: 'Thiếu đầu vào' });
     let browser = null;
     try {
-        browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+        browser = await puppeteer.launch({ headless: 'new', args: LAUNCH_ARGS });
         const page = await browser.newPage();
         if (basicUser && basicPass) await page.authenticate({ username: basicUser, password: basicPass });
         await page.goto(url, { waitUntil: 'domcontentloaded' });
@@ -44,21 +54,25 @@ app.post('/check-wp-admin', async (req, res) => {
 });
 
 // =====================================================================
-// 2. API KHỞI TẠO PROFILE GOOGLE
+// 2. API KHỞI TẠO PROFILE GOOGLE (Đã có Stealth)
 // =====================================================================
 app.get('/init-profile', async (req, res) => {
     const { id } = req.query;
     const userDataDir = getProfilePath(id);
     try {
-        console.log('Đang mở trình duyệt cho Profile: ' + (id || 'default'));
+        console.log('Đang mở trình duyệt ngụy trang cho ID: ' + (id || 'default'));
         const browser = await puppeteer.launch({
-            headless: false,
+            headless: false, // Bật giao diện để đăng nhập
             userDataDir: userDataDir,
-            args: ['--no-sandbox']
+            args: LAUNCH_ARGS
         });
         const page = await browser.newPage();
+        // Xóa cờ hiệu Robot
+        await page.evaluateOnNewDocument(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => false });
+        });
         await page.goto('https://accounts.google.com/', { waitUntil: 'networkidle2' });
-        res.json({ status: 'success', message: 'Đã mở trình duyệt cho ID: ' + (id || 'default') + '. Hãy đăng nhập và đóng cửa sổ.' });
+        res.json({ status: 'success', message: 'Mở cửa sổ Chrome mới, đăng nhập và đóng lại.' });
     } catch (error) { res.status(500).json({ error: true, message: error.message }); }
 });
 
@@ -70,7 +84,7 @@ app.post('/gsc-get-tag', async (req, res) => {
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
-        browser = await puppeteer.launch({ headless: 'new', userDataDir: userDataDir, args: ['--no-sandbox'] });
+        browser = await puppeteer.launch({ headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
         const page = await browser.newPage();
         await page.goto('https://search.google.com/search-console/welcome', { waitUntil: 'networkidle2' });
         if (page.url().includes('accounts.google.com')) {
@@ -100,7 +114,7 @@ app.post('/gsc-click-verify', async (req, res) => {
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
-        browser = await puppeteer.launch({ headless: 'new', userDataDir: userDataDir, args: ['--no-sandbox'] });
+        browser = await puppeteer.launch({ headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
         const page = await browser.newPage();
         await page.goto('https://search.google.com/search-console/ownership?resource_id=' + encodeURIComponent(url), { waitUntil: 'networkidle2' });
         const btnVerify = await page.$x("//span[contains(text(), 'Verify') or contains(text(), 'Xác minh')]");
@@ -118,4 +132,4 @@ app.post('/gsc-click-verify', async (req, res) => {
 });
 
 const PORT = 3000;
-app.listen(PORT, () => console.log('VPS API đang chạy tại http://localhost:' + PORT));
+app.listen(PORT, () => console.log('VPS API (STEALTH MODE) đang chạy tại http://localhost:' + PORT));
