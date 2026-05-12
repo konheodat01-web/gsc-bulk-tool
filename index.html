@@ -1300,6 +1300,13 @@
             alert('Vui lòng dán nội dung Cookie JSON vào ô trống của tài khoản ' + profileId + '!');
             return;
         }
+
+        const vpsIp = document.getElementById('vpsIp').value;
+        if(!vpsIp) { alert("Vui lòng điền IP VPS ở phần Cài đặt chung (Bánh răng góc phải)!"); return; }
+        const useHttps = location.protocol === 'https:';
+        const apiUrl = useHttps
+            ? 'https://' + vpsIp.replace(/https?:\/\//, '').split(':')[0] + ':3001'
+            : (vpsIp.includes('http') ? vpsIp.replace(/:300\d/,'') : 'http://' + vpsIp) + ':3002';
         
         const oldHtml = btnEl.innerHTML;
         btnEl.innerHTML = '⏳ Đang đồng bộ...';
