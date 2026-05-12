@@ -121,6 +121,11 @@ app.post('/update-cookie', (req, res) => {
         
         const userDataDir = getProfilePath(id);
         const cookiesPath = path.join(userDataDir, 'cookies.json');
+        
+        if (!fs.existsSync(userDataDir)) {
+            fs.mkdirSync(userDataDir, { recursive: true });
+        }
+        
         fs.writeFileSync(cookiesPath, JSON.stringify(parsedCookie, null, 2));
         
         res.json({ status: 'success', message: `Đã cập nhật ${parsedCookie.length} cookie cho tài khoản ${id} thành công!` });
