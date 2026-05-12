@@ -29,8 +29,10 @@ function getChromeExecutablePath() {
     console.log(`Đang nạp cookie từ ${cookieFile} vào profile ${profileId}...`);
     const cookies = JSON.parse(fs.readFileSync(cookieFile, 'utf8'));
 
-    const userDataDir = './google_profiles/' + profileId;
-    if (!fs.existsSync('./google_profiles')) fs.mkdirSync('./google_profiles');
+    const path = require('path');
+    const profilesDir = path.join(__dirname, 'google_profiles');
+    if (!fs.existsSync(profilesDir)) fs.mkdirSync(profilesDir);
+    const userDataDir = path.join(profilesDir, profileId);
 
     const browser = await puppeteer.launch({
         executablePath: getChromeExecutablePath(),

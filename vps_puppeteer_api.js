@@ -13,7 +13,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PROFILES_ROOT = './google_profiles';
+const path = require('path');
+const PROFILES_ROOT = path.join(__dirname, 'google_profiles');
 if (!fs.existsSync(PROFILES_ROOT)) fs.mkdirSync(PROFILES_ROOT);
 
 function getProfilePath(id) {
