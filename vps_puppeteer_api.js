@@ -569,24 +569,40 @@ app.all('/wp-inject-tag', async (req, res) => {
         await page.goto(wpcodeSettingsUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
         
         // WPCode sử dụng CodeMirror. Ta cần nhét mã vào qua JS.
-        await page.evaluate((tag) => {
+        const injected = await page.evaluate((tag) => {
+            let foundTa = false;
             const cm = document.querySelector('.CodeMirror');
             if (cm && cm.CodeMirror) {
                 const currentVal = cm.CodeMirror.getValue();
                 if (!currentVal.includes(tag)) {
                     cm.CodeMirror.setValue(currentVal + '\n' + tag);
                 }
+                foundTa = true;
             } else {
                 const ta = document.querySelector('textarea[name*="header"]');
-                if (ta && !ta.value.includes(tag)) {
-                    ta.value = ta.value + '\n' + tag;
+                if (ta) {
+                    if (!ta.value.includes(tag)) ta.value = ta.value + '\n' + tag;
+                    foundTa = true;
                 }
             }
-            const submitBtn = document.getElementById('submit');
-            if(submitBtn) submitBtn.click();
+            
+            if (!foundTa) return 'Không tìm thấy khung nhập mã WPCode';
+
+            const submitBtn = document.getElementById('submit') || document.querySelector('input[type="submit"]') || document.querySelector('button[type="submit"]') || document.querySelector('.wpcode-button-save');
+            if (submitBtn) {
+                submitBtn.click();
+                return 'OK';
+            }
+            return 'Không tìm thấy nút Lưu';
         }, metaTag);
         
-        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        if (injected !== 'OK') {
+            throw new Error('WP Inject lỗi: ' + injected);
+        }
+        
+        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+        // Thêm thời gian chờ 2s để chắc chắn đã lưu và cache clear
+        await new Promise(r => setTimeout(r, 2000));
         
         await browser.close();
         return res.json({ status: 'success', message: 'Đã chèn mã xác minh vào WPCode' });
