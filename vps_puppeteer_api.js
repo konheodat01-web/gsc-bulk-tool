@@ -228,7 +228,18 @@ app.all('/gsc-get-tag', async (req, res) => {
             try {
                 const pages = await browser.pages();
                 if (pages.length > 0) {
-                    await pages[0].screenshot({ path: path.join(__dirname, 'error.png'), fullPage: true });
+                    const fs = require('fs');
+                    const path = require('path');
+                    // Lưu HTML để chắc cú
+                    try {
+                        const html = await pages[0].content();
+                        fs.writeFileSync(path.join(__dirname, 'error.html'), html);
+                    } catch(e) { console.error("Lỗi lấy HTML:", e.message); }
+                    
+                    // Chụp ảnh
+                    try {
+                        await pages[0].screenshot({ path: path.join(__dirname, 'error.png'), fullPage: true });
+                    } catch(e) { console.error("Lỗi chụp ảnh:", e.message); }
                 }
             } catch(ex) {}
             await browser.close();
@@ -448,6 +459,20 @@ app.all('/debug', (req, res) => {
         res.end(fs.readFileSync(errorImagePath));
     } else {
         res.status(404).send('Chưa có ảnh lỗi nào được chụp lại!');
+    }
+});
+
+// API ĐỂ DEBUG: XEM HTML LỖI CUỐI CÙNG
+app.all('/debug-html', (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    const errorHtmlPath = path.join(__dirname, 'error.html');
+    
+    if (fs.existsSync(errorHtmlPath)) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(fs.readFileSync(errorHtmlPath));
+    } else {
+        res.status(404).send('Chưa có mã HTML lỗi nào được lưu lại!');
     }
 });
 
