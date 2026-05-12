@@ -108,9 +108,13 @@ app.get('/init-profile', async (req, res) => {
 // =====================================================================
 app.all('/gsc-get-tag', async (req, res) => {
     const { url, id } = { ...req.query, ...(req.body || {}) };
+    const logPath = path.join(__dirname, 'debug_status.txt');
+    const logStep = (msg) => { try { fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${msg}\n`); } catch(e){} };
+    
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
+        logStep(`=== Bắt đầu: ${url} ===`);
         browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
         const page = await browser.newPage();
         
