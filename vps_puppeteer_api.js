@@ -80,7 +80,6 @@ app.all('/check-wp-admin', async (req, res) => {
 // =====================================================================
 app.get('/init-profile', async (req, res) => {
     const { id } = req.query;
-    if (typeof sitemaps === 'string') sitemaps = sitemaps.split(',').map(s=>s.trim()).filter(Boolean);
     const userDataDir = getProfilePath(id);
     try {
         console.log('Đang mở trình duyệt ngụy trang cho ID: ' + (id || 'default'));
@@ -106,7 +105,6 @@ app.get('/init-profile', async (req, res) => {
 // =====================================================================
 app.all('/gsc-get-tag', async (req, res) => {
     const { url, id } = { ...req.query, ...(req.body || {}) };
-    if (typeof sitemaps === 'string') sitemaps = sitemaps.split(',').map(s=>s.trim()).filter(Boolean);
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
@@ -137,7 +135,6 @@ app.all('/gsc-get-tag', async (req, res) => {
 // =====================================================================
 app.all('/gsc-click-verify', async (req, res) => {
     const { url, id } = { ...req.query, ...(req.body || {}) };
-    if (typeof sitemaps === 'string') sitemaps = sitemaps.split(',').map(s=>s.trim()).filter(Boolean);
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
@@ -256,7 +253,8 @@ app.all('/wp-inject-tag', async (req, res) => {
 // 6. API NẠP SITEMAP GSC
 // =====================================================================
 app.all('/gsc-submit-sitemap', async (req, res) => {
-    const { url, id, sitemaps } = { ...req.query, ...(req.body || {}) };
+    const { url, id } = { ...req.query, ...(req.body || {}) };
+    let { sitemaps } = { ...req.query, ...(req.body || {}) };
     if (typeof sitemaps === 'string') sitemaps = sitemaps.split(',').map(s=>s.trim()).filter(Boolean);
     const userDataDir = getProfilePath(id);
     let browser = null;
