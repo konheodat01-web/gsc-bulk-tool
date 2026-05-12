@@ -219,10 +219,21 @@ app.all('/gsc-get-tag', async (req, res) => {
         
         await page.waitForSelector('meta[name="google-site-verification"]', { timeout: 5000 });
         const metaTag = await page.evaluate(() => document.querySelector('meta[name="google-site-verification"]')?.outerHTML);
+        
         await browser.close();
-        return res.json({ status: 'success', metaTag });
+        if (metaTag) return res.json({ status: 'success', metaTag });
+        return res.json({ status: 'fail', message: 'Không tìm thấy thẻ meta xác minh.' });
     } catch (error) {
-        if (browser) await browser.close(); return res.status(500).json({ error: true, message: error.message });
+        if (browser) {
+            try {
+                const pages = await browser.pages();
+                if (pages.length > 0) {
+                    await pages[0].screenshot({ path: path.join(__dirname, 'error.png'), fullPage: true });
+                }
+            } catch(ex) {}
+            await browser.close();
+        }
+        return res.status(500).json({ error: true, message: error.message });
     }
 });
 
@@ -426,33 +437,17 @@ app.all('/gsc-submit-sitemap', async (req, res) => {
 const HTTP_PORT = 3002;
 const HTTPS_PORT = 3001;
 
-// API ĐỂ DEBUG: CHỤP ẢNH MÀN HÌNH VPS
-app.all('/debug', async (req, res) => {
-    let browser = null;
-    try {
-        const userDataDir = getProfilePath('gmail_2');
-        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
-        const page = await browser.newPage();
-        await page.setViewport({ width: 1920, height: 1080 });
-        const cookiesPath = path.join(userDataDir, 'cookies.json');
-        if (fs.existsSync(cookiesPath)) {
-            try {
-                const cookies = JSON.parse(fs.readFileSync(cookiesPath, 'utf8'));
-                for (let cookie of cookies) {
-                    if (!cookie.url) cookie.url = (cookie.secure ? "https://" : "http://") + cookie.domain.replace(/^\./, '');
-                    await page.setCookie(cookie);
-                }
-            } catch (e) {}
-        }
-        await page.goto('https://search.google.com/search-console', { waitUntil: 'networkidle2' });
-        await new Promise(r => setTimeout(r, 5000));
-        const screenshotBuffer = await page.screenshot({ fullPage: true });
-        await browser.close();
-        res.writeHead(200, { 'Content-Type': 'image/png', 'Content-Length': screenshotBuffer.length });
-        return res.end(screenshotBuffer);
-    } catch (e) {
-        if (browser) await browser.close();
-        return res.status(500).send("Lỗi: " + e.message);
+// API ĐỂ DEBUG: XEM ẢNH LỖI CUỐI CÙNG
+app.all('/debug', (req, res) => {
+    const fs = require('fs');
+    const path = require('path');
+    const errorImagePath = path.join(__dirname, 'error.png');
+    
+    if (fs.existsSync(errorImagePath)) {
+        res.writeHead(200, { 'Content-Type': 'image/png' });
+        res.end(fs.readFileSync(errorImagePath));
+    } else {
+        res.status(404).send('Chưa có ảnh lỗi nào được chụp lại!');
     }
 });
 
