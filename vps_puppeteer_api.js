@@ -601,6 +601,41 @@ app.all('/wp-inject-tag', async (req, res) => {
         }
         
         await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+        
+        // TỰ ĐỘNG CLEAR CACHE ĐỂ GSC BOT NHÌN THẤY MÃ NGAY
+        const clearCacheHref = await page.evaluate(() => {
+            const cacheLinks = document.querySelectorAll('#wpadminbar a');
+            for (let link of cacheLinks) {
+                const text = link.innerText.toLowerCase();
+                const id = (link.closest('li') || link).id.toLowerCase();
+                if ((id.includes('purge') || id.includes('cache') || id.includes('flush') || 
+                     text.includes('purge') || text.includes('cache') || text.includes('xóa bộ nhớ đệm') || text.includes('flush')) 
+                    && link.href && !link.href.includes('#')) {
+                    
+                    // Ưu tiên các link "Purge All" hoặc "Clear All" nằm trong menu con
+                    const parent = link.closest('li');
+                    if (parent) {
+                        const subLinks = parent.querySelectorAll('ul li a');
+                        for (let subLink of subLinks) {
+                            const subText = subLink.innerText.toLowerCase();
+                            if ((subText.includes('purge all') || subText.includes('clear all') || subText.includes('xóa tất cả')) && subLink.href && !subLink.href.includes('#')) {
+                                return subLink.href;
+                            }
+                        }
+                    }
+                    return link.href;
+                }
+            }
+            return null;
+        });
+
+        if (clearCacheHref) {
+            console.log('WP Inject - Auto Clearing Cache:', clearCacheHref);
+            await page.goto(clearCacheHref, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+        } else {
+            console.log('WP Inject - No Cache Plugin detected');
+        }
+
         // Thêm thời gian chờ 2s để chắc chắn đã lưu và cache clear
         await new Promise(r => setTimeout(r, 2000));
         
