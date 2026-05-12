@@ -1509,6 +1509,7 @@
 
     function renderAccounts() {
         const list = document.getElementById('accountList');
+        if (!list) return;
         if (gscAccounts.length === 0) {
             list.innerHTML = '<div style="font-size:12px; color:var(--text-muted); font-style:italic;">Chưa có tài khoản nào. Vui lòng thêm tài khoản.</div>';
             document.getElementById('btnStart').disabled = true;
