@@ -19,6 +19,28 @@ function getProfilePath(id) {
     return PROFILES_ROOT + '/' + profileId;
 }
 
+const os = require('os');
+function getChromeExecutablePath() {
+    if (os.platform() === 'win32') {
+        const paths = [
+            'C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe',
+            'C:\\\\Program Files (x86)\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe',
+            (process.env.LOCALAPPDATA || '') + '\\\\Google\\\\Chrome\\\\Application\\\\chrome.exe'
+        ];
+        for (let i = 0; i < paths.length; i++) {
+            if (fs.existsSync(paths[i])) return paths[i];
+        }
+    }
+    // Dành cho Ubuntu VPS nếu sau này cài Chrome thật
+    if (os.platform() === 'linux') {
+        const paths = ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable'];
+        for (let i = 0; i < paths.length; i++) {
+            if (fs.existsSync(paths[i])) return paths[i];
+        }
+    }
+    return undefined;
+}
+
 // Cấu hình Chrome ngụy trang
 const LAUNCH_ARGS = [
     '--no-sandbox',
@@ -62,6 +84,7 @@ app.get('/init-profile', async (req, res) => {
     try {
         console.log('Đang mở trình duyệt ngụy trang cho ID: ' + (id || 'default'));
         const browser = await puppeteer.launch({
+            executablePath: getChromeExecutablePath(),
             headless: false, // Bật giao diện để đăng nhập
             userDataDir: userDataDir,
             args: LAUNCH_ARGS
