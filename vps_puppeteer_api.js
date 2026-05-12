@@ -230,26 +230,42 @@ app.all('/gsc-get-tag', async (req, res) => {
                     const txt = el.textContent ? el.textContent.trim() : '';
                     if (txt === 'Add property' || txt === 'Thêm tài sản') {
                         let clickable = el.closest('[role="option"]') || el.closest('[role="menuitem"]') || el.closest('div[jsaction]') || el;
-                        clickable.click();
+                        clickable.id = 'puppeteer-target-add-property';
                         return;
                     }
                 }
             });
+            
+            // Dùng click chuột thực của Puppeteer để qua mặt framework của Google
+            await page.click('#puppeteer-target-add-property').catch(e => console.log('Không click được bằng Puppeteer:', e.message));
             
             logStep(`Đợi 2s form Add property hiện`);
             // Đợi form Add Property bật lên
             await new Promise(r => setTimeout(r, 2000));
         }
 
-        logStep(`Đợi input[type=url] 10s`);
+        logStep(`Đợi input[type=url] hoặc ô nhập text 10s`);
         // Đợi ô nhập URL xuất hiện và điền domain
-        await page.waitForSelector('input[type="url"]', { timeout: 10000 });
+        await page.waitForFunction(() => {
+            if (document.querySelector('input[type="url"]')) return true;
+            const node = document.evaluate("//*[contains(text(), 'URL prefix') or contains(text(), 'Tiền tố URL')]/following::input[1]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            if (node) return true;
+            return false;
+        }, { timeout: 10000 });
         
         logStep(`Clear input`);
+        // Tìm selector chính xác của ô nhập
+        const inputSelector = await page.evaluate(() => {
+            if (document.querySelector('input[type="url"]')) return 'input[type="url"]';
+            const node = document.evaluate("//*[contains(text(), 'URL prefix') or contains(text(), 'Tiền tố URL')]/following::input[1]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            if (node) { node.id = 'puppeteer-target-input'; return '#puppeteer-target-input'; }
+            return 'input[type="url"]';
+        });
+
         // Clear input trước khi điền để tránh dính chữ cũ
-        await page.click('input[type="url"]', { clickCount: 3 });
+        await page.click(inputSelector, { clickCount: 3 });
         logStep(`Gõ URL: ${url}`);
-        await page.type('input[type="url"]', url);
+        await page.type(inputSelector, url);
         
         logStep(`Click nút Tiếp tục`);
         // Bấm nút Tiếp tục (Continue) thay vì chỉ ấn Enter
