@@ -287,8 +287,12 @@ app.all('/gsc-get-tag', async (req, res) => {
         // Đợi thẻ HTML xuất hiện HOẶC thông báo đã xác minh tự động
         await page.waitForFunction(() => {
             // Kiểm tra xem có Thẻ HTML không
-            const el = document.evaluate("//div[contains(text(), 'HTML tag') or contains(text(), 'Thẻ HTML')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-            if (el) { el.click(); return true; }
+            const el = document.evaluate("//*[text()='HTML tag' or text()='Thẻ HTML']", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            if (el) { 
+                const clickable = el.closest('[role="button"]') || el.closest('[jsaction]') || el.closest('div.F93BIf') || el;
+                clickable.click(); 
+                return true; 
+            }
             
             // Kiểm tra xem đã xác minh tự động chưa
             const elements = Array.from(document.querySelectorAll('*'));
