@@ -133,9 +133,10 @@ app.all('/gsc-get-tag', async (req, res) => {
         // Vào trang chủ GSC
         await page.goto('https://search.google.com/search-console', { waitUntil: 'networkidle2' });
         
-        if (page.url().includes('accounts.google.com')) {
+        // Nếu bị đá ra trang login hoặc trang giới thiệu (marketing page), nghĩa là Cookie đã chết!
+        if (page.url().includes('accounts.google.com') || page.url().includes('search-console/about')) {
             await browser.close();
-            return res.status(401).json({ status: 'fail', message: `Hết phiên đăng nhập. (Path: ${userDataDir})` });
+            return res.status(401).json({ status: 'fail', message: `Cookie đã hết hạn hoặc bị Google chặn. Vui lòng lấy Cookie mới! (Path: ${userDataDir})` });
         }
 
         // Cố gắng tìm ô nhập URL. Nếu chưa có, ta phải click mở Dropdown chọn "Thêm tài sản"
