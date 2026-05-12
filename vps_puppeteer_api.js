@@ -127,6 +127,9 @@ app.all('/gsc-get-tag', async (req, res) => {
             } catch (e) { console.error("Lỗi bơm cookie cứng:", e.message); }
         }
 
+        // Ép kích thước màn hình to như PC để GSC không bị ẩn thanh Sidebar thành Menu Hamburger
+        await page.setViewport({ width: 1920, height: 1080 });
+
         // Vào trang chủ GSC
         await page.goto('https://search.google.com/search-console', { waitUntil: 'networkidle2' });
         
@@ -139,19 +142,28 @@ app.all('/gsc-get-tag', async (req, res) => {
         let inputExists = await page.$('input[type="url"]');
         if (!inputExists) {
             await page.evaluate(() => {
-                const dropdowns = Array.from(document.querySelectorAll('div[role="button"][aria-haspopup="listbox"]'));
-                if (dropdowns.length > 0) dropdowns[0].click();
+                // Thử tìm tất cả các thẻ có class liên quan đến selector property hoặc div chứa icon tam giác chúc xuống
+                // Thường nút chọn property nằm trong sidebar (nav)
+                const nav = document.querySelector('nav');
+                if (nav) {
+                    const dropdowns = Array.from(nav.querySelectorAll('div[role="button"]'));
+                    if (dropdowns.length > 0) dropdowns[0].click();
+                } else {
+                    // Fallback
+                    const dropdowns = Array.from(document.querySelectorAll('div[role="button"][aria-haspopup="listbox"]'));
+                    if (dropdowns.length > 0) dropdowns[0].click();
+                }
             });
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 1500));
             
             await page.evaluate(() => {
-                const iter = document.evaluate("//div[contains(text(), 'Add property') or contains(text(), 'Thêm tài sản')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+                const iter = document.evaluate("//*[contains(text(), 'Add property') or contains(text(), 'Thêm tài sản')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
                 let node = iter.iterateNext();
                 let lastNode = null;
                 while (node) { lastNode = node; node = iter.iterateNext(); }
                 if (lastNode) lastNode.click();
             });
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 1500));
         }
 
         // Đợi ô nhập URL xuất hiện và điền domain
