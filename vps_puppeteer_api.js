@@ -162,11 +162,13 @@ app.all('/gsc-get-tag', async (req, res) => {
             
             console.log("Click Thêm tài sản...");
             await page.evaluate(() => {
-                const iter = document.evaluate("//*[contains(text(), 'Add property') or contains(text(), 'Thêm tài sản')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
-                let node = iter.iterateNext();
-                let lastNode = null;
-                while (node) { lastNode = node; node = iter.iterateNext(); }
-                if (lastNode) lastNode.click();
+                const menuItems = document.querySelectorAll('[role="menuitem"]');
+                for (let item of menuItems) {
+                    if (item.textContent && (item.textContent.includes('Add property') || item.textContent.includes('Thêm tài sản'))) {
+                        item.click();
+                        return;
+                    }
+                }
             });
             
             // Đợi form Add Property bật lên
@@ -182,11 +184,13 @@ app.all('/gsc-get-tag', async (req, res) => {
         
         // Bấm nút Tiếp tục (Continue) thay vì chỉ ấn Enter
         await page.evaluate(() => {
-            const iter = document.evaluate("//*[contains(text(), 'Continue') or contains(text(), 'Tiếp tục')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
-            let node = iter.iterateNext();
-            let lastNode = null;
-            while (node) { lastNode = node; node = iter.iterateNext(); }
-            if (lastNode) lastNode.click();
+            const buttons = document.querySelectorAll('div[role="button"]');
+            for (let btn of buttons) {
+                if (btn.textContent && (btn.textContent.trim() === 'Continue' || btn.textContent.trim() === 'Tiếp tục')) {
+                    btn.click();
+                    return;
+                }
+            }
         });
 
         // Đợi thẻ HTML xuất hiện và click chọn
