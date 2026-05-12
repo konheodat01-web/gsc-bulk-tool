@@ -1699,6 +1699,7 @@
         
         // Ứng dụng
         { type: 'ai-vision-search', category: 'app', icon: '👁️', label: 'Nghiên cứu Đối thủ', color: '#ec4899', desc: 'AI tìm và phân tích hình ảnh đối thủ' },
+        { type: 'n8n-webhook', category: 'app', icon: '☁️', label: 'Gọi Webhook n8n', color: '#ff6d5a', desc: 'Đóng gói dữ liệu bắn sang n8n qua Webhook' },
         { type: 'telegram',    category: 'app', icon: '📩', label: 'Báo Cáo Telegram',  color: '#0088cc', desc: 'Gửi kết quả qua Telegram bot' },
         { type: 'ai-content',  category: 'app', icon: '✍️', label: 'AI Viết Bài',      color: '#a855f7', desc: 'Tạo nội dung SEO bằng AI' },
         { type: 'gsc-auth',    category: 'app', icon: '🔗', label: 'Kết Nối Google',    color: '#4f46e5', desc: 'Xác thực tài khoản Google OAuth' },
@@ -4243,7 +4244,31 @@
                         outputData = await execHttpStatusNode(node, inputData);
                     } else if (node.type === 'custom-code') {
                         outputData = await execCustomCodeNode(node, inputData);
-                    } else if (node.type === 'telegram') {
+                    } else if (node.type === 'n8n-webhook') {
+                        await execN8nWebhookNode(node, inputData); outputData = inputData;
+                    } else if (node.type === 'n8n-webhook') {
+            paramsHtml = `
+                <div class="set-group">
+                    <label class="set-label">n8n Webhook URL:</label>
+                    <input type="text" id="setN8nUrl" class="set-input" value="${data.webhookUrl || ''}" placeholder="https://vps-ip:5678/webhook/...">
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Payload Method:</label>
+                    <select id="setN8nMethod" class="set-select">
+                        <option value="POST" ${data.method === 'POST' ? 'selected' : ''}>POST</option>
+                        <option value="GET" ${data.method === 'GET' ? 'selected' : ''}>GET</option>
+                    </select>
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Data Gửi Đi (Tùy chọn, mặc định lấy Input):</label>
+                    <textarea id="setN8nCustomData" class="set-textarea" placeholder='{"keyword": "{{input.keyword}}"}' style="height:60px;">${data.customData || ''}</textarea>
+                </div>
+            `;
+        } else if (node.type === 'n8n-webhook') {
+            node.data.webhookUrl = document.getElementById('setN8nUrl')?.value;
+            node.data.method = document.getElementById('setN8nMethod')?.value;
+            node.data.customData = document.getElementById('setN8nCustomData')?.value;
+        } else if (node.type === 'telegram') {
                         await execTelegramNode(node, inputData); outputData = inputData;
                     } else if (node.type === 'tech-monitor') {
                         outputData = await execTechMonitorNode(node, inputData);
@@ -4691,6 +4716,45 @@
         console.log('[execUpdateSheetNode] Ghi Sheet thành công. Phản hồi:', resJson);
         
         return inputData;
+    }
+
+
+    async function execN8nWebhookNode(node, inputData) {
+        logRun(`[${node.label}] Đang gửi dữ liệu tới n8n...`);
+        const url = node.data?.webhookUrl;
+        if (!url) {
+            logRun(`[${node.label}] ❌ Bỏ qua do thiếu Webhook URL.`, 'error');
+            return;
+        }
+        try {
+            const method = node.data?.method || 'POST';
+            let payload = inputData;
+            
+            if (node.data?.customData) {
+                // Thay thế {{biến}} nếu có custom data
+                let cd = node.data.customData;
+                if (typeof inputData === 'string') cd = cd.replace(/{{input}}/g, inputData);
+                else if (typeof inputData === 'object' && inputData !== null) {
+                    for (const k in inputData) cd = cd.replace(new RegExp(`{{input.${k}}}`, 'g'), inputData[k]);
+                }
+                try { payload = JSON.parse(cd); } catch(e) { payload = cd; }
+            }
+            
+            const opts = { method: method };
+            if (method === 'POST') {
+                opts.headers = { 'Content-Type': 'application/json' };
+                opts.body = typeof payload === 'string' ? JSON.stringify({text: payload}) : JSON.stringify(payload);
+            }
+            
+            const res = await fetch(url, opts);
+            if (res.ok) {
+                logRun(`[${node.label}] ✅ Đã gửi thành công tới n8n!`, 'success');
+            } else {
+                logRun(`[${node.label}] ❌ n8n trả về lỗi ${res.status}`, 'error');
+            }
+        } catch(e) {
+            logRun(`[${node.label}] ❌ Lỗi kết nối n8n: ${e.message}`, 'error');
+        }
     }
 
     async function execTelegramNode(node, inputData) {
