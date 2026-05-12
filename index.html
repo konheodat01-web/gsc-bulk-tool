@@ -2777,7 +2777,9 @@
                 }
                 
                 // BƯỚC 2: CHÈN VÀO WP
-                if(user && pass) {
+                if (metaTag === 'AUTO_VERIFIED') {
+                    document.getElementById('st2_'+currentId).innerHTML = '<span class="status-badge status-success">✅ Bỏ qua (Đã xác minh)</span>';
+                } else if(user && pass) {
                     document.getElementById('st2_'+currentId).innerHTML = '⏳ Đang vào WP...';
                     try {
                         const res2 = await fetch(apiUrl + '/wp-inject-tag', {
@@ -2800,20 +2802,24 @@
                 }
                 
                 // BƯỚC 3: XÁC MINH GSC
-                document.getElementById('st3_'+currentId).innerHTML = '⏳ Đang xác minh...';
-                try {
-                    const res3 = await fetch(apiUrl + '/gsc-click-verify', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: url, id: profile.id })
-                    });
-                    const data3 = await res3.json();
-                    if (data3.status === 'success') { 
-                        document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge status-success">✅ OK</span>'; 
-                    } else { 
-                        document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">❌ Xác minh xịt</span>'; continue;
+                if (metaTag === 'AUTO_VERIFIED') {
+                    document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge status-success">✅ OK</span>';
+                } else {
+                    document.getElementById('st3_'+currentId).innerHTML = '⏳ Đang xác minh...';
+                    try {
+                        const res3 = await fetch(apiUrl + '/gsc-click-verify', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: url, id: profile.id })
+                        });
+                        const data3 = await res3.json();
+                        if (data3.status === 'success') { 
+                            document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge status-success">✅ OK</span>'; 
+                        } else { 
+                            document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">❌ Xác minh xịt</span>'; continue;
+                        }
+                    } catch(e) {
+                        document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối</span>'; continue;
                     }
-                } catch(e) {
-                    document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối</span>'; continue;
                 }
                 
                 // BƯỚC 4: NẠP SITEMAP
