@@ -104,6 +104,32 @@ app.get('/init-profile', async (req, res) => {
 });
 
 // =====================================================================
+// 2.5 API CẬP NHẬT COOKIE TỪ WEB UI
+// =====================================================================
+app.post('/update-cookie', (req, res) => {
+    const { id, cookieData } = req.body;
+    if (!id || !cookieData) return res.status(400).json({ status: 'fail', message: 'Thiếu tham số id hoặc cookieData' });
+    
+    try {
+        let parsedCookie;
+        try {
+            parsedCookie = JSON.parse(cookieData);
+            if (!Array.isArray(parsedCookie)) throw new Error("Cookie phải là một Array JSON");
+        } catch (err) {
+            return res.status(400).json({ status: 'fail', message: 'Dữ liệu Cookie không hợp lệ (phải là chuẩn JSON Array)' });
+        }
+        
+        const userDataDir = getProfilePath(id);
+        const cookiesPath = path.join(userDataDir, 'cookies.json');
+        fs.writeFileSync(cookiesPath, JSON.stringify(parsedCookie, null, 2));
+        
+        res.json({ status: 'success', message: `Đã cập nhật ${parsedCookie.length} cookie cho tài khoản ${id} thành công!` });
+    } catch (err) {
+        res.status(500).json({ status: 'fail', message: 'Lỗi ghi file cookie: ' + err.message });
+    }
+});
+
+// =====================================================================
 // 3. API LẤY MÃ XÁC MINH GSC
 // =====================================================================
 app.all('/gsc-get-tag', async (req, res) => {
