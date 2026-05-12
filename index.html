@@ -3144,7 +3144,8 @@
 
         // Bước 3: Check Admin + Auto-detect path WP
         // Đọc checkbox TRỰC TIẾP lúc này — nếu sếp bỏ tích giữa chừng sẽ dừng ngay
-        const shouldCheckAdmin = document.getElementById('chkAdmin').checked;
+        const chkAdminEl = document.getElementById('chkAdmin');
+        const shouldCheckAdmin = chkAdminEl ? chkAdminEl.checked : checkAdmin;
         if (shouldCheckAdmin) {
             adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">⏳ Dò admin...</span>';
             let foundPath = null;
@@ -3188,7 +3189,8 @@
     async function recheckRow2(i) {
         const tr = document.getElementById(`crow_${i}`);
         if (!tr) return;
-        const checkAdmin = document.getElementById('chkAdmin').checked;
+        const chkAdminEl = document.getElementById('chkAdmin');
+        const checkAdmin = chkAdminEl ? chkAdminEl.checked : false;
         await checkOneRow(i, tr.dataset.src, tr.dataset.dst, tr.dataset.adminPath, tr.dataset.user, tr.dataset.pass, checkAdmin);
     }
 
