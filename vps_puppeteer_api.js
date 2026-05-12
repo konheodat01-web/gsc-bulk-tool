@@ -136,9 +136,11 @@ app.all('/gsc-get-tag', async (req, res) => {
         }
 
         // Đợi thẻ HTML xuất hiện (vì vào link ownership là nó tự bung bảng xác minh)
-        await page.waitForXPath("//div[contains(text(), 'HTML tag') or contains(text(), 'Thẻ HTML')]", { timeout: 15000 });
-        const htmlTagTabs = await page.$x("//div[contains(text(), 'HTML tag') or contains(text(), 'Thẻ HTML')]");
-        if (htmlTagTabs.length > 0) await htmlTagTabs[0].click();
+        await page.waitForFunction(() => {
+            const el = document.evaluate("//div[contains(text(), 'HTML tag') or contains(text(), 'Thẻ HTML')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            if (el) { el.click(); return true; }
+            return false;
+        }, { timeout: 15000 });
         
         await page.waitForSelector('meta[name="google-site-verification"]', { timeout: 5000 });
         const metaTag = await page.evaluate(() => document.querySelector('meta[name="google-site-verification"]')?.outerHTML);
@@ -172,9 +174,14 @@ app.all('/gsc-click-verify', async (req, res) => {
         }
         
         await page.goto('https://search.google.com/search-console/ownership?resource_id=' + encodeURIComponent(url), { waitUntil: 'networkidle2' });
-        const btnVerify = await page.$x("//span[contains(text(), 'Verify') or contains(text(), 'Xác minh')]");
-        if (btnVerify.length > 0) await btnVerify[btnVerify.length - 1].click();
-        await page.waitForTimeout(5000);
+        await page.evaluate(() => {
+            const iter = document.evaluate("//span[contains(text(), 'Verify') or contains(text(), 'Xác minh')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+            let node = iter.iterateNext();
+            let lastNode = null;
+            while (node) { lastNode = node; node = iter.iterateNext(); }
+            if (lastNode) lastNode.click();
+        });
+        await new Promise(r => setTimeout(r, 5000));
         const content = await page.content();
         await browser.close();
         if (content.includes('Ownership verified') || content.includes('Đã xác minh')) {
@@ -305,13 +312,25 @@ app.all('/gsc-submit-sitemap', async (req, res) => {
                 await page.type(inputSelector, sitemap);
                 
                 // Submit button
-                const btnSubmit = await page.$x("//span[contains(text(), 'Gửi') or contains(text(), 'Submit')]");
-                if (btnSubmit.length > 0) {
-                    await btnSubmit[btnSubmit.length - 1].click();
-                    await page.waitForTimeout(3000); // Đợi popup báo gửi thành công
+                const clickedSubmit = await page.evaluate(() => {
+                    const iter = document.evaluate("//span[contains(text(), 'Gửi') or contains(text(), 'Submit')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+                    let node = iter.iterateNext();
+                    let lastNode = null;
+                    while (node) { lastNode = node; node = iter.iterateNext(); }
+                    if (lastNode) { lastNode.click(); return true; }
+                    return false;
+                });
+                
+                if (clickedSubmit) {
+                    await new Promise(r => setTimeout(r, 3000)); // Đợi popup báo gửi thành công
                     // Đóng popup nếu có (Got it / OK)
-                    const btnClose = await page.$x("//span[contains(text(), 'OK') or contains(text(), 'Got it')]");
-                    if (btnClose.length > 0) await btnClose[btnClose.length - 1].click();
+                    await page.evaluate(() => {
+                        const iter = document.evaluate("//span[contains(text(), 'OK') or contains(text(), 'Got it')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+                        let node = iter.iterateNext();
+                        let lastNode = null;
+                        while (node) { lastNode = node; node = iter.iterateNext(); }
+                        if (lastNode) lastNode.click();
+                    });
                     results.push({ sitemap, status: 'success' });
                 } else {
                     results.push({ sitemap, status: 'fail_btn' });
