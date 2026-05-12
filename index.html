@@ -2672,13 +2672,17 @@
 
         if(!vpsIp) return alert("Sếp chưa điền IP VPS ở phần Cài đặt chung (icon Bánh răng góc phải)!");
         if(selectedProfiles.length === 0) return alert("Vui lòng chọn ít nhất 1 Profile VPS!");
+        // Tự động dùng HTTPS (port 3001) nếu trang đang chạy HTTPS để tránh Mixed Content
+        const useHttps = location.protocol === 'https:';
+        const apiUrl = useHttps
+            ? 'https://' + vpsIp.replace(/https?:\/\//, '').split(':')[0] + ':3001'
+            : (vpsIp.includes('http') ? vpsIp.replace(':3000','') : 'http://' + vpsIp) + ':3000';
         if(lines.length === 0) return alert("Vui lòng nhập ít nhất 1 domain!");
         
         const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';
         document.querySelector('#gscTable thead').innerHTML = '<tr><th width="15%">Website URL</th><th width="10%">Profile VPS</th><th width="15%">1. Lấy Mã GSC</th><th width="18%">2. Auto Dán Plugin (WP)</th><th width="15%">3. Xác minh GSC</th><th width="27%">4. Nạp Sitemaps</th></tr>';
         
         let rowId = 0;
-        const apiUrl = vpsIp.includes('http') ? vpsIp : 'http://' + vpsIp + ':3000';
 
         for (const profile of selectedProfiles) {
             for (let i = 0; i < lines.length; i++) {

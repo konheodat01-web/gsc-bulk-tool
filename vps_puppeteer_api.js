@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
+const https = require('https');
+const http = require('http');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
@@ -298,5 +300,25 @@ app.all('/gsc-submit-sitemap', async (req, res) => {
     }
 });
 
-const PORT = 3000;
-app.listen(PORT, () => console.log('VPS API (STEALTH MODE) đang chạy tại http://localhost:' + PORT));
+const HTTP_PORT = 3000;
+const HTTPS_PORT = 3001;
+
+// Khởi động HTTP server (port 3000)
+http.createServer(app).listen(HTTP_PORT, () => console.log('VPS API chạy HTTP tại port ' + HTTP_PORT));
+
+// Khởi động HTTPS server (port 3001) với self-signed cert
+try {
+    const certPath = './ssl/cert.pem';
+    const keyPath  = './ssl/key.pem';
+    if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+        const httpsOptions = {
+            key:  fs.readFileSync(keyPath),
+            cert: fs.readFileSync(certPath)
+        };
+        https.createServer(httpsOptions, app).listen(HTTPS_PORT, () => console.log('VPS API chạy HTTPS tại port ' + HTTPS_PORT));
+    } else {
+        console.log('Chưa có SSL cert. Chạy: npm run gen-ssl để tạo cert tự ký.');
+    }
+} catch(e) {
+    console.error('Không thể khởi động HTTPS server:', e.message);
+}
