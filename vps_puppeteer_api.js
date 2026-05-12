@@ -52,8 +52,8 @@ const LAUNCH_ARGS = [
 // =====================================================================
 // 1. API: /check-wp-admin
 // =====================================================================
-app.post('/check-wp-admin', async (req, res) => {
-    const { url, username, password, basicUser, basicPass } = req.body;
+app.all('/check-wp-admin', async (req, res) => {
+    const { url, username, password, basicUser, basicPass } = { ...req.query, ...(req.body || {}) };
     let browser = null;
     try {
         browser = await puppeteer.launch({ headless: 'new', args: LAUNCH_ARGS });
@@ -80,6 +80,7 @@ app.post('/check-wp-admin', async (req, res) => {
 // =====================================================================
 app.get('/init-profile', async (req, res) => {
     const { id } = req.query;
+    if (typeof sitemaps === 'string') sitemaps = sitemaps.split(',').map(s=>s.trim()).filter(Boolean);
     const userDataDir = getProfilePath(id);
     try {
         console.log('Đang mở trình duyệt ngụy trang cho ID: ' + (id || 'default'));
@@ -103,8 +104,9 @@ app.get('/init-profile', async (req, res) => {
 // =====================================================================
 // 3. API LẤY MÃ XÁC MINH GSC
 // =====================================================================
-app.post('/gsc-get-tag', async (req, res) => {
-    const { url, id } = req.body;
+app.all('/gsc-get-tag', async (req, res) => {
+    const { url, id } = { ...req.query, ...(req.body || {}) };
+    if (typeof sitemaps === 'string') sitemaps = sitemaps.split(',').map(s=>s.trim()).filter(Boolean);
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
@@ -133,8 +135,9 @@ app.post('/gsc-get-tag', async (req, res) => {
 // =====================================================================
 // 4. API BẤM XÁC MINH GSC
 // =====================================================================
-app.post('/gsc-click-verify', async (req, res) => {
-    const { url, id } = req.body;
+app.all('/gsc-click-verify', async (req, res) => {
+    const { url, id } = { ...req.query, ...(req.body || {}) };
+    if (typeof sitemaps === 'string') sitemaps = sitemaps.split(',').map(s=>s.trim()).filter(Boolean);
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
@@ -159,8 +162,8 @@ app.post('/gsc-click-verify', async (req, res) => {
 // =====================================================================
 // 5. API ĐĂNG NHẬP WP & CHÈN MÃ WPCODE
 // =====================================================================
-app.post('/wp-inject-tag', async (req, res) => {
-    const { wpUrl, adminPath, user, pass, metaTag } = req.body;
+app.all('/wp-inject-tag', async (req, res) => {
+    const { wpUrl, adminPath, user, pass, metaTag } = { ...req.query, ...(req.body || {}) };
     let browser = null;
     try {
         browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', args: LAUNCH_ARGS });
@@ -252,8 +255,9 @@ app.post('/wp-inject-tag', async (req, res) => {
 // =====================================================================
 // 6. API NẠP SITEMAP GSC
 // =====================================================================
-app.post('/gsc-submit-sitemap', async (req, res) => {
-    const { url, id, sitemaps } = req.body;
+app.all('/gsc-submit-sitemap', async (req, res) => {
+    const { url, id, sitemaps } = { ...req.query, ...(req.body || {}) };
+    if (typeof sitemaps === 'string') sitemaps = sitemaps.split(',').map(s=>s.trim()).filter(Boolean);
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {

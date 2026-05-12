@@ -2701,10 +2701,8 @@
                 // BƯỚC 1: LẤY MÃ GSC
                 document.getElementById('st1_'+currentId).innerHTML = '⏳ Đang lấy mã...';
                 try {
-                    const res1 = await fetch(apiUrl + '/gsc-get-tag', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: url, id: profile.id })
-                    });
+                    const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(apiUrl + '/gsc-get-tag?url=' + encodeURIComponent(url) + '&id=' + encodeURIComponent(profile.id));
+                    const res1 = await fetch(proxyUrl);
                     const data1 = await res1.json();
                     if (data1.status === 'success') {
                         metaTag = data1.metaTag;
@@ -2721,10 +2719,8 @@
                 if(user && pass) {
                     document.getElementById('st2_'+currentId).innerHTML = '⏳ Đang vào WP...';
                     try {
-                        const res2 = await fetch(apiUrl + '/wp-inject-tag', {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ wpUrl: url, adminPath, user, pass, metaTag })
-                        });
+                        const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(apiUrl + '/wp-inject-tag?wpUrl=' + encodeURIComponent(url) + '&adminPath=' + encodeURIComponent(adminPath) + '&user=' + encodeURIComponent(user) + '&pass=' + encodeURIComponent(pass) + '&metaTag=' + encodeURIComponent(metaTag));
+                        const res2 = await fetch(proxyUrl);
                         const data2 = await res2.json();
                         if (data2.status === 'success') {
                             document.getElementById('st2_'+currentId).innerHTML = '<span class="status-badge status-success">✅ Đã chèn mã</span>';
@@ -2743,10 +2739,8 @@
                 // BƯỚC 3: XÁC MINH GSC
                 document.getElementById('st3_'+currentId).innerHTML = '⏳ Đang xác minh...';
                 try {
-                    const res3 = await fetch(apiUrl + '/gsc-click-verify', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: url, id: profile.id })
-                    });
+                    const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(apiUrl + '/gsc-click-verify?url=' + encodeURIComponent(url) + '&id=' + encodeURIComponent(profile.id));
+                    const res3 = await fetch(proxyUrl);
                     const data3 = await res3.json();
                     if (data3.status === 'success') { 
                         document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge status-success">✅ OK</span>'; 
@@ -2762,10 +2756,8 @@
                 if(sitemaps.length > 0) {
                     document.getElementById('st4_'+currentId).innerHTML = '⏳ Đang nạp Sitemap...';
                     try {
-                        const res4 = await fetch(apiUrl + '/gsc-submit-sitemap', {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ url: url, id: profile.id, sitemaps })
-                        });
+                        const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(apiUrl + '/gsc-submit-sitemap?url=' + encodeURIComponent(url) + '&id=' + encodeURIComponent(profile.id) + '&sitemaps=' + encodeURIComponent(sitemaps.join(',')));
+                        const res4 = await fetch(proxyUrl);
                         const data4 = await res4.json();
                         if (data4.status === 'success') { 
                             document.getElementById('st4_'+currentId).innerHTML = '<span class="status-badge status-success">✅ Đã nạp ' + data4.results.filter(r=>r.status==='success').length + '/' + sitemaps.length + ' cái</span>'; 
