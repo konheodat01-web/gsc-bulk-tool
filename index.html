@@ -543,7 +543,7 @@
                 <h4 style="margin-top:0; font-size:13px; color: var(--primary); margin-bottom: 10px;">🤖 CHẾ ĐỘ VPS TỰ ĐỘNG (Không cần Popup)</h4>
                 <div style="display:flex; gap:10px; margin-bottom: 10px;">
                     
-                    <input type="text" id="vpsProfileId" placeholder="Nhập Profile ID (Ví dụ: gmail_1, gmail_2...)" style="flex:1; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; padding: 8px; border-radius: 4px;">
+                    <div id="vpsProfileCheckboxes" style="display:flex; flex-wrap:wrap; gap:10px; width:100%; padding:5px;"></div>
                 </div>
                 <button class="btn btn-primary" onclick="startVpsProcess()" style="width: 100%; background: var(--primary); border: none; padding: 10px; border-radius: 4px; color: white; font-weight: bold; cursor: pointer;">🚀 Bắt đầu Add & Lấy Mã (Qua VPS)</button>
             </div>
@@ -2653,13 +2653,34 @@
     }
 
     
+    
+    function renderVpsProfilesList() {
+        const container = document.getElementById('vpsProfileCheckboxes');
+        if(!container) return;
+        const config = localStorage.getItem('vps_profiles_config') || 'gmail_1|Tài khoản 1';
+        const lines = config.split('\n').filter(l=>l.trim());
+        let h = '';
+        lines.forEach((line, i) => {
+            const parts = line.split('|');
+            const id = parts[0].trim();
+            const name = (parts[1] || id).trim();
+            h += '<label style="cursor:pointer; display:flex; align-items:center; gap:5px; background:rgba(255,255,255,0.1); padding:5px 10px; border-radius:4px; font-size:12px;"><input type="checkbox" class="vps-profile-cb" value="'+id+'" data-name="'+name+'" '+(i===0?'checked':'')+'> '+name+' ('+id+')</label>';
+        });
+        container.innerHTML = h;
+    }
+    // Call it on load
+    setTimeout(renderVpsProfilesList, 500);
+
     // --- VPS AUTOMATION LOGIC ---
     async function startVpsProcess() {
         const vpsIp = localStorage.getItem('vps_ip') || '';
-        const profileId = document.getElementById('vpsProfileId').value.trim();
         const lines = document.getElementById('domainList').value.split('\n').filter(l => l.trim());
         
-        if(!vpsIp) return alert("Sếp chưa điền IP VPS ở phần Cài đặt chung (icon Bánh răng góc phải)!"); if(!profileId) return alert("Vui lòng nhập Profile ID (VD: gmail_1)!");
+        const cbs = document.querySelectorAll('.vps-profile-cb:checked');
+        const selectedProfiles = Array.from(cbs).map(cb => ({ id: cb.value, name: cb.getAttribute('data-name') }));
+
+        if(!vpsIp) return alert("Sếp chưa điền IP VPS ở phần Cài đặt chung (icon Bánh răng góc phải)!");
+        if(selectedProfiles.length === 0) return alert("Vui lòng chọn ít nhất 1 Profile VPS!");
         if(lines.length === 0) return alert("Vui lòng nhập ít nhất 1 domain!");
         
         const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';
@@ -2668,32 +2689,34 @@
         let rowId = 0;
         const apiUrl = vpsIp.includes('http') ? vpsIp : 'http://' + vpsIp + ':3000';
 
-        for (let i = 0; i < lines.length; i++) {
-            let url = lines[i].trim(); if(!url.startsWith('http')) url='https://'+url; if(!url.endsWith('/')) url+='/';
-            const currentId = rowId++;
-            const tr = document.createElement('tr'); 
-            tr.innerHTML = '<td>'+url+'</td><td><span style="font-size:11px; color:var(--primary); font-weight:bold;">' + profileId + '</span></td><td id="st_vps_'+currentId+'">Đang gọi VPS...</td><td id="mt_vps_'+currentId+'">-</td><td id="vr_vps_'+currentId+'">-</td><td class="sitemap-cell">-</td>';
-            tbody.appendChild(tr);
-            
-            try {
-                const res = await fetch(apiUrl + '/gsc-get-tag', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: url, id: profileId })
-                });
-                const data = await res.json();
+        for (const profile of selectedProfiles) {
+            for (let i = 0; i < lines.length; i++) {
+                let url = lines[i].trim(); if(!url.startsWith('http')) url='https://'+url; if(!url.endsWith('/')) url+='/';
+                const currentId = rowId++;
+                const tr = document.createElement('tr'); 
+                tr.innerHTML = '<td>'+url+'</td><td><span style="font-size:11px; color:var(--primary); font-weight:bold;">' + profile.name + '</span></td><td id="st_vps_'+currentId+'">Đang gọi VPS...</td><td id="mt_vps_'+currentId+'">-</td><td id="vr_vps_'+currentId+'">-</td><td class="sitemap-cell">-</td>';
+                tbody.appendChild(tr);
                 
-                if (data.status === 'success') {
-                    document.getElementById('st_vps_'+currentId).innerHTML = '<span class="status-badge status-success">Đã lấy mã</span>';
-                    document.getElementById('mt_vps_'+currentId).innerHTML = '<div class="code-box"><span class="code-text">'+data.metaTag.replace(/</g,'&lt;')+'</span><button class="btn-mini" onclick="navigator.clipboard.writeText(\''+data.metaTag.replace(/'/g,"\\'")+'\')">Copy</button></div>';
-                    document.getElementById('vr_vps_'+currentId).innerHTML = '<button class="btn-mini" onclick="verifyVpsSite(\''+url+'\', '+currentId+', \''+apiUrl+'\', \''+profileId+'\')">Xác minh VPS</button>';
-                } else {
-                    document.getElementById('st_vps_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi: ' + (data.message || 'VPS Error') + '</span>';
+                try {
+                    const res = await fetch(apiUrl + '/gsc-get-tag', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url, id: profile.id })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.status === 'success') {
+                        document.getElementById('st_vps_'+currentId).innerHTML = '<span class="status-badge status-success">Đã lấy mã</span>';
+                        document.getElementById('mt_vps_'+currentId).innerHTML = '<div class="code-box"><span class="code-text">'+data.metaTag.replace(/</g,'&lt;')+'</span><button class="btn-mini" onclick="navigator.clipboard.writeText(\''+data.metaTag.replace(/'/g,"\\'")+'\')">Copy</button></div>';
+                        document.getElementById('vr_vps_'+currentId).innerHTML = '<button class="btn-mini" onclick="verifyVpsSite(\''+url+'\', '+currentId+', \''+apiUrl+'\', \''+profile.id+'\')">Xác minh VPS</button>';
+                    } else {
+                        document.getElementById('st_vps_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi: ' + (data.message || 'VPS Error') + '</span>';
+                    }
+                } catch(e) { 
+                    document.getElementById('st_vps_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối VPS</span>'; 
                 }
-            } catch(e) { 
-                document.getElementById('st_vps_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối VPS</span>'; 
+                await new Promise(r => setTimeout(r, 1000));
             }
-            await new Promise(r => setTimeout(r, 1000));
         }
     }
 
@@ -6015,6 +6038,7 @@ ${appState}`;
             document.getElementById('sysGlobalSheetUrl').value = localStorage.getItem('global_sheet_url') || '';
             // VPS Agent
             document.getElementById('sysVpsIp').value = localStorage.getItem('vps_ip') || '';
+            if(document.getElementById('sysVpsProfilesConfig')) document.getElementById('sysVpsProfilesConfig').value = localStorage.getItem('vps_profiles_config') || 'gmail_1|Tài khoản 1';
             document.getElementById('sysVpsGoogleJson').value = localStorage.getItem('vps_google_json') || '';
             // Proxy
             if (document.getElementById('sysProxyHost')) document.getElementById('sysProxyHost').value = localStorage.getItem('sys_proxy_host') || '';
@@ -6051,6 +6075,8 @@ ${appState}`;
         localStorage.setItem('global_sheet_url', document.getElementById('sysGlobalSheetUrl').value.trim());
         // VPS Agent
         localStorage.setItem('vps_ip', document.getElementById('sysVpsIp').value.trim());
+        localStorage.setItem('vps_profiles_config', document.getElementById('sysVpsProfilesConfig').value.trim());
+        if(typeof renderVpsProfilesList === 'function') renderVpsProfilesList();
         localStorage.setItem('vps_google_json', document.getElementById('sysVpsGoogleJson').value.trim());
         // Proxy
         if (document.getElementById('sysProxyHost')) localStorage.setItem('sys_proxy_host', document.getElementById('sysProxyHost').value.trim());
@@ -6622,7 +6648,11 @@ return items.map(item => {
                                 <span class="acc-arrow">▾</span>
                             </div>
                             <div class="acc-body" style="display:none;">
-                                <label class="acc-label">Địa chỉ IP VPS</label>
+                                
+                    <label class="acc-label">Cấu hình Profile VPS (Mỗi dòng 1 tài khoản: ID|Tên gợi nhớ)</label>
+                    <textarea id="sysVpsProfilesConfig" placeholder="gmail_1|Tài khoản Chính\ngmail_2|Tài khoản Phụ" class="acc-input" style="height:60px; margin-bottom:10px;"></textarea>
+
+                    <label class="acc-label">Địa chỉ IP VPS</label>
                                 <input type="text" id="sysVpsIp" placeholder="103.82.195.87" class="acc-input" style="margin-bottom:10px;">
                                 <div style="display:flex;gap:8px;">
                                     <button onclick="syncCredentialsToVps()" style="flex:1;background:rgba(255,255,255,0.05);color:white;border:1px solid rgba(255,255,255,0.1);padding:7px;border-radius:6px;font-size:11px;cursor:pointer;" title="Đẩy Google JSON lên VPS">💾 Lưu Chìa Khóa</button>
