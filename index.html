@@ -2675,38 +2675,109 @@
         if(lines.length === 0) return alert("Vui lòng nhập ít nhất 1 domain!");
         
         const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';
-        document.querySelector('#gscTable thead').innerHTML = '<tr><th width="20%">Website URL</th><th width="20%">Profile VPS</th><th width="12%">Trạng thái</th><th width="25%">Mã HTML</th><th width="10%">Xác minh</th><th width="13%">Sitemaps</th></tr>';
+        document.querySelector('#gscTable thead').innerHTML = '<tr><th width="15%">Website URL</th><th width="10%">Profile VPS</th><th width="15%">1. Lấy Mã GSC</th><th width="18%">2. Auto Dán Plugin (WP)</th><th width="15%">3. Xác minh GSC</th><th width="27%">4. Nạp Sitemaps</th></tr>';
         
         let rowId = 0;
         const apiUrl = vpsIp.includes('http') ? vpsIp : 'http://' + vpsIp + ':3000';
 
         for (const profile of selectedProfiles) {
             for (let i = 0; i < lines.length; i++) {
-                let url = lines[i].trim(); if(!url.startsWith('http')) url='https://'+url; if(!url.endsWith('/')) url+='/';
+                const parts = lines[i].split(/[\s\t]+/);
+                let url = parts[0]; 
+                if(!url) continue;
+                if(!url.startsWith('http')) url='https://'+url; if(!url.endsWith('/')) url+='/';
+                
+                const adminPath = parts[1] || 'wp-admin';
+                const user = parts[2] || '';
+                const pass = parts[3] || '';
+                
                 const currentId = rowId++;
                 const tr = document.createElement('tr'); 
-                tr.innerHTML = '<td>'+url+'</td><td><span style="font-size:11px; color:var(--primary); font-weight:bold;">' + profile.name + '</span></td><td id="st_vps_'+currentId+'">Đang gọi VPS...</td><td id="mt_vps_'+currentId+'">-</td><td id="vr_vps_'+currentId+'">-</td><td class="sitemap-cell">-</td>';
+                tr.innerHTML = '<td>'+url+'</td><td><span style="font-size:11px; color:var(--primary); font-weight:bold;">' + profile.name + '</span></td><td id="st1_'+currentId+'">Đang chờ...</td><td id="st2_'+currentId+'">-</td><td id="st3_'+currentId+'">-</td><td id="st4_'+currentId+'">-</td>';
                 tbody.appendChild(tr);
                 
+                let metaTag = '';
+                
+                // BƯỚC 1: LẤY MÃ GSC
+                document.getElementById('st1_'+currentId).innerHTML = '⏳ Đang lấy mã...';
                 try {
-                    const res = await fetch(apiUrl + '/gsc-get-tag', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                    const res1 = await fetch(apiUrl + '/gsc-get-tag', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ url: url, id: profile.id })
                     });
-                    const data = await res.json();
-                    
-                    if (data.status === 'success') {
-                        document.getElementById('st_vps_'+currentId).innerHTML = '<span class="status-badge status-success">Đã lấy mã</span>';
-                        document.getElementById('mt_vps_'+currentId).innerHTML = '<div class="code-box"><span class="code-text">'+data.metaTag.replace(/</g,'&lt;')+'</span><button class="btn-mini" onclick="navigator.clipboard.writeText(\''+data.metaTag.replace(/'/g,"\\'")+'\')">Copy</button></div>';
-                        document.getElementById('vr_vps_'+currentId).innerHTML = '<button class="btn-mini" onclick="verifyVpsSite(\''+url+'\', '+currentId+', \''+apiUrl+'\', \''+profile.id+'\')">Xác minh VPS</button>';
+                    const data1 = await res1.json();
+                    if (data1.status === 'success') {
+                        metaTag = data1.metaTag;
+                        document.getElementById('st1_'+currentId).innerHTML = '<span class="status-badge status-success">✅ Xong</span><br><button style="margin-top:4px" class="btn-mini" onclick="navigator.clipboard.writeText(\''+metaTag.replace(/'/g,"\\'")+'\')">Copy Mã</button>';
                     } else {
-                        document.getElementById('st_vps_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi: ' + (data.message || 'VPS Error') + '</span>';
+                        document.getElementById('st1_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi: ' + (data1.message || 'Error') + '</span>';
+                        continue; 
                     }
                 } catch(e) { 
-                    document.getElementById('st_vps_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối VPS</span>'; 
+                    document.getElementById('st1_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối VPS</span>'; continue;
                 }
-                await new Promise(r => setTimeout(r, 1000));
+                
+                // BƯỚC 2: CHÈN VÀO WP
+                if(user && pass) {
+                    document.getElementById('st2_'+currentId).innerHTML = '⏳ Đang vào WP...';
+                    try {
+                        const res2 = await fetch(apiUrl + '/wp-inject-tag', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ wpUrl: url, adminPath, user, pass, metaTag })
+                        });
+                        const data2 = await res2.json();
+                        if (data2.status === 'success') {
+                            document.getElementById('st2_'+currentId).innerHTML = '<span class="status-badge status-success">✅ Đã chèn mã</span>';
+                        } else {
+                            document.getElementById('st2_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi: ' + (data2.message || 'Error') + '</span>';
+                            continue;
+                        }
+                    } catch(e) { 
+                        document.getElementById('st2_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối WP</span>'; continue;
+                    }
+                } else {
+                    document.getElementById('st2_'+currentId).innerHTML = '<span style="font-size:10px; color:gray">Dừng (Không có user/pass WP)</span>';
+                    continue;
+                }
+                
+                // BƯỚC 3: XÁC MINH GSC
+                document.getElementById('st3_'+currentId).innerHTML = '⏳ Đang xác minh...';
+                try {
+                    const res3 = await fetch(apiUrl + '/gsc-click-verify', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url, id: profile.id })
+                    });
+                    const data3 = await res3.json();
+                    if (data3.status === 'success') { 
+                        document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge status-success">✅ OK</span>'; 
+                    } else { 
+                        document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">❌ Xác minh xịt</span>'; continue;
+                    }
+                } catch(e) {
+                    document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối</span>'; continue;
+                }
+                
+                // BƯỚC 4: NẠP SITEMAP
+                const sitemaps = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(s=>s);
+                if(sitemaps.length > 0) {
+                    document.getElementById('st4_'+currentId).innerHTML = '⏳ Đang nạp Sitemap...';
+                    try {
+                        const res4 = await fetch(apiUrl + '/gsc-submit-sitemap', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: url, id: profile.id, sitemaps })
+                        });
+                        const data4 = await res4.json();
+                        if (data4.status === 'success') { 
+                            document.getElementById('st4_'+currentId).innerHTML = '<span class="status-badge status-success">✅ Đã nạp ' + data4.results.filter(r=>r.status==='success').length + '/' + sitemaps.length + ' cái</span>'; 
+                        } else { 
+                            document.getElementById('st4_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--warning)">⚠️ Có lỗi nạp</span>'; 
+                        }
+                    } catch(e) {
+                        document.getElementById('st4_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối</span>'; 
+                    }
+                } else {
+                    document.getElementById('st4_'+currentId).innerHTML = '<span style="font-size:10px; color:gray">Bỏ qua SM</span>';
+                }
             }
         }
     }

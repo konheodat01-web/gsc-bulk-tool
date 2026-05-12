@@ -155,5 +155,146 @@ app.post('/gsc-click-verify', async (req, res) => {
     }
 });
 
+
+// =====================================================================
+// 5. API ĐĂNG NHẬP WP & CHÈN MÃ WPCODE
+// =====================================================================
+app.post('/wp-inject-tag', async (req, res) => {
+    const { wpUrl, adminPath, user, pass, metaTag } = req.body;
+    let browser = null;
+    try {
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', args: LAUNCH_ARGS });
+        const page = await browser.newPage();
+        
+        // 1. Đăng nhập
+        const loginUrl = wpUrl.replace(/\/$/, '') + '/' + adminPath.replace(/^\//, '');
+        console.log('WP Inject - Logging into:', loginUrl);
+        await page.goto(loginUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+        
+        const userField = await page.$('#user_login');
+        if (!userField) throw new Error('Không tìm thấy form đăng nhập WP');
+        
+        await page.type('#user_login', user);
+        await page.type('#user_pass', pass);
+        await Promise.all([
+            page.click('#wp-submit'),
+            page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {})
+        ]);
+        
+        if (page.url().includes('wp-login.php')) {
+            throw new Error('Đăng nhập WP thất bại, sai user/pass');
+        }
+
+        // 2. Tìm hoặc Cài đặt WPCode
+        const installUrl = wpUrl.replace(/\/$/, '') + '/wp-admin/plugin-install.php?s=wpcode&tab=search&type=term';
+        await page.goto(installUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+        
+        const wpcodeCard = await page.$('.plugin-card-insert-headers-and-footers');
+        if (wpcodeCard) {
+            const installBtn = await wpcodeCard.$('.install-now');
+            if (installBtn) {
+                console.log('WP Inject - Installing WPCode...');
+                await installBtn.click();
+                try {
+                    await page.waitForFunction(() => {
+                        const btn = document.querySelector('.plugin-card-insert-headers-and-footers .activate-now');
+                        return btn && btn.style.display !== 'none' && !btn.classList.contains('button-disabled');
+                    }, { timeout: 60000 });
+                } catch(e) {
+                    throw new Error('Cài đặt WPCode quá lâu hoặc bị chặn.');
+                }
+            }
+            
+            const activateBtn = await wpcodeCard.$('.activate-now');
+            if (activateBtn) {
+                console.log('WP Inject - Activating WPCode...');
+                await Promise.all([
+                    activateBtn.click(),
+                    page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {})
+                ]);
+            }
+        }
+        
+        // 3. Chèn Mã vào Header
+        console.log('WP Inject - Inserting Meta Tag...');
+        const wpcodeSettingsUrl = wpUrl.replace(/\/$/, '') + '/wp-admin/admin.php?page=wpcode-headers-footers';
+        await page.goto(wpcodeSettingsUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+        
+        // WPCode sử dụng CodeMirror. Ta cần nhét mã vào qua JS.
+        await page.evaluate((tag) => {
+            const cm = document.querySelector('.CodeMirror');
+            if (cm && cm.CodeMirror) {
+                const currentVal = cm.CodeMirror.getValue();
+                if (!currentVal.includes(tag)) {
+                    cm.CodeMirror.setValue(currentVal + '\n' + tag);
+                }
+            } else {
+                const ta = document.querySelector('textarea[name*="header"]');
+                if (ta && !ta.value.includes(tag)) {
+                    ta.value = ta.value + '\n' + tag;
+                }
+            }
+            const submitBtn = document.getElementById('submit');
+            if(submitBtn) submitBtn.click();
+        }, metaTag);
+        
+        await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => {});
+        
+        await browser.close();
+        return res.json({ status: 'success', message: 'Đã chèn mã xác minh vào WPCode' });
+    } catch (e) {
+        if (browser) await browser.close();
+        return res.status(500).json({ error: true, message: e.message });
+    }
+});
+
+
+// =====================================================================
+// 6. API NẠP SITEMAP GSC
+// =====================================================================
+app.post('/gsc-submit-sitemap', async (req, res) => {
+    const { url, id, sitemaps } = req.body;
+    const userDataDir = getProfilePath(id);
+    let browser = null;
+    try {
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
+        const page = await browser.newPage();
+        
+        await page.goto('https://search.google.com/search-console/sitemaps?resource_id=' + encodeURIComponent(url), { waitUntil: 'networkidle2' });
+        
+        let results = [];
+        for (const sitemap of sitemaps) {
+            try {
+                const inputSelector = 'input[type="text"][aria-label="Thêm sơ đồ trang web mới"], input[type="text"][aria-label="Add a new sitemap"]';
+                await page.waitForSelector(inputSelector, { timeout: 10000 });
+                
+                await page.click(inputSelector, { clickCount: 3 });
+                await page.type(inputSelector, sitemap);
+                
+                // Submit button
+                const btnSubmit = await page.$x("//span[contains(text(), 'Gửi') or contains(text(), 'Submit')]");
+                if (btnSubmit.length > 0) {
+                    await btnSubmit[btnSubmit.length - 1].click();
+                    await page.waitForTimeout(3000); // Đợi popup báo gửi thành công
+                    // Đóng popup nếu có (Got it / OK)
+                    const btnClose = await page.$x("//span[contains(text(), 'OK') or contains(text(), 'Got it')]");
+                    if (btnClose.length > 0) await btnClose[btnClose.length - 1].click();
+                    results.push({ sitemap, status: 'success' });
+                } else {
+                    results.push({ sitemap, status: 'fail_btn' });
+                }
+            } catch(err) {
+                results.push({ sitemap, status: 'fail_timeout' });
+            }
+        }
+        
+        await browser.close();
+        return res.json({ status: 'success', results });
+    } catch (e) {
+        if (browser) await browser.close();
+        return res.status(500).json({ error: true, message: e.message });
+    }
+});
+
 const PORT = 3000;
 app.listen(PORT, () => console.log('VPS API (STEALTH MODE) đang chạy tại http://localhost:' + PORT));
