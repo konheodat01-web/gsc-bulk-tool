@@ -144,7 +144,7 @@ app.post('/update-cookie', (req, res) => {
 // 3. API LẤY MÃ XÁC MINH GSC
 // =====================================================================
 app.all('/gsc-get-tag', async (req, res) => {
-    const { url, id } = { ...req.query, ...(req.body || {}) };
+    const { url, id, proxy } = { ...req.query, ...(req.body || {}) };
     const logPath = path.join(__dirname, 'debug_status.txt');
     const logStep = (msg) => { try { fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${msg}\n`); } catch(e){} };
     
@@ -152,8 +152,9 @@ app.all('/gsc-get-tag', async (req, res) => {
     let browser = null;
     try {
         logStep(`=== Bắt đầu: ${url} ===`);
-        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: getLaunchArgs(proxy) });
         const page = await browser.newPage();
+        if (proxy && proxy.user && proxy.pass) await page.authenticate({ username: proxy.user, password: proxy.pass });
         
         // Bơm cứng cookie từ file cookies.json (nếu có) để chống Chrome Linux tự xóa cookie
         const cookiesPath = path.join(userDataDir, 'cookies.json');
@@ -660,14 +661,15 @@ app.all('/wp-inject-tag', async (req, res) => {
 // 6. API NẠP SITEMAP GSC
 // =====================================================================
 app.all('/gsc-submit-sitemap', async (req, res) => {
-    const { url, id } = { ...req.query, ...(req.body || {}) };
+    const { url, id, proxy } = { ...req.query, ...(req.body || {}) };
     let { sitemaps } = { ...req.query, ...(req.body || {}) };
     if (typeof sitemaps === 'string') sitemaps = sitemaps.split(',').map(s=>s.trim()).filter(Boolean);
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
-        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: getLaunchArgs(proxy) });
         const page = await browser.newPage();
+        if (proxy && proxy.user && proxy.pass) await page.authenticate({ username: proxy.user, password: proxy.pass });
         
         await page.goto('https://search.google.com/search-console/sitemaps?resource_id=' + encodeURIComponent(url), { waitUntil: 'domcontentloaded' });
         
