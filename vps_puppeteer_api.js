@@ -14,6 +14,10 @@ async function launchRealBrowser(proxy) {
     const options = {
         headless: 'auto',
         turnstile: true,
+        executablePath: getChromeExecutablePath(),
+        customConfig: {
+            executablePath: getChromeExecutablePath()
+        },
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled']
     };
     if (proxy && proxy.host && proxy.port) {
