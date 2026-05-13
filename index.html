@@ -457,8 +457,7 @@
 
     <div class="tab-nav">
         <button class="tab-btn active" onclick="switchTab('tab0')">📊 Tổng Quan</button>
-        <button class="tab-btn" onclick="switchTab('tab1')">🔌 Quản lý GSC</button>
-        <button class="tab-btn active" onclick="switchTab('tab2')">🔍 Check 301</button>
+        <button class="tab-btn" onclick="switchTab('tab2')">🔍 Check 301</button>
         <button class="tab-btn" onclick="switchTab('tab8')">🔐 Check Admin WP</button>
         <button class="tab-btn" onclick="switchTab('tab3')">🔗 Outbound Audit</button>
         <button class="tab-btn" onclick="switchTab('tab4')">🤖 Check Mở Bot</button>
@@ -527,43 +526,6 @@
                 </table>
             </div>
             <div id="overviewLoading" style="display:none; margin-top: 20px; font-size:13px; color:var(--warning); text-align: center;">⏳ Hệ thống đang quét toàn bộ 300+ website... Sếp vui lòng đợi trong giây lát...</div>
-        </div>
-    </div>
-
-    <!-- TAB 1: GSC -->
-    <div id="tab1" class="tab-content">
-        <div class="card">
-            <h3 style="margin-top:0">Bước 1: Quản lý Tài khoản Google <button class="help-btn" onclick="showHelp('gsc-account')" title="Hướng dẫn sử dụng">?</button></h3>
-            <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Tích chọn tài khoản muốn sử dụng để chạy Automation. Nếu bị lỗi chết Cookie, dán JSON mới vào ô tương ứng rồi bấm Đồng bộ lên VPS.</p>
-            
-            <div id="vpsProfileCheckboxes" style="display:flex; flex-direction:column; gap:10px; width:100%; margin-bottom:15px; margin-top: 15px;"></div>
-        </div>
-        <div class="card" style="margin-top:20px;">
-            <h3 style="margin-top:0">Bước 2: Website &amp; Sitemap <button class="help-btn" onclick="showHelp('gsc-sitemap')" title="Hướng dẫn sử dụng">?</button></h3>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
-            <label style="font-size:12px; color:var(--text-muted);">Danh sách Domain:</label>
-            <button class="btn btn-outline" onclick="importFromSheet('domainList')" style="font-size:11px; padding:4px 8px; border-color:#0f9d58; color:#0f9d58; border-radius: 4px; border-style: solid; border-width: 1px; background: rgba(15, 157, 88, 0.1); cursor: pointer;">📊 Nạp vùng dữ liệu</button>
-        </div>
-        <textarea id="domainList" placeholder="Danh sách domain..."></textarea>
-            <div style="margin-top:15px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px;">
-                <label style="font-size:12px; color:var(--text-muted);">Sitemap Names (cách nhau bằng dấu phẩy):</label>
-                <div style="display:flex; gap:10px; margin-top:5px;">
-                    <input type="text" id="sitemapList" value="sitemap_index.xml, category-sitemap.xml, page-sitemap.xml, post-sitemap.xml">
-                    <button class="btn btn-secondary" onclick="checkAndSubmitSitemaps()">Nạp Sitemap</button>
-                </div>
-            </div>
-            <div style="margin-top:15px; display:flex; gap:10px;">
-                <button id="btnStart" class="btn btn-success" onclick="startVpsProcess()">🚀 Bắt đầu Add & Lấy Mã (Qua VPS)</button>
-                <button id="btnRetryVerify" class="btn btn-outline" onclick="retryFailedVerifications()" style="border-color:var(--danger); color:var(--danger); font-size:13px;">🔄 Thử lại xác minh lỗi</button>
-            </div>
-        </div>
-        <div class="card" style="margin-top:20px;">
-            <table id="gscTable">
-                <thead>
-                    <tr><th width="15%">Website URL</th><th width="10%">Profile VPS</th><th width="15%">1. Lấy Mã GSC</th><th width="18%">2. Auto Dán Plugin (WP)</th><th width="15%">3. Xác minh GSC</th><th width="27%">4. Nạp Sitemaps</th></tr>
-                </thead>
-                <tbody id="resultBody"></tbody>
-            </table>
         </div>
     </div>
 
