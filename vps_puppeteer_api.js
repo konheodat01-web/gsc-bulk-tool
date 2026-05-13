@@ -5,9 +5,26 @@ const https = require('https');
 const http = require('http');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const { connect } = require('puppeteer-real-browser');
 
 // Kích hoạt plugin ngụy trang
 puppeteer.use(StealthPlugin());
+
+async function launchRealBrowser(proxy) {
+    const options = {
+        headless: 'auto',
+        turnstile: true
+    };
+    if (proxy && proxy.host && proxy.port) {
+        options.proxy = {
+            host: proxy.host,
+            port: parseInt(proxy.port),
+            username: proxy.user || '',
+            password: proxy.pass || ''
+        };
+    }
+    return await connect(options);
+}
 
 const app = express();
 app.use(cors());
@@ -62,11 +79,13 @@ function getLaunchArgs(proxy) {
 // 1. API: /check-wp-admin
 // =====================================================================
 app.all('/check-wp-admin', async (req, res) => {
-    const { url, username, password, basicUser, basicPass } = { ...req.query, ...(req.body || {}) };
+    const { url, username, password, basicUser, basicPass, proxy } = { ...req.query, ...(req.body || {}) };
     let browser = null;
+    let page = null;
     try {
-        browser = await puppeteer.launch({ headless: 'new', args: LAUNCH_ARGS });
-        const page = await browser.newPage();
+        const rb = await launchRealBrowser(proxy);
+        browser = rb.browser;
+        page = rb.page;
         if (basicUser && basicPass) await page.authenticate({ username: basicUser, password: basicPass });
         await page.goto(url, { waitUntil: 'domcontentloaded' });
         await page.waitForSelector('#user_login', { timeout: 5000 });
@@ -516,10 +535,11 @@ app.all('/gsc-click-verify', async (req, res) => {
 app.all('/wp-inject-tag', async (req, res) => {
     const { wpUrl, adminPath, user, pass, metaTag, proxy } = { ...req.query, ...(req.body || {}) };
     let browser = null;
+    let page = null;
     try {
-        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', args: getLaunchArgs(proxy) });
-        const page = await browser.newPage();
-        if (proxy && proxy.user && proxy.pass) await page.authenticate({ username: proxy.user, password: proxy.pass });
+        const rb = await launchRealBrowser(proxy);
+        browser = rb.browser;
+        page = rb.page;
         
         // 1. Đăng nhập
         const loginUrl = wpUrl.replace(/\/$/, '') + '/' + adminPath.replace(/^\//, '');
