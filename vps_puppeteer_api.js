@@ -152,9 +152,8 @@ app.all('/gsc-get-tag', async (req, res) => {
     let browser = null;
     try {
         logStep(`=== Bắt đầu: ${url} ===`);
-        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: getLaunchArgs(proxy) });
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: getLaunchArgs() });
         const page = await browser.newPage();
-        if (proxy && proxy.user && proxy.pass) await page.authenticate({ username: proxy.user, password: proxy.pass });
         
         // Bơm cứng cookie từ file cookies.json (nếu có) để chống Chrome Linux tự xóa cookie
         const cookiesPath = path.join(userDataDir, 'cookies.json');
@@ -407,9 +406,8 @@ app.all('/gsc-click-verify', async (req, res) => {
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
-        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: getLaunchArgs(proxy) });
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: getLaunchArgs() });
         const page = await browser.newPage();
-        if (proxy && proxy.user && proxy.pass) await page.authenticate({ username: proxy.user, password: proxy.pass });
         
         const cookiesPath = path.join(userDataDir, 'cookies.json');
         if (fs.existsSync(cookiesPath)) {
@@ -667,9 +665,8 @@ app.all('/gsc-submit-sitemap', async (req, res) => {
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
-        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: getLaunchArgs(proxy) });
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: getLaunchArgs() });
         const page = await browser.newPage();
-        if (proxy && proxy.user && proxy.pass) await page.authenticate({ username: proxy.user, password: proxy.pass });
         
         await page.goto('https://search.google.com/search-console/sitemaps?resource_id=' + encodeURIComponent(url), { waitUntil: 'domcontentloaded' });
         
