@@ -458,7 +458,7 @@
     <div class="tab-nav">
         <button class="tab-btn active" onclick="switchTab('tab0')">📊 Tổng Quan</button>
         <button class="tab-btn" onclick="switchTab('tab1')">🔌 Quản lý GSC</button>
-        <button class="tab-btn" onclick="switchTab('tab2')">🔍 Check 301</button>
+        <button class="tab-btn active" onclick="switchTab('tab2')">🔍 Check 301</button>
         <button class="tab-btn" onclick="switchTab('tab8')">🔐 Check Admin WP</button>
         <button class="tab-btn" onclick="switchTab('tab3')">🔗 Outbound Audit</button>
         <button class="tab-btn" onclick="switchTab('tab4')">🤖 Check Mở Bot</button>
@@ -568,7 +568,7 @@
     </div>
 
     <!-- TAB 2: 301 & WP -->
-    <div id="tab2" class="tab-content">
+    <div id="tab2" class="tab-content active">
         <div class="card">
             <h3 style="margin-top:0">Check 301 Status <button class="help-btn" onclick="showHelp('check301')" title="Hướng dẫn sử dụng">?</button></h3>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -2739,9 +2739,142 @@
         if(lines.length === 0) return alert("Vui lòng nhập ít nhất 1 domain!");
         
         const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';
-        document.querySelector('#gscTable thead').innerHTML = '<tr><th width="15%">Website URL</th><th width="10%">Profile VPS</th><th width="15%">1. Lấy Mã GSC</th><th width="18%">2. Auto Dán Plugin (WP)</th><th width="15%">3. Xác minh GSC</th><th width="27%">4. Nạp Sitemaps</th></tr>';
+        document.querySelector('#gscTable thead').innerHTML = '<tr><th width="15%">Website URL</th><th width="10%">Profile VPS</th><th width="15%">1. Lấy Mã GSC</th><th width="18%">2. Auto Dán Plugin (WP)</th><th width="15%">3. Xác minh GSC</th><th width="20%">4. Nạp Sitemaps</th><th width="7%">Thao tác</th></tr>';
         
         let rowId = 0;
+
+        window.runSingleRow = async function(currentId, url, adminPath, user, pass, profile, apiUrl) {
+            let metaTag = '';
+            const st1 = document.getElementById('st1_'+currentId);
+            const st2 = document.getElementById('st2_'+currentId);
+            const st3 = document.getElementById('st3_'+currentId);
+            const st4 = document.getElementById('st4_'+currentId);
+            
+            // Lấy lại metaTag nếu Bước 1 đã Xong
+            if (st1.innerHTML.includes('✅ Xong')) {
+                const match = st1.innerHTML.match(/writeText\('(.*?)'\)/);
+                if (match) metaTag = match[1];
+            }
+            if (st1.innerHTML.includes('AUTO_VERIFIED')) metaTag = 'AUTO_VERIFIED';
+
+            const proxyData = { 
+                host: localStorage.getItem('sys_proxy_host') || '', 
+                port: localStorage.getItem('sys_proxy_port') || '', 
+                user: localStorage.getItem('sys_proxy_user') || '', 
+                pass: localStorage.getItem('sys_proxy_pass') || '' 
+            };
+
+            // BƯỚC 1: LẤY MÃ GSC
+            if (!st1.innerHTML.includes('✅') && !st1.innerHTML.includes('AUTO_VERIFIED')) {
+                st1.innerHTML = '⏳ Đang lấy mã...';
+                try {
+                    const body1 = { url: url, id: profile.id };
+                    if (proxyData.host) body1.proxy = proxyData;
+                    
+                    const res1 = await fetch(apiUrl + '/gsc-get-tag', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body1)
+                    });
+                    const data1 = await res1.json();
+                    if (data1.status === 'success') {
+                        metaTag = data1.metaTag;
+                        if (metaTag === 'AUTO_VERIFIED') {
+                            st1.innerHTML = '<span class="status-badge status-success">✅ AUTO_VERIFIED</span>';
+                        } else {
+                            st1.innerHTML = '<span class="status-badge status-success">✅ Xong</span><br><button style="margin-top:4px" class="btn-mini" onclick="navigator.clipboard.writeText(\''+metaTag.replace(/'/g,"\\'")+'\')">Copy Mã</button>';
+                        }
+                    } else {
+                        st1.innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi: ' + (data1.message || 'Error') + '</span>';
+                        return; // Dừng lại ở đây
+                    }
+                } catch(e) { 
+                    st1.innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối API</span>'; return;
+                }
+            }
+            
+            // BƯỚC 2: CHÈN VÀO WP
+            if (!st2.innerHTML.includes('✅')) {
+                if (metaTag === 'AUTO_VERIFIED') {
+                    st2.innerHTML = '<span class="status-badge status-success">✅ Bỏ qua (Đã xác minh)</span>';
+                } else if(user && pass) {
+                    st2.innerHTML = '⏳ Đang vào WP...';
+                    try {
+                        const body2 = { wpUrl: url, adminPath, user, pass, metaTag };
+                        if (proxyData.host) body2.proxy = proxyData;
+                        
+                        const res2 = await fetch(apiUrl + '/wp-inject-tag', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body2)
+                        });
+                        const data2 = await res2.json();
+                        if (data2.status === 'success') {
+                            st2.innerHTML = '<span class="status-badge status-success">✅ Đã chèn mã</span>';
+                        } else {
+                            st2.innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi: ' + (data2.message || 'Error') + '</span>';
+                            return;
+                        }
+                    } catch(e) { 
+                        st2.innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối WP</span>'; return;
+                    }
+                } else {
+                    st2.innerHTML = '<span style="font-size:10px; color:gray">Dừng (Không có user/pass WP)</span>';
+                    return;
+                }
+            }
+            
+            // BƯỚC 3: XÁC MINH GSC
+            if (!st3.innerHTML.includes('✅')) {
+                if (metaTag === 'AUTO_VERIFIED') {
+                    st3.innerHTML = '<span class="status-badge status-success">✅ OK</span>';
+                } else {
+                    st3.innerHTML = '⏳ Đang xác minh...';
+                    try {
+                        const body3 = { url: url, id: profile.id };
+                        if (proxyData.host) body3.proxy = proxyData;
+                        
+                        const res3 = await fetch(apiUrl + '/gsc-click-verify', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body3)
+                        });
+                        const data3 = await res3.json();
+                        if (data3.status === 'success') { 
+                            st3.innerHTML = '<span class="status-badge status-success">✅ OK</span>'; 
+                        } else { 
+                            st3.innerHTML = '<span class="status-badge" style="background:var(--danger)">❌ Xác minh xịt</span>'; return;
+                        }
+                    } catch(e) {
+                        st3.innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối</span>'; return;
+                    }
+                }
+            }
+            
+            // BƯỚC 4: NẠP SITEMAP
+            if (!st4.innerHTML.includes('✅ Đã nạp')) {
+                const sitemaps = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(s=>s);
+                if(sitemaps.length > 0) {
+                    st4.innerHTML = '⏳ Đang nạp Sitemap...';
+                    try {
+                        const body4 = { url: url, id: profile.id, sitemaps };
+                        if (proxyData.host) body4.proxy = proxyData;
+                        
+                        const res4 = await fetch(apiUrl + '/gsc-submit-sitemap', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body4)
+                        });
+                        const data4 = await res4.json();
+                        if (data4.status === 'success') { 
+                            st4.innerHTML = '<span class="status-badge status-success">✅ Đã nạp ' + data4.results.filter(r=>r.status==='success').length + '/' + sitemaps.length + ' cái</span>'; 
+                        } else { 
+                            st4.innerHTML = '<span class="status-badge" style="background:var(--warning)">⚠️ Có lỗi nạp</span>'; 
+                        }
+                    } catch(e) {
+                        st4.innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối</span>'; 
+                    }
+                } else {
+                    st4.innerHTML = '<span style="font-size:10px; color:gray">Bỏ qua SM</span>';
+                }
+            }
+        };
 
         for (const profile of selectedProfiles) {
             for (let i = 0; i < lines.length; i++) {
@@ -2756,133 +2889,20 @@
                 
                 const currentId = rowId++;
                 const tr = document.createElement('tr'); 
-                tr.innerHTML = '<td>'+url+'</td><td><span style="font-size:11px; color:var(--primary); font-weight:bold;">' + profile.name + '</span></td><td id="st1_'+currentId+'">Đang chờ...</td><td id="st2_'+currentId+'">-</td><td id="st3_'+currentId+'">-</td><td id="st4_'+currentId+'">-</td>';
+                
+                // Add the row to table
+                tr.innerHTML = `
+                    <td>${url}</td>
+                    <td><span style="font-size:11px; color:var(--primary); font-weight:bold;">${profile.name}</span></td>
+                    <td id="st1_${currentId}">Đang chờ...</td>
+                    <td id="st2_${currentId}">-</td>
+                    <td id="st3_${currentId}">-</td>
+                    <td id="st4_${currentId}">-</td>
+                    <td><button class="btn-mini" style="background: var(--surface); color: var(--text);" title="Thử lại (Bỏ qua bước thành công)" onclick="runSingleRow('${currentId}', '${url}', '${adminPath}', '${user}', '${pass}', {id: '${profile.id}'}, '${apiUrl}')"><i class="fas fa-sync"></i></button></td>
+                `;
                 tbody.appendChild(tr);
                 
-                let metaTag = '';
-                
-                // BƯỚC 1: LẤY MÃ GSC
-                document.getElementById('st1_'+currentId).innerHTML = '⏳ Đang lấy mã...';
-                try {
-                    const proxyData = { 
-                        host: localStorage.getItem('sys_proxy_host') || '', 
-                        port: localStorage.getItem('sys_proxy_port') || '', 
-                        user: localStorage.getItem('sys_proxy_user') || '', 
-                        pass: localStorage.getItem('sys_proxy_pass') || '' 
-                    };
-                    const body1 = { url: url, id: profile.id };
-                    if (proxyData.host) body1.proxy = proxyData;
-                    
-                    const res1 = await fetch(apiUrl + '/gsc-get-tag', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body1)
-                    });
-                    const data1 = await res1.json();
-                    if (data1.status === 'success') {
-                        metaTag = data1.metaTag;
-                        document.getElementById('st1_'+currentId).innerHTML = '<span class="status-badge status-success">✅ Xong</span><br><button style="margin-top:4px" class="btn-mini" onclick="navigator.clipboard.writeText(\''+metaTag.replace(/'/g,"\\'")+'\')">Copy Mã</button>';
-                    } else {
-                        document.getElementById('st1_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi: ' + (data1.message || 'Error') + '</span>';
-                        continue; 
-                    }
-                } catch(e) { 
-                    document.getElementById('st1_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối VPS</span>'; continue;
-                }
-                
-                // BƯỚC 2: CHÈN VÀO WP
-                if (metaTag === 'AUTO_VERIFIED') {
-                    document.getElementById('st2_'+currentId).innerHTML = '<span class="status-badge status-success">✅ Bỏ qua (Đã xác minh)</span>';
-                } else if(user && pass) {
-                    document.getElementById('st2_'+currentId).innerHTML = '⏳ Đang vào WP...';
-                    try {
-                        const proxyData = { 
-                            host: localStorage.getItem('sys_proxy_host') || '', 
-                            port: localStorage.getItem('sys_proxy_port') || '', 
-                            user: localStorage.getItem('sys_proxy_user') || '', 
-                            pass: localStorage.getItem('sys_proxy_pass') || '' 
-                        };
-                        const body2 = { wpUrl: url, adminPath, user, pass, metaTag };
-                        if (proxyData.host) body2.proxy = proxyData;
-                        
-                        const res2 = await fetch(apiUrl + '/wp-inject-tag', {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(body2)
-                        });
-                        const data2 = await res2.json();
-                        if (data2.status === 'success') {
-                            document.getElementById('st2_'+currentId).innerHTML = '<span class="status-badge status-success">✅ Đã chèn mã</span>';
-                        } else {
-                            document.getElementById('st2_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi: ' + (data2.message || 'Error') + '</span>';
-                            continue;
-                        }
-                    } catch(e) { 
-                        document.getElementById('st2_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối WP</span>'; continue;
-                    }
-                } else {
-                    document.getElementById('st2_'+currentId).innerHTML = '<span style="font-size:10px; color:gray">Dừng (Không có user/pass WP)</span>';
-                    continue;
-                }
-                
-                // BƯỚC 3: XÁC MINH GSC
-                if (metaTag === 'AUTO_VERIFIED') {
-                    document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge status-success">✅ OK</span>';
-                } else {
-                    document.getElementById('st3_'+currentId).innerHTML = '⏳ Đang xác minh...';
-                    try {
-                        const proxyData = { 
-                            host: localStorage.getItem('sys_proxy_host') || '', 
-                            port: localStorage.getItem('sys_proxy_port') || '', 
-                            user: localStorage.getItem('sys_proxy_user') || '', 
-                            pass: localStorage.getItem('sys_proxy_pass') || '' 
-                        };
-                        const body3 = { url: url, id: profile.id };
-                        if (proxyData.host) body3.proxy = proxyData;
-                        
-                        const res3 = await fetch(apiUrl + '/gsc-click-verify', {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(body3)
-                        });
-                        const data3 = await res3.json();
-                        if (data3.status === 'success') { 
-                            document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge status-success">✅ OK</span>'; 
-                        } else { 
-                            document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">❌ Xác minh xịt</span>'; continue;
-                        }
-                    } catch(e) {
-                        document.getElementById('st3_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối</span>'; continue;
-                    }
-                }
-                
-                // BƯỚC 4: NẠP SITEMAP
-                const sitemaps = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(s=>s);
-                if(sitemaps.length > 0) {
-                    document.getElementById('st4_'+currentId).innerHTML = '⏳ Đang nạp Sitemap...';
-                    try {
-                        const proxyData = { 
-                            host: localStorage.getItem('sys_proxy_host') || '', 
-                            port: localStorage.getItem('sys_proxy_port') || '', 
-                            user: localStorage.getItem('sys_proxy_user') || '', 
-                            pass: localStorage.getItem('sys_proxy_pass') || '' 
-                        };
-                        const body4 = { url: url, id: profile.id, sitemaps };
-                        if (proxyData.host) body4.proxy = proxyData;
-                        
-                        const res4 = await fetch(apiUrl + '/gsc-submit-sitemap', {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(body4)
-                        });
-                        const data4 = await res4.json();
-                        if (data4.status === 'success') { 
-                            document.getElementById('st4_'+currentId).innerHTML = '<span class="status-badge status-success">✅ Đã nạp ' + data4.results.filter(r=>r.status==='success').length + '/' + sitemaps.length + ' cái</span>'; 
-                        } else { 
-                            document.getElementById('st4_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--warning)">⚠️ Có lỗi nạp</span>'; 
-                        }
-                    } catch(e) {
-                        document.getElementById('st4_'+currentId).innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối</span>'; 
-                    }
-                } else {
-                    document.getElementById('st4_'+currentId).innerHTML = '<span style="font-size:10px; color:gray">Bỏ qua SM</span>';
-                }
+                await window.runSingleRow(currentId, url, adminPath, user, pass, profile, apiUrl);
             }
         }
     }
