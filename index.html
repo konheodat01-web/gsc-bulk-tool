@@ -2764,9 +2764,18 @@
                 // BƯỚC 1: LẤY MÃ GSC
                 document.getElementById('st1_'+currentId).innerHTML = '⏳ Đang lấy mã...';
                 try {
+                    const proxyData = { 
+                        host: localStorage.getItem('sys_proxy_host') || '', 
+                        port: localStorage.getItem('sys_proxy_port') || '', 
+                        user: localStorage.getItem('sys_proxy_user') || '', 
+                        pass: localStorage.getItem('sys_proxy_pass') || '' 
+                    };
+                    const body1 = { url: url, id: profile.id };
+                    if (proxyData.host) body1.proxy = proxyData;
+                    
                     const res1 = await fetch(apiUrl + '/gsc-get-tag', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: url, id: profile.id })
+                        body: JSON.stringify(body1)
                     });
                     const data1 = await res1.json();
                     if (data1.status === 'success') {
@@ -2786,9 +2795,18 @@
                 } else if(user && pass) {
                     document.getElementById('st2_'+currentId).innerHTML = '⏳ Đang vào WP...';
                     try {
+                        const proxyData = { 
+                            host: localStorage.getItem('sys_proxy_host') || '', 
+                            port: localStorage.getItem('sys_proxy_port') || '', 
+                            user: localStorage.getItem('sys_proxy_user') || '', 
+                            pass: localStorage.getItem('sys_proxy_pass') || '' 
+                        };
+                        const body2 = { wpUrl: url, adminPath, user, pass, metaTag };
+                        if (proxyData.host) body2.proxy = proxyData;
+                        
                         const res2 = await fetch(apiUrl + '/wp-inject-tag', {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ wpUrl: url, adminPath, user, pass, metaTag })
+                            body: JSON.stringify(body2)
                         });
                         const data2 = await res2.json();
                         if (data2.status === 'success') {
@@ -2811,9 +2829,18 @@
                 } else {
                     document.getElementById('st3_'+currentId).innerHTML = '⏳ Đang xác minh...';
                     try {
+                        const proxyData = { 
+                            host: localStorage.getItem('sys_proxy_host') || '', 
+                            port: localStorage.getItem('sys_proxy_port') || '', 
+                            user: localStorage.getItem('sys_proxy_user') || '', 
+                            pass: localStorage.getItem('sys_proxy_pass') || '' 
+                        };
+                        const body3 = { url: url, id: profile.id };
+                        if (proxyData.host) body3.proxy = proxyData;
+                        
                         const res3 = await fetch(apiUrl + '/gsc-click-verify', {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ url: url, id: profile.id })
+                            body: JSON.stringify(body3)
                         });
                         const data3 = await res3.json();
                         if (data3.status === 'success') { 
@@ -2831,9 +2858,18 @@
                 if(sitemaps.length > 0) {
                     document.getElementById('st4_'+currentId).innerHTML = '⏳ Đang nạp Sitemap...';
                     try {
+                        const proxyData = { 
+                            host: localStorage.getItem('sys_proxy_host') || '', 
+                            port: localStorage.getItem('sys_proxy_port') || '', 
+                            user: localStorage.getItem('sys_proxy_user') || '', 
+                            pass: localStorage.getItem('sys_proxy_pass') || '' 
+                        };
+                        const body4 = { url: url, id: profile.id, sitemaps };
+                        if (proxyData.host) body4.proxy = proxyData;
+                        
                         const res4 = await fetch(apiUrl + '/gsc-submit-sitemap', {
                             method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ url: url, id: profile.id, sitemaps })
+                            body: JSON.stringify(body4)
                         });
                         const data4 = await res4.json();
                         if (data4.status === 'success') { 

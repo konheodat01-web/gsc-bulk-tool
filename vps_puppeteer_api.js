@@ -45,12 +45,18 @@ function getChromeExecutablePath() {
 }
 
 // Cấu hình Chrome ngụy trang
-const LAUNCH_ARGS = [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-blink-features=AutomationControlled',
-    '--ignore-certificate-errors'
-];
+function getLaunchArgs(proxy) {
+    const args = [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-blink-features=AutomationControlled',
+        '--ignore-certificate-errors'
+    ];
+    if (proxy && proxy.host && proxy.port) {
+        args.push(`--proxy-server=http://${proxy.host}:${proxy.port}`);
+    }
+    return args;
+}
 
 // =====================================================================
 // 1. API: /check-wp-admin
@@ -396,12 +402,13 @@ app.all('/gsc-get-tag', async (req, res) => {
 // 4. API BẤM XÁC MINH GSC
 // =====================================================================
 app.all('/gsc-click-verify', async (req, res) => {
-    const { url, id } = { ...req.query, ...(req.body || {}) };
+    const { url, id, proxy } = { ...req.query, ...(req.body || {}) };
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
-        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: LAUNCH_ARGS });
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: getLaunchArgs(proxy) });
         const page = await browser.newPage();
+        if (proxy && proxy.user && proxy.pass) await page.authenticate({ username: proxy.user, password: proxy.pass });
         
         const cookiesPath = path.join(userDataDir, 'cookies.json');
         if (fs.existsSync(cookiesPath)) {
@@ -508,11 +515,12 @@ app.all('/gsc-click-verify', async (req, res) => {
 // 5. API ĐĂNG NHẬP WP & CHÈN MÃ WPCODE
 // =====================================================================
 app.all('/wp-inject-tag', async (req, res) => {
-    const { wpUrl, adminPath, user, pass, metaTag } = { ...req.query, ...(req.body || {}) };
+    const { wpUrl, adminPath, user, pass, metaTag, proxy } = { ...req.query, ...(req.body || {}) };
     let browser = null;
     try {
-        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', args: LAUNCH_ARGS });
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', args: getLaunchArgs(proxy) });
         const page = await browser.newPage();
+        if (proxy && proxy.user && proxy.pass) await page.authenticate({ username: proxy.user, password: proxy.pass });
         
         // 1. Đăng nhập
         const loginUrl = wpUrl.replace(/\/$/, '') + '/' + adminPath.replace(/^\//, '');
