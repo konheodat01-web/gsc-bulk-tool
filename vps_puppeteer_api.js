@@ -13,7 +13,8 @@ puppeteer.use(StealthPlugin());
 async function launchRealBrowser(proxy) {
     const options = {
         headless: 'auto',
-        turnstile: true
+        turnstile: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled']
     };
     if (proxy && proxy.host && proxy.port) {
         options.proxy = {
