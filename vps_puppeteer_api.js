@@ -12,7 +12,7 @@ puppeteer.use(StealthPlugin());
 
 async function launchRealBrowser(proxy) {
     const options = {
-        headless: 'auto',
+        headless: false,
         turnstile: true,
         executablePath: getChromeExecutablePath(),
         customConfig: {
@@ -176,7 +176,7 @@ app.all('/gsc-get-tag', async (req, res) => {
     let browser = null;
     try {
         logStep(`=== Bắt đầu: ${url} ===`);
-        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: getLaunchArgs() });
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: false, userDataDir: userDataDir, args: getLaunchArgs() });
         const page = await browser.newPage();
         
         // Bơm cứng cookie từ file cookies.json (nếu có) để chống Chrome Linux tự xóa cookie
@@ -197,13 +197,17 @@ app.all('/gsc-get-tag', async (req, res) => {
 
         // Vào trang chủ GSC
         await page.goto('https://search.google.com/search-console', { waitUntil: 'domcontentloaded' });
+        await new Promise(r => setTimeout(r, 4000)); // Nghỉ thêm 4s cho React render xong
 
         logStep(`Kiểm tra auth... URL hiện tại: ${page.url()}`);
-        // Nếu bị đá ra trang login, nghĩa là Cookie đã chết!
         if (page.url().includes('accounts.google.com')) {
-            logStep(`Bị đá ra login. Cookie chết.`);
-            await browser.close();
-            return res.status(401).json({ status: 'fail', message: `Cookie đã hết hạn hoặc bị Google chặn. Vui lòng lấy Cookie mới! (Path: ${userDataDir})` });
+            logStep(`Bị đá ra login. Đứng chờ sếp đăng nhập tay 5 phút...`);
+            console.log("Đang chờ bạn đăng nhập thủ công trên trình duyệt (Tối đa 5 phút)...");
+            await page.waitForFunction(() => !window.location.href.includes('accounts.google.com'), { timeout: 300000 }).catch(() => {});
+            if (page.url().includes('accounts.google.com')) {
+                await browser.close();
+                return res.status(401).json({ status: 'fail', message: `Quá thời gian đăng nhập. Vui lòng chạy lại!` });
+            }
         }
 
         // Xử lý trường hợp tài khoản mới toanh chưa từng dùng GSC (sẽ bị chuyển sang trang /about)
@@ -223,68 +227,112 @@ app.all('/gsc-get-tag', async (req, res) => {
             logStep(`Đã bấm Start Now, đợi chuyển trang...`);
             await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
             
-            // KIỂM TRA LẠI LẦN NỮA SAU KHI CLICK START NOW
             if (page.url().includes('accounts.google.com')) {
-                logStep(`Bị đá ra login sau khi bấm Start Now. Cookie chết.`);
-                await browser.close();
-                return res.status(401).json({ status: 'fail', message: `Cookie đã hết hạn hoặc bị Google chặn. Vui lòng lấy Cookie mới! (Path: ${userDataDir})` });
+                logStep(`Bị đá ra login sau khi bấm Start Now. Đứng chờ sếp đăng nhập...`);
+                console.log("Đang chờ bạn đăng nhập thủ công trên trình duyệt (Tối đa 5 phút)...");
+                await page.waitForFunction(() => !window.location.href.includes('accounts.google.com'), { timeout: 300000 }).catch(() => {});
+                if (page.url().includes('accounts.google.com')) {
+                    await browser.close();
+                    return res.status(401).json({ status: 'fail', message: `Quá thời gian đăng nhập. Vui lòng chạy lại!` });
+                }
             }
         }
 
         logStep(`Kiểm tra ô nhập URL...`);
-        // Cố gắng tìm ô nhập URL. Nếu chưa có, ta phải click mở Dropdown chọn "Thêm tài sản"
-        let inputExists = await page.$('input[type="url"]');
-        if (!inputExists) {
-            logStep(`Không có sẵn ô nhập URL, đợi GSC load 4s...`);
+        // Kiểm tra xem bảng "Thêm tài sản" đã mở sẵn chưa (có chữ URL prefix / Tiền tố URL không)
+        let modalOpen = await page.evaluate(() => {
+            const iter = document.evaluate("//*[contains(text(), 'URL prefix') or contains(text(), 'Tiền tố URL')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+            return iter.singleNodeValue != null;
+        });
+        
+        if (!modalOpen) {
+            logStep(`Bảng Thêm tài sản chưa mở, đợi GSC load 4s...`);
             console.log("Đang ở Dashboard, đợi GSC load giao diện...");
-            // GSC tải rất chậm, cần đợi 4s để các nút bấm được render đầy đủ
             await new Promise(r => setTimeout(r, 4000));
             
-            logStep(`Mở Dropdown...`);
+            logStep(`Mở Dropdown (Tự động thử lại nếu React chưa load)...`);
             console.log("Click mở Dropdown chọn Property...");
-            await page.evaluate(() => {
-                const nav = document.querySelector('nav');
-                if (nav) {
-                    const dropdowns = Array.from(nav.querySelectorAll('div[role="button"]'));
-                    if (dropdowns.length > 0) dropdowns[0].click();
-                } else {
-                    const dropdowns = Array.from(document.querySelectorAll('div[role="button"][aria-haspopup="listbox"]'));
-                    if (dropdowns.length > 0) dropdowns[0].click();
-                }
-            });
-            
-            // Đợi menu trượt xuống
-            logStep(`Đợi 2s sau dropdown`);
-            await new Promise(r => setTimeout(r, 2000));
-            
-            logStep(`Click Thêm tài sản`);
-            console.log("Click Thêm tài sản...");
-            await page.evaluate(() => {
-                const elements = Array.from(document.querySelectorAll('*'));
-                for (let el of elements) {
-                    const txt = el.textContent ? el.textContent.trim() : '';
-                    if (txt === 'Add property' || txt === 'Thêm tài sản') {
-                        let clickable = el.closest('[role="option"]') || el.closest('[role="menuitem"]') || el.closest('div[jsaction]') || el;
-                        clickable.id = 'puppeteer-target-add-property';
-                        return;
+            await page.evaluate(async () => {
+                const visualClick = (el) => {
+                    try {
+                        const rect = el.getBoundingClientRect();
+                        const bubble = document.createElement('div');
+                        bubble.style.position = 'fixed';
+                        bubble.style.left = (rect.left + rect.width/2 - 15) + 'px';
+                        bubble.style.top = (rect.top + rect.height/2 - 15) + 'px';
+                        bubble.style.width = '30px';
+                        bubble.style.height = '30px';
+                        bubble.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
+                        bubble.style.border = '2px solid red';
+                        bubble.style.borderRadius = '50%';
+                        bubble.style.zIndex = '999999';
+                        bubble.style.pointerEvents = 'none';
+                        bubble.style.transition = 'all 0.5s ease-out';
+                        document.body.appendChild(bubble);
+                        setTimeout(() => { bubble.style.transform = 'scale(3)'; bubble.style.opacity = '0'; }, 50);
+                        setTimeout(() => { bubble.remove(); }, 600);
+                        el.click();
+                    } catch(e) { el.click(); }
+                };
+
+                const delay = ms => new Promise(res => setTimeout(res, ms));
+                for (let i = 0; i < 5; i++) {
+                    // Cố gắng tìm dropdown (Tìm tất cả các div/button có role button)
+                    const dropdowns = Array.from(document.querySelectorAll('div[role="button"], button'));
+                    let targetD = null;
+                    for (let d of dropdowns) {
+                        const txt = (d.textContent || '').trim().toLowerCase();
+                        // Nút Dropdown tài sản thường có chứa http, dấu chấm, hoặc chữ "tài sản", "property"
+                        if (txt.includes('http') || txt.includes('.') || txt.includes('property') || txt.includes('tài sản') || txt.includes('sản phẩm')) {
+                            // BỎ QUA thanh tìm kiếm (Search bar)
+                            if (txt.includes('kiểm tra mọi') || txt.includes('inspect any')) continue;
+                            
+                            // Tránh bấm nhầm vào Nút "Thêm tài sản" ở trong dropdown khác nếu có
+                            if (!txt.includes('add') && !txt.includes('thêm')) {
+                                targetD = d; break;
+                            }
+                        }
                     }
+                    if (!targetD) {
+                        // Fallback: Tìm aria-haspopup
+                        const popupBtns = Array.from(document.querySelectorAll('div[role="button"][aria-haspopup="listbox"]'));
+                        if (popupBtns.length > 0) targetD = popupBtns[0];
+                    }
+                    
+                    if (targetD) visualClick(targetD);
+                    
+                    // Chờ 1.5s
+                    await delay(1500);
+                    
+                    // Kiểm tra xem menu "Thêm tài sản" đã mở chưa
+                    const spans = document.querySelectorAll('span, div');
+                    let foundMenu = false;
+                    for (let el of spans) {
+                        if (el.children.length === 0) {
+                            const txt = el.textContent ? el.textContent.trim().toLowerCase() : '';
+                            if (txt === 'add property' || txt === 'thêm tài sản') {
+                                foundMenu = true;
+                                let clickable = el.closest('[role="option"]') || el.closest('[role="menuitem"]') || el.closest('div[jsaction]') || el.closest('div[role="button"]') || el;
+                                visualClick(clickable);
+                                break;
+                            }
+                        }
+                    }
+                    if (foundMenu) return; // Đã tìm thấy và click Thêm tài sản, thoát loop
                 }
             });
-            
-            // Dùng click chuột thực của Puppeteer để qua mặt framework của Google
-            await page.click('#puppeteer-target-add-property').catch(e => console.log('Không click được bằng Puppeteer:', e.message));
             
             logStep(`Đợi 2s form Add property hiện`);
-            // Đợi form Add Property bật lên
             await new Promise(r => setTimeout(r, 2000));
         }
 
         logStep(`Đợi input[type=url] hoặc ô nhập text 10s`);
         // Đợi ô nhập URL xuất hiện và điền domain
         await page.waitForFunction(() => {
-            if (document.querySelector('input[type="url"]')) return true;
             const node = document.evaluate("//*[contains(text(), 'URL prefix') or contains(text(), 'Tiền tố URL')]/following::input[1]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
             if (node) return true;
+            // Fallback: nếu có nhiều hơn 1 ô input URL thì lấy ô cuối
+            if (document.querySelectorAll('input[type="url"]').length > 1) return true;
             return false;
         }, { timeout: 10000 });
         
@@ -303,15 +351,27 @@ app.all('/gsc-get-tag', async (req, res) => {
         logStep(`Clear input`);
         // Tìm selector chính xác của ô nhập
         const inputSelector = await page.evaluate(() => {
-            if (document.querySelector('input[type="url"]')) return 'input[type="url"]';
             const node = document.evaluate("//*[contains(text(), 'URL prefix') or contains(text(), 'Tiền tố URL')]/following::input[1]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-            if (node) { node.id = 'puppeteer-target-input'; return '#puppeteer-target-input'; }
+            if (node) { 
+                node.id = 'puppeteer-target-input'; 
+                node.value = ''; // Xóa sạch dữ liệu cũ
+                return '#puppeteer-target-input'; 
+            }
+            // Fallback
+            const urlInputs = document.querySelectorAll('input[type="url"]');
+            if (urlInputs.length > 0) {
+                const target = urlInputs[urlInputs.length - 1]; // Lấy cái cuối cùng (thường là trong modal)
+                target.id = 'puppeteer-target-input';
+                target.value = '';
+                return '#puppeteer-target-input';
+            }
             return 'input[type="url"]';
         });
 
-        // Clear input trước khi điền để tránh dính chữ cũ
-        await page.click(inputSelector, { clickCount: 3 });
-        logStep(`Gõ URL: ${url}`);
+        await new Promise(r => setTimeout(r, 500));
+        
+        logStep(`Click & Gõ URL: ${url}`);
+        await page.click(inputSelector, { clickCount: 3 }).catch(()=>{});
         await page.type(inputSelector, url);
         
         logStep(`Ấn Enter để Tiếp tục`);
@@ -430,7 +490,7 @@ app.all('/gsc-click-verify', async (req, res) => {
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
-        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: getLaunchArgs() });
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: false, userDataDir: userDataDir, args: getLaunchArgs() });
         const page = await browser.newPage();
         
         const cookiesPath = path.join(userDataDir, 'cookies.json');
@@ -445,39 +505,142 @@ app.all('/gsc-click-verify', async (req, res) => {
         }
         
         await page.goto('https://search.google.com/search-console', { waitUntil: 'domcontentloaded' });
+        await new Promise(r => setTimeout(r, 4000));
         
-        // Cố gắng tìm ô nhập URL luôn (khi chưa có site nào)
-        let urlInput = await page.$('input[type="url"]');
-        if (!urlInput) {
-            // Mở dropdown Add property
-            await page.evaluate(() => {
-                const btn = document.querySelector('div[role="button"][jsaction="click:cOuCgd;"]');
-                if(btn) btn.click();
-            });
-            await new Promise(r => setTimeout(r, 2000));
-            
-            // Bấm thêm tài sản
-            await page.evaluate(() => {
-                const addBtns = Array.from(document.querySelectorAll('div[role="menuitem"]'));
-                for(let b of addBtns) {
-                    if((b.innerText||'').includes('Add property') || (b.innerText||'').includes('Thêm tài sản')) {
-                        b.click(); return;
+        if (page.url().includes('accounts.google.com')) {
+            console.log("Đang chờ bạn đăng nhập thủ công trên trình duyệt (Tối đa 5 phút)...");
+            await page.waitForFunction(() => !window.location.href.includes('accounts.google.com'), { timeout: 300000 }).catch(() => {});
+            if (page.url().includes('accounts.google.com')) {
+                await browser.close();
+                return res.status(401).json({ status: 'fail', message: `Quá thời gian đăng nhập. Vui lòng chạy lại!` });
+            }
+        }
+        
+        await new Promise(r => setTimeout(r, 4000));
+        
+        // Bấm nút Start Now / Bắt đầu (nếu là tài khoản mới tinh)
+        await page.evaluate(() => {
+            const startBtns = document.querySelectorAll('button, a, div[role="button"]');
+            for (let b of startBtns) {
+                const t = (b.textContent || '').trim().toLowerCase();
+                if (t === 'start now' || t === 'bắt đầu') {
+                    b.click(); return;
+                }
+            }
+        });
+        await new Promise(r => setTimeout(r, 2000));
+
+        // Bấm Mở Dropdown và tìm property
+        await page.evaluate(async (domainToFind) => {
+            const visualClick = (el) => {
+                try {
+                    const rect = el.getBoundingClientRect();
+                    const bubble = document.createElement('div');
+                    bubble.style.position = 'fixed';
+                    bubble.style.left = (rect.left + rect.width/2 - 15) + 'px';
+                    bubble.style.top = (rect.top + rect.height/2 - 15) + 'px';
+                    bubble.style.width = '30px';
+                    bubble.style.height = '30px';
+                    bubble.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
+                    bubble.style.border = '2px solid red';
+                    bubble.style.borderRadius = '50%';
+                    bubble.style.zIndex = '999999';
+                    bubble.style.pointerEvents = 'none';
+                    bubble.style.transition = 'all 0.5s ease-out';
+                    document.body.appendChild(bubble);
+                    setTimeout(() => { bubble.style.transform = 'scale(3)'; bubble.style.opacity = '0'; }, 50);
+                    setTimeout(() => { bubble.remove(); }, 600);
+                    el.click();
+                } catch(e) { el.click(); }
+            };
+
+            const delay = ms => new Promise(res => setTimeout(res, ms));
+            for (let i = 0; i < 5; i++) {
+                const dropdowns = Array.from(document.querySelectorAll('div[role="button"], button'));
+                let targetD = null;
+                for (let d of dropdowns) {
+                    const txt = (d.textContent || '').trim().toLowerCase();
+                    if (txt.includes('http') || txt.includes('.') || txt.includes('property') || txt.includes('tài sản') || txt.includes('sản phẩm')) {
+                        if (txt.includes('kiểm tra mọi') || txt.includes('inspect any')) continue;
+                        if (!txt.includes('add') && !txt.includes('thêm')) {
+                            targetD = d; break;
+                        }
                     }
                 }
-            });
-            await new Promise(r => setTimeout(r, 2000));
-        }
+                if (!targetD) {
+                    const popupBtns = Array.from(document.querySelectorAll('div[role="button"][aria-haspopup="listbox"]'));
+                    if (popupBtns.length > 0) targetD = popupBtns[0];
+                }
+                
+                if (targetD) visualClick(targetD);
+                
+                await delay(1500);
+                
+                const spans = document.querySelectorAll('span, div');
+                let foundProperty = false;
+                // Thử click vào property trong menu
+                for (let el of spans) {
+                    if (el.children.length === 0) {
+                        const txt = (el.textContent || '').trim().toLowerCase();
+                        if (txt.includes(domainToFind)) {
+                            let clickable = el.closest('[role="option"]') || el.closest('[role="menuitem"]') || el.closest('div[jsaction]') || el.closest('div[role="button"]') || el;
+                            visualClick(clickable);
+                            foundProperty = true;
+                            break;
+                        }
+                    }
+                }
+                if (foundProperty) return;
+                
+                // Nếu không tìm thấy property trong menu, có thể cần ấn thêm tài sản
+                let foundAdd = false;
+                for (let el of spans) {
+                    if (el.children.length === 0) {
+                        const txt = (el.textContent || '').trim().toLowerCase();
+                        if (txt === 'add property' || txt === 'thêm tài sản') {
+                            foundAdd = true;
+                            break;
+                        }
+                    }
+                }
+                if (foundAdd) return; // Đã ra được menu, thoát loop
+            }
+        }, url.replace(/https?:\/\//, '').replace(/\/$/, '').toLowerCase());
+        
+        await new Promise(r => setTimeout(r, 2000));
         
         // Bấm tab URL Prefix
         await page.evaluate(() => {
-            const tabs = document.querySelectorAll('div[role="tab"]');
-            if (tabs.length >= 2) tabs[1].click();
+            const iter = document.evaluate("//div[@role='tab']//span[contains(text(), 'URL prefix') or contains(text(), 'Tiền tố URL')]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+            const tabNode = iter.singleNodeValue;
+            if (tabNode) {
+                const clickableTab = tabNode.closest('div[role="tab"]');
+                if (clickableTab) clickableTab.click();
+            }
         });
         await new Promise(r => setTimeout(r, 500));
         
-        // Clear ô nhập (nếu có chữ cũ) và gõ URL
-        await page.evaluate(() => { const i = document.querySelector('input[type="url"]'); if(i) i.value = ''; });
-        await page.type('input[type="url"]', url);
+        // Tìm ô nhập URL chính xác trong bảng
+        const inputSelector = await page.evaluate(() => {
+            const node = document.evaluate("//*[contains(text(), 'URL prefix') or contains(text(), 'Tiền tố URL')]/following::input[1]", document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+            if (node) { 
+                node.id = 'puppeteer-target-input-verify'; 
+                node.value = '';
+                return '#puppeteer-target-input-verify'; 
+            }
+            const urlInputs = document.querySelectorAll('input[type="url"]');
+            if (urlInputs.length > 0) {
+                const target = urlInputs[urlInputs.length - 1];
+                target.id = 'puppeteer-target-input-verify';
+                target.value = '';
+                return '#puppeteer-target-input-verify';
+            }
+            return 'input[type="url"]';
+        });
+
+        // Click & Gõ URL
+        await page.click(inputSelector, { clickCount: 3 }).catch(()=>{});
+        await page.type(inputSelector, url);
         await new Promise(r => setTimeout(r, 500));
         
         // Bấm Enter để mở bảng Verify
@@ -565,11 +728,60 @@ app.all('/wp-inject-tag', async (req, res) => {
             throw new Error('Đăng nhập WP thất bại, sai user/pass');
         }
 
+        // 1.5 Cố gắng dán qua Flatsome Theme trước
+        console.log('WP Inject - Thử dán qua Flatsome...');
+        const flatsomeUrl = wpUrl.replace(/\/$/, '') + '/wp-admin/admin.php?page=optionsframework&tab=of-option-globalsettings';
+        await page.goto(flatsomeUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        
+        await new Promise(r => setTimeout(r, 2000));
+        
+        const flatsomeSuccess = await page.evaluate((tag) => {
+            // Flatsome textarea name is usually flatsome_html_scripts_header
+            const ta = document.querySelector('textarea[name="flatsome_html_scripts_header"]') || document.querySelector('textarea#flatsome_html_scripts_header') || document.querySelector('textarea[name*="html_scripts_header"]');
+            if (ta) {
+                if (!ta.value.includes(tag)) {
+                    ta.value = ta.value + '\\n' + tag;
+                }
+                // Save button
+                const saveBtn = document.querySelector('button[name="update"]') || document.querySelector('input[name="update"]') || document.querySelector('.button-primary');
+                if (saveBtn) {
+                    saveBtn.click();
+                    return true;
+                }
+            }
+            return false;
+        }, metaTag);
+
+        if (flatsomeSuccess) {
+            console.log('WP Inject - Đã dán thành công qua Flatsome!');
+            await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+            
+            // Xóa Cache nếu có
+            const clearCacheHref = await page.evaluate(() => {
+                const purgeLink = document.querySelector('a[href*="litespeed-purge-all"]');
+                return purgeLink ? purgeLink.href : null;
+            });
+            if (clearCacheHref) {
+                await page.goto(clearCacheHref, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {});
+            }
+            
+            await browser.close();
+            return res.json({ status: 'success', message: 'Dán mã thành công qua Flatsome' });
+        }
+
         // 2. Tìm hoặc Cài đặt WPCode
         const installUrl = wpUrl.replace(/\/$/, '') + '/wp-admin/plugin-install.php?s=wpcode&tab=search&type=term';
         await page.goto(installUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
         
-        const wpcodeCard = await page.$('.plugin-card-insert-headers-and-footers');
+        await new Promise(r => setTimeout(r, 2000)); // Đợi kết quả search AJAX nếu có
+        
+        let wpcodeCard = null;
+        try {
+            wpcodeCard = await page.waitForSelector('.plugin-card-insert-headers-and-footers', { timeout: 10000 });
+        } catch(e) {
+            throw new Error('Không tìm thấy plugin WPCode trong kho Plugin. Trang load chậm hoặc bị chặn.');
+        }
+
         if (wpcodeCard) {
             const installBtn = await wpcodeCard.$('.install-now');
             if (installBtn) {
@@ -584,6 +796,8 @@ app.all('/wp-inject-tag', async (req, res) => {
                     throw new Error('Cài đặt WPCode quá lâu hoặc bị chặn.');
                 }
             }
+            
+            await new Promise(r => setTimeout(r, 1000));
             
             const activateBtn = await wpcodeCard.$('.activate-now');
             if (activateBtn) {
@@ -690,39 +904,101 @@ app.all('/gsc-submit-sitemap', async (req, res) => {
     const userDataDir = getProfilePath(id);
     let browser = null;
     try {
-        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: 'new', userDataDir: userDataDir, args: getLaunchArgs() });
+        browser = await puppeteer.launch({ executablePath: getChromeExecutablePath(), headless: false, userDataDir: userDataDir, args: getLaunchArgs() });
         const page = await browser.newPage();
         
+        // Bơm cookie
+        const cookiesPath = path.join(userDataDir, 'cookies.json');
+        if (fs.existsSync(cookiesPath)) {
+            try {
+                const cookies = JSON.parse(fs.readFileSync(cookiesPath, 'utf8'));
+                for (let cookie of cookies) {
+                    if (!cookie.url) cookie.url = (cookie.secure ? "https://" : "http://") + cookie.domain.replace(/^\./, '');
+                    await page.setCookie(cookie);
+                }
+            } catch (e) {}
+        }
+        
         await page.goto('https://search.google.com/search-console/sitemaps?resource_id=' + encodeURIComponent(url), { waitUntil: 'domcontentloaded' });
+        await new Promise(r => setTimeout(r, 4000));
+        
+        if (page.url().includes('accounts.google.com')) {
+            console.log("Đang chờ bạn đăng nhập thủ công trên trình duyệt (Tối đa 5 phút)...");
+            await page.waitForFunction(() => !window.location.href.includes('accounts.google.com'), { timeout: 300000 }).catch(() => {});
+            if (page.url().includes('accounts.google.com')) {
+                await browser.close();
+                return res.status(401).json({ status: 'fail', message: `Quá thời gian đăng nhập. Vui lòng chạy lại!` });
+            }
+        }
         
         let results = [];
         for (const sitemap of sitemaps) {
             try {
-                const inputSelector = 'input[type="text"][aria-label="Thêm sơ đồ trang web mới"], input[type="text"][aria-label="Add a new sitemap"]';
-                await page.waitForSelector(inputSelector, { timeout: 10000 });
+                // KIỂM TRA XEM SITEMAP ĐÃ TỒN TẠI TRONG BẢNG CHƯA
+                const alreadyExists = await page.evaluate((sm) => {
+                    const cells = document.querySelectorAll('div[role="cell"], td');
+                    for (let cell of cells) {
+                        const txt = (cell.textContent || '').trim().toLowerCase();
+                        if (txt === sm.toLowerCase() || txt === '/' + sm.toLowerCase()) return true;
+                    }
+                    return false;
+                }, sitemap);
+
+                if (alreadyExists) {
+                    console.log(`Sitemap ${sitemap} đã tồn tại! Bỏ qua...`);
+                    results.push({ sitemap, status: 'success' });
+                    continue;
+                }
+
+                // TÌM Ô NHẬP SITEMAP
+                const inputSelector = await page.evaluate(() => {
+                    const inputs = document.querySelectorAll('input[type="text"]');
+                    for (let i of inputs) {
+                        const p = (i.placeholder || '').toLowerCase();
+                        if (p.includes('url') || p.includes('sitemap') || p.includes('sơ đồ')) {
+                            i.id = 'sitemap-target-input';
+                            return '#sitemap-target-input';
+                        }
+                    }
+                    return 'input[type="text"]';
+                });
+                
+                await page.waitForSelector(inputSelector, { timeout: 10000 }).catch(()=>{});
                 
                 await page.click(inputSelector, { clickCount: 3 });
                 await page.type(inputSelector, sitemap);
                 
                 // Submit button
                 const clickedSubmit = await page.evaluate(() => {
-                    const iter = document.evaluate("//span[contains(text(), 'Gửi') or contains(text(), 'Submit')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
-                    let node = iter.iterateNext();
-                    let lastNode = null;
-                    while (node) { lastNode = node; node = iter.iterateNext(); }
-                    if (lastNode) { lastNode.click(); return true; }
+                    const spans = document.querySelectorAll('span, div');
+                    for (let el of spans) {
+                        if (el.children.length === 0) {
+                            const txt = (el.textContent || '').trim().toLowerCase();
+                            if (txt === 'submit' || txt === 'gửi') {
+                                let btn = el.closest('div[role="button"]') || el.closest('button') || el;
+                                btn.click();
+                                return true;
+                            }
+                        }
+                    }
                     return false;
                 });
                 
                 if (clickedSubmit) {
-                    await new Promise(r => setTimeout(r, 3000)); // Đợi popup báo gửi thành công
+                    await new Promise(r => setTimeout(r, 3001)); // Đợi popup báo gửi thành công
                     // Đóng popup nếu có (Got it / OK)
                     await page.evaluate(() => {
-                        const iter = document.evaluate("//span[contains(text(), 'OK') or contains(text(), 'Got it')]", document, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
-                        let node = iter.iterateNext();
-                        let lastNode = null;
-                        while (node) { lastNode = node; node = iter.iterateNext(); }
-                        if (lastNode) lastNode.click();
+                        const spans = document.querySelectorAll('span, div');
+                        for (let el of spans) {
+                            if (el.children.length === 0) {
+                                const txt = (el.textContent || '').trim().toLowerCase();
+                                if (txt === 'ok' || txt === 'got it' || txt === 'đã hiểu') {
+                                    let btn = el.closest('div[role="button"]') || el.closest('button') || el;
+                                    btn.click();
+                                    return;
+                                }
+                            }
+                        }
                     });
                     results.push({ sitemap, status: 'success' });
                 } else {
@@ -799,7 +1075,7 @@ app.all('/debug-verify-img', (req, res) => {
 // Khởi động HTTP server (port 3002)
 http.createServer(app).listen(HTTP_PORT, () => console.log('VPS API chạy HTTP tại port ' + HTTP_PORT));
 
-// Khởi động HTTPS server (port 3000) với self-signed cert
+// Khởi động HTTPS server (port 3001) với self-signed cert
 try {
     const certPath = __dirname + '/ssl/cert.pem';
     const keyPath  = __dirname + '/ssl/key.pem';
