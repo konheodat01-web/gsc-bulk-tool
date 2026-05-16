@@ -1338,7 +1338,7 @@
     function getVpsProxyUrl(url, raw = false) {
         const ip = document.getElementById('sysVpsIp')?.value.trim();
         if (ip) {
-            const target = `http://${ip}:3000/proxy?url=${encodeURIComponent(url)}&raw=${raw}`;
+            const target = `http://${ip}:3001/proxy?url=${encodeURIComponent(url)}&raw=${raw}`;
             return `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`;
         }
         return null;
@@ -1350,7 +1350,7 @@
             try {
                 const ctrl2 = new AbortController();
                 const tid = setTimeout(() => ctrl2.abort(), 15000); // Tăng timeout lên 15s cho VPS
-                const vpsUrl = `http://${ip}:3000/proxy?url=${encodeURIComponent(url)}&raw=true`;
+                const vpsUrl = `http://${ip}:3001/proxy?url=${encodeURIComponent(url)}&raw=true`;
                 const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(vpsUrl)}`;
                 const res = await fetch(proxyUrl, { signal: ctrl2.signal });
                 clearTimeout(tid);
@@ -1373,7 +1373,7 @@
             try {
                 const ctrl2 = new AbortController();
                 const tid = setTimeout(() => ctrl2.abort(), 15000);
-                const vpsUrl = `http://${ip}:3000/proxy?url=${encodeURIComponent(url)}`;
+                const vpsUrl = `http://${ip}:3001/proxy?url=${encodeURIComponent(url)}`;
                 const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(vpsUrl)}`;
                 const res = await fetch(proxyUrl, { signal: ctrl2.signal });
                 clearTimeout(tid);
@@ -1398,7 +1398,7 @@
 
     async function callVps(ip, path) {
         // Phải đi qua HTTPS proxy vì trang chạy trên HTTPS (Mixed Content block)
-        const vpsUrl = 'http://' + ip + ':3000' + path;
+        const vpsUrl = 'http://' + ip + ':3001' + path;
         const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(vpsUrl);
         const ctrl = new AbortController();
         setTimeout(() => ctrl.abort(), 12000);
@@ -1442,14 +1442,14 @@
                 const data = await callVps(ip, `/update-config?telegramToken=${encodeURIComponent(token)}&chatId=${encodeURIComponent(chatId)}&sheetUrl=${encodeURIComponent(sheetUrl)}`);
                 if (data.success) { alert('✅ Đồng bộ thành công! Agent đang khởi động lại...'); }
                 else { alert('❌ Thất bại: ' + data.message); }
-            } catch (error) { alert('❌ Lỗi kết nối! Đảm bảo VPS đã mở cổng 3000.'); }
+            } catch (error) { alert('❌ Lỗi kết nối! Đảm bảo VPS đã mở cổng 3001.'); }
         }
 
     // Legacy stub — data now lives in Settings Modal
     async function saveTeleSettings() {
         // Tự động lưu từ localStorage (không cần form cũ)
         const st = document.getElementById('teleStatus');
-        if (st) { st.style.display = 'block'; setTimeout(() => st.style.display = 'none', 3000); }
+        if (st) { st.style.display = 'block'; setTimeout(() => st.style.display = 'none', 3001); }
     }
     async function loadTeleSettings() {
         // Load từ cloud và lưu vào localStorage
@@ -3324,7 +3324,7 @@
             footers.forEach(f => footerText += f.textContent + ' ');
             if(!footerText) {
                 const bodyText = doc.body ? doc.body.textContent : '';
-                footerText = bodyText.slice(-3000);
+                footerText = bodyText.slice(-3001);
             }
             
             let coreBrand = srcHostNorm.split('.')[0];
@@ -3477,7 +3477,7 @@
         try {
             const ctrl = new AbortController();
             setTimeout(() => ctrl.abort(), 12000);
-            const vpsLoginUrl = 'http://' + ip + ':3000/check-login?url=' + encodeURIComponent(url) + '&adminPath=' + encodeURIComponent(adminPath || '') + '&user=' + encodeURIComponent(user) + '&pass=' + encodeURIComponent(pass);
+            const vpsLoginUrl = 'http://' + ip + ':3001/check-login?url=' + encodeURIComponent(url) + '&adminPath=' + encodeURIComponent(adminPath || '') + '&user=' + encodeURIComponent(user) + '&pass=' + encodeURIComponent(pass);
             const loginProxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(vpsLoginUrl);
             const res = await fetch(loginProxyUrl, { signal: ctrl.signal });
             const data = await res.json();
@@ -4531,7 +4531,7 @@
             setTimeout(() => {
                 const t = document.getElementById('wfProgressToast');
                 if (t) t.classList.remove('active');
-            }, 3000);
+            }, 3001);
         }
     }
 
@@ -5710,7 +5710,7 @@
         toast.style.cssText = 'position:fixed; bottom:30px; right:30px; background:linear-gradient(135deg,#ec4899,#a855f7); color:white; padding:14px 22px; border-radius:12px; font-size:14px; font-weight:600; z-index:99999; box-shadow:0 8px 32px rgba(236,72,153,0.4);';
         toast.textContent = '✅ Đã lưu viên gạch: ' + name;
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
+        setTimeout(() => toast.remove(), 3001);
     }
 
     function deleteUserBlock(idx) {
@@ -6211,7 +6211,7 @@ ${appState}`;
             setTimeout(() => {
                 if (badge.parentNode) badge.parentNode.removeChild(badge);
                 if (barContainer.parentNode) barContainer.parentNode.removeChild(barContainer);
-            }, 3000);
+            }, 3001);
         }
     };
 
@@ -6705,7 +6705,7 @@ return items.map(item => {
                                 <p style="color:#94a3b8;font-size:11px;margin:0 0 12px 0;line-height:1.5;">Nếu PBN của bạn cài mã bảo vệ cấp 1 (HTTP Basic Auth), nhập User/Pass chung vào đây. Tool sẽ tự động dùng khi gặp lỗi 401.</p>
                                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                                     <div>
-                                        </div><div style="grid-column: span 2; margin-bottom: 12px;"><label class="acc-label">URL API VPS (Puppeteer)</label><input type="text" id="sysWpVpsUrl" placeholder="https://103.82.195.87:3000" class="acc-input" style="border-color:rgba(14,165,233,0.4);"></div><div><label class="acc-label">User Bảo Mật Cấp 1</label>
+                                        </div><div style="grid-column: span 2; margin-bottom: 12px;"><label class="acc-label">URL API VPS (Puppeteer)</label><input type="text" id="sysWpVpsUrl" placeholder="https://103.82.195.87:3001" class="acc-input" style="border-color:rgba(14,165,233,0.4);"></div><div><label class="acc-label">User Bảo Mật Cấp 1</label>
                                         <input type="text" id="sysWpBasicUser" placeholder="Tài khoản cấp 1..." class="acc-input" style="border-color:rgba(14,165,233,0.4);">
                                     </div>
                                     <div>
@@ -6872,7 +6872,7 @@ window.wfClearProgress = function(nodeId) {
     if (nodeEl) {
         nodeEl.classList.remove('running');
         var prog = nodeEl.querySelector('.wf-node-progress');
-        if (prog) setTimeout(function(){ prog && prog.remove(); }, 3000);
+        if (prog) setTimeout(function(){ prog && prog.remove(); }, 3001);
     }
     var toast = document.getElementById('wfProgressToast');
     if (toast) toast.classList.remove('active');
