@@ -1083,8 +1083,12 @@
                 </div>
             </div>
 
-            <!-- Input -->
-            <div style="margin-bottom:15px;">
+            <!-- Mode input info bar (shown when mode selected) -->
+            <div id="wsModeInputInfo" style="display:none; margin-bottom:12px; padding:10px 14px; background:rgba(15,157,88,0.07); border:1px solid rgba(15,157,88,0.25); border-radius:8px;">
+            </div>
+
+            <!-- Manual input (hidden when mode selected) -->
+            <div id="wsManualInputSection" style="margin-bottom:15px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                     <label style="font-size:12px; color:var(--text-muted);">Danh sách URL cần kiểm tra (mỗi dòng 1 URL):</label>
                     <div style="display:flex; gap:6px;">
@@ -7478,8 +7482,20 @@ window.wfClearProgress = function(nodeId) {
 
         if (!vpsUrl) return alert('Chưa có VPS URL!\nVui lòng vào ⚙️ Cài Đặt Hệ Thống để nhập VPS URL.');
 
-        const rawUrls = document.getElementById('wsUrlInput').value.trim().split('\n').map(u => u.trim()).filter(Boolean);
-        if (!rawUrls.length) return alert('Vui lòng nhập ít nhất 1 URL!');
+        // Neu co active mode -> lay URLs tu Sheet; neu khong -> lay tu textarea
+        const activeMode = (typeof wsGetActiveMode === 'function') ? wsGetActiveMode() : null;
+        let rawUrls = [];
+        if (activeMode) {
+            // Chay theo mode: nap tu Sheet neu chua co
+            if (!window._wsLoadedUrls || window._wsLoadedUrls.length === 0) {
+                await wsLoadFromSheet();
+            }
+            rawUrls = (window._wsLoadedUrls || []).slice();
+            if (!rawUrls.length) return; // wsLoadFromSheet da alert loi
+        } else {
+            rawUrls = document.getElementById('wsUrlInput').value.trim().split('\\n').map(u => u.trim()).filter(Boolean);
+            if (!rawUrls.length) return alert('Vui long nhap it nhat 1 URL!');
+        }
 
         wsResultData = [];
         wsStats = { ok: 0, cf: 0, err: 0, to: 0 };
@@ -7621,11 +7637,11 @@ window.wfClearProgress = function(nodeId) {
 
     function wsSelectMode(id){
         wsSetActiveModeId(id);
+        window._wsLoadedUrls = []; // Reset cache khi doi mode
+        window._wsSeoNames = [];
+        wsUpdateInputMode(); // Toggle hien/an textarea
         wsRenderModes();
     }
-
-    // Edit selected mode from dropdown
-    function wsOpenEditSelectedMode(){
         var id=document.getElementById('wsModeSelect').value;
         if(!id) return;
         wsOpenEditMode(id);
@@ -7728,6 +7744,8 @@ window.wfClearProgress = function(nodeId) {
             if(!data.values||data.values.length===0){ta.value='';return alert('Sheet rong hoac cot '+colDomain+' khong co du lieu tu dong 2!');}
             var urls=data.values.map(function(r){return(r[0]||'').trim();}).filter(Boolean);
             ta.value=urls.join('\n');
+            window._wsLoadedUrls = urls.slice(); // Cache cho startWebStatus dung khi co mode
+            window._wsSeoNames = []; // Reset SEO names - will be refilled below
 
             // Read SEO name column if configured
             window._wsSeoNames=[];
@@ -7740,6 +7758,7 @@ window.wfClearProgress = function(nodeId) {
                 }
             }
             alert('Da nap '+urls.length+' URL tu cot '+colDomain+(colSeo?' + ten SEO tu cot '+colSeo:'')+'  (Mode: '+mode.name+')');
+            if(typeof wsUpdateInputMode==='function') wsUpdateInputMode();
         } catch(e){ta.value='';alert('Loi doc Sheet:\n'+e.message);}
     }
 
@@ -7783,10 +7802,29 @@ window.wfClearProgress = function(nodeId) {
         if(btn) btn.style.display=(mode&&mode.sheetUrl&&(typeof wsResultData!=='undefined'&&wsResultData&&wsResultData.length)>0)?'':'none';
     }
 
-    window.addEventListener('load',function(){setTimeout(wsRenderModes,150);});
+
+    // Toggle hien/an textarea tuy theo co mode hay khong
+    function wsUpdateInputMode() {
+        var hasMode = wsGetActiveModeId() !== '';
+        var inputSection = document.getElementById('wsManualInputSection');
+        var modeInputInfo = document.getElementById('wsModeInputInfo');
+        if (inputSection) inputSection.style.display = hasMode ? 'none' : '';
+        if (modeInputInfo) {
+            if (hasMode) {
+                var mode = wsGetActiveMode();
+                var cnt = (window._wsLoadedUrls && window._wsLoadedUrls.length) ? window._wsLoadedUrls.length + ' URLs da san sang' : 'Chua nap — se tu dong nap khi chay';
+                modeInputInfo.innerHTML = '<span style="color:#94a3b8;font-size:12px;">&#128202; Sheet: <b style="color:#e2e8f0;">' + (mode?mode.name:'') + '</b> &nbsp;|&nbsp; Col: <b style="color:#e2e8f0;">' + (mode?mode.colInput:'') + '</b> &nbsp;|&nbsp; <span style="color:#34d399;">' + cnt + '</span></span>';
+                modeInputInfo.style.display = '';
+            } else {
+                modeInputInfo.style.display = 'none';
+            }
+        }
+    }
+
+    window.addEventListener('load',function(){setTimeout(function(){wsRenderModes();wsUpdateInputMode();},150);});
     document.addEventListener('click',function(e){
         var t=e.target&&e.target.closest&&e.target.closest('[onclick]');
-        if(t&&(t.getAttribute('onclick')||'').indexOf('tab10')>=0) setTimeout(wsRenderModes,60);
+        if(t&&(t.getAttribute('onclick')||'').indexOf('tab10')>=0) setTimeout(function(){wsRenderModes();wsUpdateInputMode();},60);
     });
 </script>
 </body>
