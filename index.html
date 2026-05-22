@@ -7692,7 +7692,7 @@ window.wfClearProgress = function(nodeId) {
             colTrangThai:(document.getElementById('wsModeFormColTT').value.trim().toUpperCase()||'J'),
             colRedirect:(document.getElementById('wsModeFormColRed').value.trim().toUpperCase()||'D'),
             colLichSu301:(document.getElementById('wsModeFormColLS').value.trim().toUpperCase()||'C'),
-            colSeoName:(seoEl?seoEl.value.trim().toUpperCase():'')
+            colSeoName:(seoEl?seoEl.value.trim().toUpperCase():''),
             tabName:(function(){var t=document.getElementById('wsModeFormTabName');return t?t.value.trim():'';})(),
         };
         var modes=wsGetModes(), idx=modes.findIndex(function(m){return m.id===mode.id;});
