@@ -7642,6 +7642,9 @@ window.wfClearProgress = function(nodeId) {
         wsUpdateInputMode(); // Toggle hien/an textarea
         wsRenderModes();
     }
+
+    // Edit selected mode from dropdown
+    function wsOpenEditSelectedMode(){
         var id=document.getElementById('wsModeSelect').value;
         if(!id) return;
         wsOpenEditMode(id);
