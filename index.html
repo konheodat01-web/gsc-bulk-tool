@@ -7716,78 +7716,68 @@ window.wfClearProgress = function(nodeId) {
         if(wsGetActiveModeId()===id) wsSetActiveModeId(nm.length>0?nm[0].id:'');
         wsRenderModes();
     }
-
-    // Nap URLs + SEO names tu Sheet
+    // Nap URLs + SEO names tu Sheet (dung getGoogleToken - service account hoac oauth)
     async function wsLoadFromSheet(){
         var mode=wsGetActiveMode();
         if(!mode) return alert('Vui long chon hoac tao mot Mode truoc!\n(Bam + de them mode moi)');
         if(!mode.sheetUrl) return alert('Mode nay chua co Link Google Sheet!');
-        if(!window.gscAccounts||!window.activeAccountEmails||window.activeAccountEmails.length===0)
-            return alert('Chua dang nhap Google!\nVui long sang Tab GSC -> Them Tai Khoan Google truoc.');
-        var acc=window.gscAccounts.find(function(a){return a.email===window.activeAccountEmails[0];});
-        if(!acc||!acc.token||Date.now()>acc.expiresAt)
-            return alert('Tai khoan Google da het phien.\nVui long sang Tab GSC -> bam Refresh.');
         var mt=mode.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
         if(!mt) return alert('Link Google Sheet khong hop le!');
         var sheetId=mt[1];
         var tabName=mode.tabName||'';
-        function wsRangePrefix(col,from,to){var prefix=tabName?encodeURIComponent(tabName)+'!':'';return prefix+col+from+':'+col+to;}
         var colDomain=mode.colInput||'B';
         var colSeo=mode.colSeoName||'';
+        function mkRange(col){ return tabName ? (encodeURIComponent(tabName)+'!'+col+'2:'+col+'2000') : (col+'2:'+col+'2000'); }
 
-        // Determine range: if seo col exists, read both columns
+        var token;
+        try { token = await getGoogleToken(); } catch(e){ token = null; }
+        if(!token) return alert('Chua co Google Token!\nVui long vao Cai Dat He Thong -> dan Service Account JSON.\nHoac them tai khoan Google o Tab GSC.');
+
         var ta=document.getElementById('wsUrlInput');
-        ta.value='Dang nap tu Sheet...';
+        if(ta) ta.value='Dang nap tu Sheet...';
         try {
-            // Read domain column
-        var rng=tabName?(encodeURIComponent(tabName)+'!'+colDomain+'2:'+colDomain+'2000'):(colDomain+'2:'+colDomain+'2000');
-            var res=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(rng),{headers:{'Authorization':'Bearer '+acc.token}});
+            var res=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+mkRange(colDomain),
+                {headers:{'Authorization':'Bearer '+token}});
             if(!res.ok){var ed=await res.json();throw new Error((ed.error&&ed.error.message)||'HTTP '+res.status);}
             var data=await res.json();
-            if(!data.values||data.values.length===0){ta.value='';return alert('Sheet rong hoac cot '+colDomain+' khong co du lieu tu dong 2!');}
+            if(!data.values||data.values.length===0){if(ta)ta.value='';return alert('Sheet rong hoac cot '+colDomain+' khong co du lieu tu dong 2!');}
             var urls=data.values.map(function(r){return(r[0]||'').trim();}).filter(Boolean);
-            ta.value=urls.join('\n');
-            window._wsLoadedUrls = urls.slice(); // Cache cho startWebStatus dung khi co mode
-            window._wsSeoNames = []; // Reset SEO names - will be refilled below
-
-            // Read SEO name column if configured
+            if(ta) ta.value=urls.join('\n');
+            window._wsLoadedUrls=urls.slice();
             window._wsSeoNames=[];
             if(colSeo){
-                var rngSeo=tabName?(encodeURIComponent(tabName)+'!'+colSeo+'2:'+colSeo+'2000'):(colSeo+'2:'+colSeo+'2000');
-                var resSeo=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(rngSeo),{headers:{'Authorization':'Bearer '+acc.token}});
+                var resSeo=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+mkRange(colSeo),
+                    {headers:{'Authorization':'Bearer '+token}});
                 if(resSeo.ok){
-                    var dataSeo=await resSeo.json();
-                    window._wsSeoNames=(dataSeo.values||[]).map(function(r){return(r[0]||'').trim()||'admin';});
+                    var dSeo=await resSeo.json();
+                    window._wsSeoNames=(dSeo.values||[]).map(function(r){return(r[0]||'').trim()||'admin';});
                 }
             }
-            alert('Da nap '+urls.length+' URL tu cot '+colDomain+(colSeo?' + ten SEO tu cot '+colSeo:'')+'  (Mode: '+mode.name+')');
             if(typeof wsUpdateInputMode==='function') wsUpdateInputMode();
-        } catch(e){ta.value='';alert('Loi doc Sheet:\n'+e.message);}
+        } catch(e){if(ta)ta.value='';alert('Loi doc Sheet:\n'+e.message);}
     }
 
-    // Ghi ket qua ve Sheet
+    // Ghi ket qua ve Sheet (dung getGoogleToken)
     async function wsWriteResultsToSheet(){
         var mode=wsGetActiveMode();
         if(!mode) return alert('Chua chon Mode!');
-        if(!wsResultData||!wsResultData.length) return alert('Chua co ket qua de ghi!');
+        if(typeof wsResultData==='undefined'||!wsResultData||!wsResultData.length) return alert('Chua co ket qua de ghi!');
         if(!mode.sheetUrl) return alert('Mode chua co Link Google Sheet!');
-        if(!window.gscAccounts||!window.activeAccountEmails||window.activeAccountEmails.length===0)
-            return alert('Chua dang nhap Google!\nVui long sang Tab GSC truoc.');
-        var acc=window.gscAccounts.find(function(a){return a.email===window.activeAccountEmails[0];});
-        if(!acc||!acc.token||Date.now()>acc.expiresAt)
-            return alert('Tai khoan Google da het phien.\nVui long sang Tab GSC -> bam Refresh.');
         var mt=mode.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
         if(!mt) return alert('Link Google Sheet khong hop le!');
+        var token;
+        try { token = await getGoogleToken(); } catch(e){ token = null; }
+        if(!token) return alert('Chua co Google Token!\nVui long vao Cai Dat He Thong -> dan Service Account JSON.');
         var sheetId=mt[1], n=wsResultData.length;
         var colTT=mode.colTrangThai||'J', colRed=mode.colRedirect||'D', colLS=mode.colLichSu301||'C';
         if(!confirm('Se ghi '+n+' dong ket qua vao Sheet?\n- Trang Thai -> Cot '+colTT+'\n- URL Redirect -> Cot '+colRed+'\n- Lich Su 301 -> Cot '+colLS+'\n\nDu lieu cu se bi ghi de!')) return;
         var btnW=document.getElementById('btnWSWriteSheet'), orig=btnW.textContent;
         btnW.textContent='Dang ghi...'; btnW.disabled=true;
         async function writeCol(col,vals){
-            var tabPrefix=typeof mode!=='undefined'&&mode.tabName?encodeURIComponent(mode.tabName)+'!':'';
-            var rng=tabPrefix+col+'2:'+col+(1+vals.length);
+            var tabPfx=mode.tabName?encodeURIComponent(mode.tabName)+'!':'';
+            var rng=tabPfx+col+'2:'+col+(1+vals.length);
             var r=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(rng)+'?valueInputOption=USER_ENTERED',
-                {method:'PUT',headers:{'Authorization':'Bearer '+acc.token,'Content-Type':'application/json'},
+                {method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
                  body:JSON.stringify({values:vals.map(function(v){return[v];})})});
             if(!r.ok){var e=await r.json();throw new Error((e.error&&e.error.message)||'HTTP '+r.status);}
         }
@@ -7799,7 +7789,6 @@ window.wfClearProgress = function(nodeId) {
         }catch(e){alert('Loi ghi Sheet:\n'+e.message);}
         finally{btnW.textContent=orig;btnW.disabled=false;}
     }
-
     function wsShowWriteBtn(){
         var mode=wsGetActiveMode(), btn=document.getElementById('btnWSWriteSheet');
         if(btn) btn.style.display=(mode&&mode.sheetUrl&&(typeof wsResultData!=='undefined'&&wsResultData&&wsResultData.length)>0)?'':'none';
