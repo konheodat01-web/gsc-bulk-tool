@@ -1012,38 +1012,20 @@
                 Kiểm tra website: <b>200 OK</b>, <b>Cloudflare</b>, <b>Timeout</b>, <b>Redirect</b>. Sử dụng 2 lớp: Proxy VN → Check trực tiếp quốc tế.
             </p>
 
-            <!-- VPS Config -->
-            <div style="background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); border-radius:8px; padding:12px; margin-bottom:15px;">
-                <div style="font-size:11px; font-weight:700; color:#34d399; margin-bottom:10px; letter-spacing:0.5px;">🖥️ CẤU HÌNH VPS & PROXY</div>
-                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+            <!-- Dùng cấu hình chung -->
+            <div id="wsGlobalInfoBar" style="background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); border-radius:8px; padding:10px 14px; margin-bottom:15px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:15px;">⚙️</span>
                     <div>
-                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">VPS URL (có ngrok hoặc IP:port)</label>
-                        <input type="text" id="wsVpsUrl" placeholder="https://xxxx.ngrok.io" oninput="wsAutoSave()" style="width:100%; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box;">
-                    </div>
-                    <div>
-                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">VPS Token (bảo mật)</label>
-                        <input type="password" id="wsVpsToken" placeholder="Token xác thực VPS" oninput="wsAutoSave()" style="width:100%; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box;">
-                    </div>
-                    <div>
-                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">Proxy Host:Port (VN)</label>
-                        <div style="display:flex; gap:6px;">
-                            <input type="text" id="wsProxyHost" placeholder="proxy.host.vn" oninput="wsAutoSave()" style="flex:2; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text);">
-                            <input type="text" id="wsProxyPort" placeholder="8080" oninput="wsAutoSave()" style="flex:1; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text);">
-                        </div>
-                    </div>
-                    <div>
-                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">Proxy User</label>
-                        <input type="text" id="wsProxyUser" placeholder="username" oninput="wsAutoSave()" style="width:100%; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box;">
-                    </div>
-                    <div>
-                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">Proxy Pass</label>
-                        <input type="password" id="wsProxyPass" placeholder="password" oninput="wsAutoSave()" style="width:100%; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box;">
-                    </div>
-                    <div style="display:flex; align-items:flex-end;">
-                        <button onclick="wsTestConnection()" style="width:100%; padding:8px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#34d399; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;">🔌 Test Kết Nối VPS</button>
+                        <div style="font-size:11px; font-weight:700; color:#34d399; margin-bottom:2px;">ĐANG DÙNG CẤU HÌNH CHUNG (⚙️ Cài Đặt Hệ Thống)</div>
+                        <div id="wsGlobalInfoText" style="font-size:11px; color:var(--text-muted);">Đang đọc cấu hình...</div>
                     </div>
                 </div>
-                <div id="wsVpsStatus" style="margin-top:8px; font-size:11px;"></div>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="wsTestConnectionGlobal()" style="padding:6px 14px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#34d399; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; white-space:nowrap;">🔌 Test VPS</button>
+                    <button onclick="openSettingsPanel()" style="padding:6px 14px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-muted); border-radius:6px; cursor:pointer; font-size:11px; white-space:nowrap;">✏️ Sửa cấu hình</button>
+                </div>
+                <div id="wsVpsStatus" style="width:100%; font-size:11px; margin-top:2px;"></div>
             </div>
 
             <!-- Input -->
@@ -7148,8 +7130,6 @@ window.wfClearProgress = function(nodeId) {
         if (document.getElementById('rankSerperKey')) {
             document.getElementById('rankSerperKey').value = savedKey;
         }
-        // Load WS settings
-        wsLoadSettings();
     });
 
     function rankSaveKey() {
@@ -7323,49 +7303,51 @@ window.wfClearProgress = function(nodeId) {
     let wsResultData = [];
     let wsStats = { ok: 0, cf: 0, err: 0, to: 0 };
 
-    function wsAutoSave() {
-        const settings = {
-            vpsUrl: document.getElementById('wsVpsUrl')?.value || '',
-            vpsToken: document.getElementById('wsVpsToken')?.value || '',
-            proxyHost: document.getElementById('wsProxyHost')?.value || '',
-            proxyPort: document.getElementById('wsProxyPort')?.value || '',
-            proxyUser: document.getElementById('wsProxyUser')?.value || '',
-            proxyPass: document.getElementById('wsProxyPass')?.value || ''
+    // Đọc thẳng từ cấu hình chung (wf_system_settings + sys_proxy_*)
+    function wsGetGlobalSettings() {
+        const sys = JSON.parse(localStorage.getItem('wf_system_settings') || '{}');
+        return {
+            vpsUrl:    (sys.vpsUrl    || '').replace(/\/$/, ''),
+            vpsToken:  sys.vpsToken   || '',
+            proxyHost: localStorage.getItem('sys_proxy_host') || '',
+            proxyPort: localStorage.getItem('sys_proxy_port') || '',
+            proxyUser: localStorage.getItem('sys_proxy_user') || '',
+            proxyPass: localStorage.getItem('sys_proxy_pass') || ''
         };
-        localStorage.setItem('wf_ws_tool_settings', JSON.stringify(settings));
     }
 
-    function wsLoadSettings() {
-        try {
-            // Load from wf_system_settings (used by the workflow)
-            const sys = JSON.parse(localStorage.getItem('wf_system_settings') || '{}');
-            const tool = JSON.parse(localStorage.getItem('wf_ws_tool_settings') || '{}');
-
-            const vpsUrl = tool.vpsUrl || sys.vpsUrl || '';
-            const vpsToken = tool.vpsToken || sys.vpsToken || '';
-            const proxyHost = tool.proxyHost || localStorage.getItem('sys_proxy_host') || '';
-            const proxyPort = tool.proxyPort || localStorage.getItem('sys_proxy_port') || '';
-            const proxyUser = tool.proxyUser || localStorage.getItem('sys_proxy_user') || '';
-            const proxyPass = tool.proxyPass || localStorage.getItem('sys_proxy_pass') || '';
-
-            if (document.getElementById('wsVpsUrl')) document.getElementById('wsVpsUrl').value = vpsUrl;
-            if (document.getElementById('wsVpsToken')) document.getElementById('wsVpsToken').value = vpsToken;
-            if (document.getElementById('wsProxyHost')) document.getElementById('wsProxyHost').value = proxyHost;
-            if (document.getElementById('wsProxyPort')) document.getElementById('wsProxyPort').value = proxyPort;
-            if (document.getElementById('wsProxyUser')) document.getElementById('wsProxyUser').value = proxyUser;
-            if (document.getElementById('wsProxyPass')) document.getElementById('wsProxyPass').value = proxyPass;
-        } catch(e) {}
+    // Hiển thị thông tin cấu hình đang dùng lên info bar
+    function wsRefreshInfoBar() {
+        const cfg = wsGetGlobalSettings();
+        const infoEl = document.getElementById('wsGlobalInfoText');
+        if (!infoEl) return;
+        if (!cfg.vpsUrl) {
+            infoEl.innerHTML = '<span style="color:#f87171;">⚠️ Chưa cấu hình VPS URL — Vào ⚙️ Cài Đặt để thêm</span>';
+        } else {
+            const proxyStr = cfg.proxyHost ? `${cfg.proxyHost}:${cfg.proxyPort}` : '(không có proxy)';
+            infoEl.innerHTML = `VPS: <b style="color:#e2e8f0;">${cfg.vpsUrl}</b> &nbsp;|&nbsp; Proxy: <b style="color:#e2e8f0;">${proxyStr}</b>`;
+        }
     }
 
-    async function wsTestConnection() {
-        const vpsUrl = (document.getElementById('wsVpsUrl')?.value || '').replace(/\/$/, '');
-        const vpsToken = document.getElementById('wsVpsToken')?.value || '';
+    // Mở panel cài đặt hệ thống
+    function openSettingsPanel() {
+        const btn = document.getElementById('settingsBtn') || document.querySelector('[data-target="settings"]');
+        if (btn) btn.click();
+        else alert('Vui lòng click vào icon ⚙️ góc phải màn hình để mở Cài Đặt Hệ Thống.');
+    }
+
+    // Test kết nối dùng cấu hình chung
+    async function wsTestConnectionGlobal() {
+        const cfg = wsGetGlobalSettings();
         const statusEl = document.getElementById('wsVpsStatus');
-        if (!vpsUrl) { statusEl.innerHTML = '<span style="color:var(--danger)">❌ Chưa nhập VPS URL!</span>'; return; }
-        statusEl.innerHTML = '🟡 Đang kết nối...';
+        if (!cfg.vpsUrl) {
+            statusEl.innerHTML = '<span style="color:var(--danger)">❌ Chưa có VPS URL trong Cài Đặt Chung!</span>';
+            return;
+        }
+        statusEl.innerHTML = '🟡 Đang kết nối tới ' + cfg.vpsUrl + '...';
         try {
-            const res = await fetch(vpsUrl + '/health', {
-                headers: { 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },
+            const res = await fetch(cfg.vpsUrl + '/health', {
+                headers: { 'x-vps-token': cfg.vpsToken, 'ngrok-skip-browser-warning': '1' },
                 signal: AbortSignal.timeout(8000)
             });
             if (res.ok) {
@@ -7378,6 +7360,15 @@ window.wfClearProgress = function(nodeId) {
             statusEl.innerHTML = `<span style="color:var(--danger)">❌ Không kết nối được: ${e.message}</span>`;
         }
     }
+
+    // Refresh info bar mỗi khi chuyển sang tab này
+    document.addEventListener('click', function(e) {
+        const t = e.target.closest && e.target.closest('[onclick]');
+        if (t && (t.getAttribute('onclick') || '').includes('tab10')) {
+            setTimeout(wsRefreshInfoBar, 50);
+        }
+    });
+    window.addEventListener('load', function() { setTimeout(wsRefreshInfoBar, 300); });
 
     function wsPasteExample() {
         document.getElementById('wsUrlInput').value = 'https://google.com\nhttps://facebook.com\nhttps://shopee.vn\nhttps://tiki.vn\nhttps://example-dead-site-xyz.com';
@@ -7440,14 +7431,11 @@ window.wfClearProgress = function(nodeId) {
     }
 
     async function startWebStatus() {
-        const vpsUrl = (document.getElementById('wsVpsUrl')?.value || '').trim().replace(/\/$/, '');
-        const vpsToken = document.getElementById('wsVpsToken')?.value || '';
-        const proxyHost = document.getElementById('wsProxyHost')?.value || '';
-        const proxyPort = document.getElementById('wsProxyPort')?.value || '';
-        const proxyUser = document.getElementById('wsProxyUser')?.value || '';
-        const proxyPass = document.getElementById('wsProxyPass')?.value || '';
+        // Đọc cấu hình từ Settings chung
+        const cfg = wsGetGlobalSettings();
+        const { vpsUrl, vpsToken, proxyHost, proxyPort, proxyUser, proxyPass } = cfg;
 
-        if (!vpsUrl) return alert('Vui lòng nhập VPS URL trước! (Cần cài backend vps_puppeteer_api.js trên VPS)');
+        if (!vpsUrl) return alert('Chưa có VPS URL!\nVui lòng vào ⚙️ Cài Đặt Hệ Thống để nhập VPS URL.');
 
         const rawUrls = document.getElementById('wsUrlInput').value.trim().split('\n').map(u => u.trim()).filter(Boolean);
         if (!rawUrls.length) return alert('Vui lòng nhập ít nhất 1 URL!');
@@ -7459,7 +7447,6 @@ window.wfClearProgress = function(nodeId) {
         document.getElementById('wsProgress').style.display = 'flex';
         document.getElementById('btnStartWS').disabled = true;
         document.getElementById('btnStopWS').disabled = false;
-        wsAutoSave();
 
         wsAbortController = new AbortController();
 
