@@ -1012,20 +1012,58 @@
                 Kiểm tra website: <b>200 OK</b>, <b>Cloudflare</b>, <b>Timeout</b>, <b>Redirect</b>. Sử dụng 2 lớp: Proxy VN → Check trực tiếp quốc tế.
             </p>
 
-            <!-- Dùng cấu hình chung -->
-            <div id="wsGlobalInfoBar" style="background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); border-radius:8px; padding:10px 14px; margin-bottom:15px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:15px;">⚙️</span>
-                    <div>
-                        <div style="font-size:11px; font-weight:700; color:#34d399; margin-bottom:2px;">ĐANG DÙNG CẤU HÌNH CHUNG (⚙️ Cài Đặt Hệ Thống)</div>
-                        <div id="wsGlobalInfoText" style="font-size:11px; color:var(--text-muted);">Đang đọc cấu hình...</div>
+            <!-- MODE MANAGER -->
+            <div style="margin-bottom:15px;">
+                <!-- Header bar -->
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:11px; font-weight:700; color:var(--text-muted); letter-spacing:0.5px; text-transform:uppercase;">Chế Độ Làm Việc</span>
+                        <div id="wsVpsStatus" style="font-size:11px;"></div>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button onclick="wsTestConnectionGlobal()" title="Test kết nối VPS" style="padding:5px 10px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); color:#34d399; border-radius:6px; cursor:pointer; font-size:11px;">🔌 VPS</button>
+                        <button onclick="wsOpenAddMode()" id="btnAddMode" style="padding:5px 12px; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.4); color:#818cf8; border-radius:6px; cursor:pointer; font-size:14px; font-weight:700; line-height:1;" title="Thêm mode mới">+</button>
                     </div>
                 </div>
-                <div style="display:flex; gap:8px;">
-                    <button onclick="wsTestConnectionGlobal()" style="padding:6px 14px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#34d399; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600; white-space:nowrap;">🔌 Test VPS</button>
-                    <button onclick="openSettingsPanel()" style="padding:6px 14px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-muted); border-radius:6px; cursor:pointer; font-size:11px; white-space:nowrap;">✏️ Sửa cấu hình</button>
+
+                <!-- Mode cards list -->
+                <div id="wsModeList" style="display:flex; gap:8px; flex-wrap:wrap; min-height:38px;"></div>
+
+                <!-- Inline add/edit form -->
+                <div id="wsModeForm" style="display:none; margin-top:12px; background:rgba(99,102,241,0.06); border:1px solid rgba(99,102,241,0.25); border-radius:8px; padding:14px;">
+                    <div style="font-size:11px; font-weight:700; color:#818cf8; margin-bottom:12px; letter-spacing:0.5px;" id="wsModeFormTitle">THÊM MODE MỚI</div>
+                    <input type="hidden" id="wsModeFormId">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+                        <div style="grid-column:1/-1;">
+                            <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">Tên Mode (ví dụ: PBN Sheet 1, Sheet thương mại...)</label>
+                            <input type="text" id="wsModeFormName" placeholder="Sheet 1" style="width:100%; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box;">
+                        </div>
+                        <div style="grid-column:1/-1;">
+                            <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">[0] Link Google Sheet</label>
+                            <input type="text" id="wsModeFormSheet" placeholder="https://docs.google.com/spreadsheets/d/..." style="width:100%; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box; font-family:monospace;">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">[1] Cột Domain Gốc <span style="color:#64748b;">(input)</span></label>
+                            <input type="text" id="wsModeFormColInput" placeholder="B" maxlength="3" style="width:100%; padding:8px; font-size:13px; font-weight:700; text-transform:uppercase; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box; text-align:center;">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; display:block; margin-bottom:3px;"><span style="color:#34d399;">[ output ]</span> <span style="color:var(--text-muted);">Cột Trạng Thái</span></label>
+                            <input type="text" id="wsModeFormColTT" placeholder="J" maxlength="3" style="width:100%; padding:8px; font-size:13px; font-weight:700; text-transform:uppercase; background:var(--bg); border:1px solid rgba(16,185,129,0.3); border-radius:6px; color:var(--text); box-sizing:border-box; text-align:center;">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; display:block; margin-bottom:3px;"><span style="color:#34d399;">[ output ]</span> <span style="color:var(--text-muted);">Cột URL Redirect</span></label>
+                            <input type="text" id="wsModeFormColRed" placeholder="D" maxlength="3" style="width:100%; padding:8px; font-size:13px; font-weight:700; text-transform:uppercase; background:var(--bg); border:1px solid rgba(16,185,129,0.3); border-radius:6px; color:var(--text); box-sizing:border-box; text-align:center;">
+                        </div>
+                        <div>
+                            <label style="font-size:11px; display:block; margin-bottom:3px;"><span style="color:#34d399;">[ output ]</span> <span style="color:var(--text-muted);">Cột Lịch Sử 301</span></label>
+                            <input type="text" id="wsModeFormColLS" placeholder="C" maxlength="3" style="width:100%; padding:8px; font-size:13px; font-weight:700; text-transform:uppercase; background:var(--bg); border:1px solid rgba(16,185,129,0.3); border-radius:6px; color:var(--text); box-sizing:border-box; text-align:center;">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button onclick="wsSaveModeForm()" style="padding:7px 18px; background:#4f46e5; border:none; color:white; border-radius:6px; cursor:pointer; font-size:12px; font-weight:700;">💾 Lưu Mode</button>
+                        <button onclick="wsCancelModeForm()" style="padding:7px 14px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-muted); border-radius:6px; cursor:pointer; font-size:12px;">Hủy</button>
+                    </div>
                 </div>
-                <div id="wsVpsStatus" style="width:100%; font-size:11px; margin-top:2px;"></div>
             </div>
 
             <!-- Input -->
@@ -1033,6 +1071,7 @@
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                     <label style="font-size:12px; color:var(--text-muted);">Danh sách URL cần kiểm tra (mỗi dòng 1 URL):</label>
                     <div style="display:flex; gap:6px;">
+                        <button onclick="wsLoadFromSheet()" style="padding:4px 10px; font-size:11px; background:rgba(15,157,88,0.1); border:1px solid rgba(15,157,88,0.4); border-radius:4px; color:#34d399; cursor:pointer;">📊 Nạp từ Sheet</button>
                         <button onclick="wsPasteExample()" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:4px; color:var(--text-muted); cursor:pointer;">📋 Ví dụ</button>
                         <button onclick="document.getElementById('wsUrlInput').value=''; wsResetTable();" style="padding:4px 10px; font-size:11px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:4px; color:var(--danger); cursor:pointer;">🗑 Xóa</button>
                     </div>
@@ -1043,6 +1082,7 @@
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:15px;">
                 <button id="btnStartWS" class="btn btn-success" onclick="startWebStatus()">🚀 Bắt Đầu Kiểm Tra</button>
                 <button onclick="exportWSCSV()" class="btn btn-secondary">📥 Xuất CSV</button>
+                <button onclick="wsWriteResultsToSheet()" class="btn" id="btnWSWriteSheet" style="background:rgba(15,157,88,0.2); border:1px solid rgba(15,157,88,0.4); color:#34d399; display:none;">📊 Ghi vào Sheet</button>
                 <button onclick="stopWebStatus()" class="btn" style="background:#ef4444;" id="btnStopWS" disabled>⏹ Dừng</button>
                 <div id="wsProgress" style="display:none; font-size:12px; color:var(--warning); margin-left:auto;">⏳ <span id="wsProgressText">Đang kiểm tra...</span></div>
             </div>
@@ -7317,7 +7357,6 @@ window.wfClearProgress = function(nodeId) {
     }
 
     // Hiển thị thông tin cấu hình đang dùng lên info bar
-    function wsRefreshInfoBar() {
         const cfg = wsGetGlobalSettings();
         const infoEl = document.getElementById('wsGlobalInfoText');
         if (!infoEl) return;
@@ -7336,15 +7375,15 @@ window.wfClearProgress = function(nodeId) {
         else alert('Vui lòng click vào icon ⚙️ góc phải màn hình để mở Cài Đặt Hệ Thống.');
     }
 
-    // Test kết nối dùng cấu hình chung
+    // Test ket noi dung cau hinh chung
     async function wsTestConnectionGlobal() {
         const cfg = wsGetGlobalSettings();
         const statusEl = document.getElementById('wsVpsStatus');
         if (!cfg.vpsUrl) {
-            statusEl.innerHTML = '<span style="color:var(--danger)">❌ Chưa có VPS URL trong Cài Đặt Chung!</span>';
+            statusEl.innerHTML = '<span style="color:var(--danger)">Chua co VPS URL trong Cai Dat Chung!</span>';
             return;
         }
-        statusEl.innerHTML = '🟡 Đang kết nối tới ' + cfg.vpsUrl + '...';
+        statusEl.innerHTML = 'Dang ket noi toi ' + cfg.vpsUrl + '...';
         try {
             const res = await fetch(cfg.vpsUrl + '/health', {
                 headers: { 'x-vps-token': cfg.vpsToken, 'ngrok-skip-browser-warning': '1' },
@@ -7352,12 +7391,12 @@ window.wfClearProgress = function(nodeId) {
             });
             if (res.ok) {
                 const txt = await res.text();
-                statusEl.innerHTML = '<span style="color:var(--success)">✅ Kết nối VPS thành công! ' + txt.substring(0,80) + '</span>';
+                statusEl.innerHTML = '<span style="color:var(--success)">Ket noi VPS thanh cong! ' + txt.substring(0,80) + '</span>';
             } else {
-                statusEl.innerHTML = `<span style="color:var(--danger)">❌ VPS trả lỗi HTTP ${res.status}</span>`;
+                statusEl.innerHTML = '<span style="color:var(--danger)">VPS tra loi HTTP ' + res.status + '</span>';
             }
         } catch(e) {
-            statusEl.innerHTML = `<span style="color:var(--danger)">❌ Không kết nối được: ${e.message}</span>`;
+            statusEl.innerHTML = '<span style="color:var(--danger)">Khong ket noi duoc: ' + e.message + '</span>';
         }
     }
 
@@ -7365,10 +7404,8 @@ window.wfClearProgress = function(nodeId) {
     document.addEventListener('click', function(e) {
         const t = e.target.closest && e.target.closest('[onclick]');
         if (t && (t.getAttribute('onclick') || '').includes('tab10')) {
-            setTimeout(wsRefreshInfoBar, 50);
         }
     });
-    window.addEventListener('load', function() { setTimeout(wsRefreshInfoBar, 300); });
 
     function wsPasteExample() {
         document.getElementById('wsUrlInput').value = 'https://google.com\nhttps://facebook.com\nhttps://shopee.vn\nhttps://tiki.vn\nhttps://example-dead-site-xyz.com';
@@ -7523,6 +7560,7 @@ window.wfClearProgress = function(nodeId) {
         document.getElementById('wsProgress').style.display = 'none';
         document.getElementById('btnStartWS').disabled = false;
         document.getElementById('btnStopWS').disabled = true;
+        if (typeof wsShowWriteBtn === 'function') wsShowWriteBtn();
     }
 
     function exportWSCSV() {
@@ -7538,6 +7576,154 @@ window.wfClearProgress = function(nodeId) {
         a.download = `web_status_${new Date().toISOString().slice(0,10)}.csv`;
         a.click();
     }
+</script>
+
+<!-- ===== TAB 10: MODE MANAGER JS ===== -->
+<script>
+    function wsGetModes() { try { return JSON.parse(localStorage.getItem('ws_tool_modes') || '[]'); } catch(e) { return []; } }
+    function wsSaveModes(m) { localStorage.setItem('ws_tool_modes', JSON.stringify(m)); }
+    function wsGetActiveModeId() { return localStorage.getItem('ws_active_mode_id') || ''; }
+    function wsSetActiveModeId(id) { if (id) localStorage.setItem('ws_active_mode_id', id); else localStorage.removeItem('ws_active_mode_id'); }
+    function wsGetActiveMode() { var id = wsGetActiveModeId(); if (!id) return null; return wsGetModes().find(function(m){return m.id===id;})||null; }
+
+    function wsRenderModes() {
+        var modes = wsGetModes(), activeId = wsGetActiveModeId(), list = document.getElementById('wsModeList');
+        if (!list) return;
+        if (modes.length === 0) {
+            list.innerHTML = '<div style="font-size:12px;color:var(--text-muted);font-style:italic;padding:8px 0;">Chưa có mode nào — bấm <b style="color:#818cf8;">+</b> để tạo mode đầu tiên</div>';
+            var b=document.getElementById('btnWSWriteSheet'); if(b) b.style.display='none';
+            return;
+        }
+        list.innerHTML = modes.map(function(m){
+            var a=m.id===activeId;
+            return '<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid '+(a?'#4f46e5':'var(--border)')+';background:'+(a?'rgba(79,70,229,0.2)':'rgba(255,255,255,0.03)')+';color:'+(a?'#a5b4fc':'var(--text-muted)')+';transition:all 0.15s;" onclick="wsSelectMode(\''+m.id+'\')">'+
+            (a?'✅ ':'')+m.name+
+            ' <span onclick="event.stopPropagation();wsOpenEditMode(\''+m.id+'\')" style="opacity:0.5;font-size:10px;padding:1px 5px;cursor:pointer;" title="Sửa">✏️</span>'+
+            ' <span onclick="event.stopPropagation();wsDeleteMode(\''+m.id+'\')" style="opacity:0.5;font-size:10px;padding:1px 5px;cursor:pointer;" title="Xóa">✕</span></div>';
+        }).join('');
+    }
+
+    function wsSelectMode(id) {
+        wsSetActiveModeId(id); wsRenderModes();
+        var mode=wsGetModes().find(function(m){return m.id===id;}), btn=document.getElementById('btnWSWriteSheet');
+        if(btn&&mode&&mode.sheetUrl&&wsResultData&&wsResultData.length>0) btn.style.display='';
+    }
+
+    function wsOpenAddMode() {
+        document.getElementById('wsModeFormTitle').textContent='THÊM MODE MỚI';
+        ['wsModeFormId','wsModeFormName','wsModeFormSheet','wsModeFormColInput','wsModeFormColTT','wsModeFormColRed','wsModeFormColLS'].forEach(function(id){document.getElementById(id).value='';});
+        document.getElementById('wsModeForm').style.display='block';
+        document.getElementById('wsModeFormName').focus();
+    }
+
+    function wsOpenEditMode(id) {
+        var mode=wsGetModes().find(function(m){return m.id===id;}); if(!mode) return;
+        document.getElementById('wsModeFormTitle').textContent='SỬA MODE: '+mode.name.toUpperCase();
+        document.getElementById('wsModeFormId').value=mode.id;
+        document.getElementById('wsModeFormName').value=mode.name;
+        document.getElementById('wsModeFormSheet').value=mode.sheetUrl||'';
+        document.getElementById('wsModeFormColInput').value=mode.colInput||'';
+        document.getElementById('wsModeFormColTT').value=mode.colTrangThai||'';
+        document.getElementById('wsModeFormColRed').value=mode.colRedirect||'';
+        document.getElementById('wsModeFormColLS').value=mode.colLichSu301||'';
+        document.getElementById('wsModeForm').style.display='block';
+        document.getElementById('wsModeFormName').focus();
+    }
+
+    function wsSaveModeForm() {
+        var name=document.getElementById('wsModeFormName').value.trim();
+        if(!name) return alert('Vui lòng nhập Tên Mode!');
+        var sheetUrl=document.getElementById('wsModeFormSheet').value.trim();
+        if(!sheetUrl) return alert('Vui lòng nhập Link Google Sheet!');
+        var eid=document.getElementById('wsModeFormId').value;
+        var mode={id:eid||('mode_'+Date.now()),name:name,sheetUrl:sheetUrl,
+            colInput:(document.getElementById('wsModeFormColInput').value.trim().toUpperCase()||'B'),
+            colTrangThai:(document.getElementById('wsModeFormColTT').value.trim().toUpperCase()||'J'),
+            colRedirect:(document.getElementById('wsModeFormColRed').value.trim().toUpperCase()||'D'),
+            colLichSu301:(document.getElementById('wsModeFormColLS').value.trim().toUpperCase()||'C')};
+        var modes=wsGetModes(), idx=modes.findIndex(function(m){return m.id===mode.id;});
+        if(idx>=0) modes[idx]=mode; else modes.push(mode);
+        wsSaveModes(modes); wsSetActiveModeId(mode.id); wsCancelModeForm(); wsRenderModes();
+    }
+
+    function wsCancelModeForm() { document.getElementById('wsModeForm').style.display='none'; }
+
+    function wsDeleteMode(id) {
+        var modes=wsGetModes(), mode=modes.find(function(m){return m.id===id;}); if(!mode) return;
+        if(!confirm('Xóa mode "'+mode.name+'"?')) return;
+        var nm=modes.filter(function(m){return m.id!==id;});
+        wsSaveModes(nm);
+        if(wsGetActiveModeId()===id) wsSetActiveModeId(nm.length>0?nm[0].id:'');
+        wsRenderModes();
+    }
+
+    async function wsLoadFromSheet() {
+        var mode=wsGetActiveMode();
+        if(!mode) return alert('Vui lòng chọn hoặc tạo một Mode trước!\n(Bấm + để thêm mode mới)');
+        if(!mode.sheetUrl) return alert('Mode này chưa có Link Google Sheet!');
+        if(!window.gscAccounts||!window.activeAccountEmails||window.activeAccountEmails.length===0)
+            return alert('Chưa đăng nhập Google!\nVui lòng sang Tab GSC → Thêm Tài Khoản Google trước.');
+        var acc=window.gscAccounts.find(function(a){return a.email===window.activeAccountEmails[0];});
+        if(!acc||!acc.token||Date.now()>acc.expiresAt)
+            return alert('Tài khoản Google đã hết phiên.\nVui lòng sang Tab GSC → bấm 🔄 Refresh.');
+        var mt=mode.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if(!mt) return alert('Link Google Sheet không hợp lệ!');
+        var sheetId=mt[1], col=mode.colInput||'B', range=col+'2:'+col+'2000';
+        var ta=document.getElementById('wsUrlInput');
+        ta.value='⏳ Đang nạp từ Sheet...';
+        try {
+            var res=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(range),{headers:{'Authorization':'Bearer '+acc.token}});
+            if(!res.ok){var ed=await res.json();throw new Error((ed.error&&ed.error.message)||'HTTP '+res.status);}
+            var data=await res.json();
+            if(!data.values||data.values.length===0){ta.value='';return alert('Sheet rỗng hoặc cột '+col+' không có dữ liệu từ dòng 2!');}
+            var urls=data.values.map(function(r){return(r[0]||'').trim();}).filter(Boolean);
+            ta.value=urls.join('\n');
+            alert('✅ Đã nạp '+urls.length+' URL từ cột '+col+' (Mode: '+mode.name+')');
+        } catch(e){ta.value='';alert('❌ Lỗi đọc Sheet:\n'+e.message);}
+    }
+
+    async function wsWriteResultsToSheet() {
+        var mode=wsGetActiveMode();
+        if(!mode) return alert('Chưa chọn Mode!');
+        if(!wsResultData||!wsResultData.length) return alert('Chưa có kết quả để ghi!');
+        if(!mode.sheetUrl) return alert('Mode chưa có Link Google Sheet!');
+        if(!window.gscAccounts||!window.activeAccountEmails||window.activeAccountEmails.length===0)
+            return alert('Chưa đăng nhập Google!\nVui lòng sang Tab GSC → Thêm Tài Khoản Google trước.');
+        var acc=window.gscAccounts.find(function(a){return a.email===window.activeAccountEmails[0];});
+        if(!acc||!acc.token||Date.now()>acc.expiresAt)
+            return alert('Tài khoản Google đã hết phiên.\nVui lòng sang Tab GSC → bấm 🔄 Refresh.');
+        var mt=mode.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if(!mt) return alert('Link Google Sheet không hợp lệ!');
+        var sheetId=mt[1], n=wsResultData.length;
+        var colTT=mode.colTrangThai||'J', colRed=mode.colRedirect||'D', colLS=mode.colLichSu301||'C';
+        if(!confirm('Sẽ ghi '+n+' dòng kết quả vào Sheet?\n• Trạng Thái → Cột '+colTT+'\n• URL Redirect → Cột '+colRed+'\n• Lịch Sử 301 → Cột '+colLS+'\n\nDữ liệu cũ sẽ bị ghi đè!')) return;
+        var btnW=document.getElementById('btnWSWriteSheet'), orig=btnW.textContent;
+        btnW.textContent='⏳ Đang ghi...'; btnW.disabled=true;
+        async function writeCol(col,vals){
+            var rng=col+'2:'+col+(1+vals.length);
+            var r=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(rng)+'?valueInputOption=USER_ENTERED',
+                {method:'PUT',headers:{'Authorization':'Bearer '+acc.token,'Content-Type':'application/json'},body:JSON.stringify({values:vals.map(function(v){return[v];})})});
+            if(!r.ok){var e=await r.json();throw new Error((e.error&&e.error.message)||'HTTP '+r.status);}
+        }
+        try {
+            await writeCol(colTT, wsResultData.map(function(r){return r.conclusion;}));
+            await writeCol(colRed,wsResultData.map(function(r){return r.redirect;}));
+            await writeCol(colLS, wsResultData.map(function(r){return r.redirect;}));
+            alert('✅ Đã ghi '+n+' dòng thành công vào Sheet (Mode: '+mode.name+')!');
+        } catch(e){alert('❌ Lỗi ghi Sheet:\n'+e.message);}
+        finally{btnW.textContent=orig;btnW.disabled=false;}
+    }
+
+    function wsShowWriteBtn() {
+        var mode=wsGetActiveMode(), btn=document.getElementById('btnWSWriteSheet');
+        if(btn) btn.style.display=(mode&&mode.sheetUrl&&wsResultData&&wsResultData.length>0)?'':'none';
+    }
+
+    window.addEventListener('load', function(){ setTimeout(wsRenderModes,150); });
+    document.addEventListener('click', function(e){
+        var t=e.target&&e.target.closest&&e.target.closest('[onclick]');
+        if(t&&(t.getAttribute('onclick')||'').indexOf('tab10')>=0) setTimeout(wsRenderModes,60);
+    });
 </script>
 </body>
 </html>
