@@ -464,6 +464,8 @@
         <button class="tab-btn" onclick="switchTab('tab5')">📝 SEO Content</button>
         <button class="tab-btn" onclick="switchTab('tab6')">🏠 Homepage Status</button>
         <button class="tab-btn" onclick="switchTab('tab7')">📈 GSC Insights</button>
+        <button class="tab-btn" onclick="switchTab('tab9')" id="tab9-btn">🔎 Check Rank</button>
+        <button class="tab-btn" onclick="switchTab('tab10')" id="tab10-btn">🌐 Trạng Thái Web</button>
     </div>
 
     
@@ -895,6 +897,220 @@
             <div id="insightsLoading" style="display:none; margin-top: 20px; font-size:13px; color:var(--warning);">⏳ Đang bốc dữ liệu từ Google... Vui lòng chờ...</div>
         </div>
     </div>
+
+    <!-- TAB 9: Check Rank Từ Khóa -->
+    <div id="tab9" class="tab-content">
+        <div class="card">
+            <h3 style="margin-top:0; display:flex; align-items:center; gap:10px;">
+                🔎 Check Rank Từ Khóa (PC + Mobile)
+                <span style="font-size:11px; background:rgba(168,85,247,0.15); color:#c084fc; padding:3px 8px; border-radius:4px; font-weight:600;">via Serper API</span>
+            </h3>
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom:15px;">Kiểm tra thứ hạng từ khóa trên Google (cả PC lẫn Mobile) cho hàng loạt website. Cần Serper API Key.</p>
+
+            <!-- API Key -->
+            <div style="background:rgba(168,85,247,0.05); border:1px solid rgba(168,85,247,0.2); border-radius:8px; padding:12px; margin-bottom:15px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <div style="flex:1; min-width:280px;">
+                    <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:4px;">🔑 Serper API Key <a href="https://serper.dev" target="_blank" style="color:#c084fc; font-size:10px;">(Lấy free tại serper.dev)</a></label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="password" id="rankSerperKey" placeholder="Dán Serper API Key vào đây..." oninput="localStorage.setItem('sys_serper_key', this.value)" style="flex:1; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text);">
+                        <button onclick="rankTestSerperKey()" style="background:rgba(168,85,247,0.2); border:1px solid rgba(168,85,247,0.4); color:#c084fc; padding:8px 14px; border-radius:6px; cursor:pointer; font-size:12px; white-space:nowrap;">🧪 Test Key</button>
+                        <button onclick="rankSaveKey()" style="background:#7c3aed; border:none; color:white; padding:8px 14px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;">💾 Lưu</button>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <label style="font-size:11px; color:var(--text-muted);">Vùng tìm kiếm:</label>
+                    <select id="rankCountry" style="padding:7px 10px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px; font-size:12px;">
+                        <option value="vn" selected>🇻🇳 Việt Nam</option>
+                        <option value="us">🇺🇸 USA</option>
+                        <option value="gb">🇬🇧 UK</option>
+                        <option value="au">🇦🇺 Australia</option>
+                        <option value="sg">🇸🇬 Singapore</option>
+                    </select>
+                    <select id="rankLang" style="padding:7px 10px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px; font-size:12px;">
+                        <option value="vi" selected>Tiếng Việt</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:15px;">
+                <div>
+                    <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:5px;">📝 Từ Khóa (mỗi dòng 1 từ khóa)</label>
+                    <textarea id="rankKeywords" placeholder="giày thể thao nam&#10;laptop gaming giá rẻ&#10;mua nhà hà nội" style="height:150px; font-family:monospace; font-size:13px;"></textarea>
+                </div>
+                <div>
+                    <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:5px;">🌐 Domain cần check rank (tương ứng từng dòng, hoặc 1 domain cho tất cả)</label>
+                    <textarea id="rankDomains" placeholder="shopee.vn&#10;tiki.vn&#10;lazada.vn&#10;&#10;Hoặc chỉ nhập 1 domain để check tất cả từ khóa cho domain đó." style="height:150px; font-family:monospace; font-size:13px;"></textarea>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:15px;">
+                <button id="btnStartRank" class="btn btn-success" onclick="startCheckRank()">🚀 Bắt Đầu Check Rank</button>
+                <button class="btn btn-secondary" onclick="exportRankCSV()">📥 Xuất CSV</button>
+                <button class="btn" style="background:#475569;" onclick="document.getElementById('rankResultBody').innerHTML=''; document.getElementById('rankSummary').style.display='none'; document.getElementById('rankProgress').style.display='none';">🗑 Xóa kết quả</button>
+                <label style="display:flex; align-items:center; gap:6px; font-size:12px; cursor:pointer;">
+                    <input type="checkbox" id="rankTopOnly" style="accent-color:#7c3aed;"> Chỉ hiển thị Top 100
+                </label>
+                <div id="rankProgress" style="display:none; font-size:12px; color:var(--warning); margin-left:auto;">⏳ <span id="rankProgressText">Đang kiểm tra...</span></div>
+            </div>
+
+            <div id="rankSummary" style="display:none; margin-bottom:15px; display:none;">
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:10px 16px; text-align:center; min-width:100px;">
+                        <div style="font-size:10px; color:var(--success); margin-bottom:3px;">TOP 10</div>
+                        <div id="rankSumTop10" style="font-size:20px; font-weight:700; color:var(--success);">0</div>
+                    </div>
+                    <div style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:8px; padding:10px 16px; text-align:center; min-width:100px;">
+                        <div style="font-size:10px; color:var(--warning); margin-bottom:3px;">TOP 11-30</div>
+                        <div id="rankSumTop30" style="font-size:20px; font-weight:700; color:var(--warning);">0</div>
+                    </div>
+                    <div style="background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.3); border-radius:8px; padding:10px 16px; text-align:center; min-width:100px;">
+                        <div style="font-size:10px; color:#818cf8; margin-bottom:3px;">TOP 31-100</div>
+                        <div id="rankSumTop100" style="font-size:20px; font-weight:700; color:#818cf8;">0</div>
+                    </div>
+                    <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:10px 16px; text-align:center; min-width:100px;">
+                        <div style="font-size:10px; color:var(--danger); margin-bottom:3px;">NGOÀI TOP</div>
+                        <div id="rankSumNA" style="font-size:20px; font-weight:700; color:var(--danger);">0</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:10px 16px; text-align:center; min-width:100px;">
+                        <div style="font-size:10px; color:var(--text-muted); margin-bottom:3px;">TỔNG</div>
+                        <div id="rankSumTotal" style="font-size:20px; font-weight:700;">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px;" id="rankTable">
+                    <thead>
+                        <tr>
+                            <th style="padding:10px; text-align:left; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="5%">#</th>
+                            <th style="padding:10px; text-align:left; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="30%">Từ Khóa</th>
+                            <th style="padding:10px; text-align:left; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="22%">Domain</th>
+                            <th style="padding:10px; text-align:center; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="12%">🖥 PC</th>
+                            <th style="padding:10px; text-align:center; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="12%">📱 Mobile</th>
+                            <th style="padding:10px; text-align:center; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="12%">🏆 Tốt Nhất</th>
+                            <th style="padding:10px; text-align:center; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="7%">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rankResultBody">
+                        <tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">Nhập từ khóa và domain, sau đó bấm <b>Bắt Đầu Check Rank</b></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 10: Kiểm Tra Trạng Thái Web -->
+    <div id="tab10" class="tab-content">
+        <div class="card">
+            <h3 style="margin-top:0; display:flex; align-items:center; gap:10px;">
+                🌐 Kiểm Tra Trạng Thái Web
+                <span style="font-size:11px; background:rgba(16,185,129,0.15); color:#34d399; padding:3px 8px; border-radius:4px; font-weight:600;">VPS + Proxy</span>
+            </h3>
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom:15px;">
+                Kiểm tra website: <b>200 OK</b>, <b>Cloudflare</b>, <b>Timeout</b>, <b>Redirect</b>. Sử dụng 2 lớp: Proxy VN → Check trực tiếp quốc tế.
+            </p>
+
+            <!-- VPS Config -->
+            <div style="background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); border-radius:8px; padding:12px; margin-bottom:15px;">
+                <div style="font-size:11px; font-weight:700; color:#34d399; margin-bottom:10px; letter-spacing:0.5px;">🖥️ CẤU HÌNH VPS & PROXY</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+                    <div>
+                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">VPS URL (có ngrok hoặc IP:port)</label>
+                        <input type="text" id="wsVpsUrl" placeholder="https://xxxx.ngrok.io" oninput="wsAutoSave()" style="width:100%; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">VPS Token (bảo mật)</label>
+                        <input type="password" id="wsVpsToken" placeholder="Token xác thực VPS" oninput="wsAutoSave()" style="width:100%; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">Proxy Host:Port (VN)</label>
+                        <div style="display:flex; gap:6px;">
+                            <input type="text" id="wsProxyHost" placeholder="proxy.host.vn" oninput="wsAutoSave()" style="flex:2; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text);">
+                            <input type="text" id="wsProxyPort" placeholder="8080" oninput="wsAutoSave()" style="flex:1; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text);">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">Proxy User</label>
+                        <input type="text" id="wsProxyUser" placeholder="username" oninput="wsAutoSave()" style="width:100%; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box;">
+                    </div>
+                    <div>
+                        <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">Proxy Pass</label>
+                        <input type="password" id="wsProxyPass" placeholder="password" oninput="wsAutoSave()" style="width:100%; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box;">
+                    </div>
+                    <div style="display:flex; align-items:flex-end;">
+                        <button onclick="wsTestConnection()" style="width:100%; padding:8px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); color:#34d399; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;">🔌 Test Kết Nối VPS</button>
+                    </div>
+                </div>
+                <div id="wsVpsStatus" style="margin-top:8px; font-size:11px;"></div>
+            </div>
+
+            <!-- Input -->
+            <div style="margin-bottom:15px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                    <label style="font-size:12px; color:var(--text-muted);">Danh sách URL cần kiểm tra (mỗi dòng 1 URL):</label>
+                    <div style="display:flex; gap:6px;">
+                        <button onclick="wsPasteExample()" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:4px; color:var(--text-muted); cursor:pointer;">📋 Ví dụ</button>
+                        <button onclick="document.getElementById('wsUrlInput').value=''; wsResetTable();" style="padding:4px 10px; font-size:11px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:4px; color:var(--danger); cursor:pointer;">🗑 Xóa</button>
+                    </div>
+                </div>
+                <textarea id="wsUrlInput" placeholder="https://example.com&#10;example2.vn&#10;https://domain3.net/" style="height:140px; font-family:monospace; font-size:13px;"></textarea>
+            </div>
+
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:15px;">
+                <button id="btnStartWS" class="btn btn-success" onclick="startWebStatus()">🚀 Bắt Đầu Kiểm Tra</button>
+                <button onclick="exportWSCSV()" class="btn btn-secondary">📥 Xuất CSV</button>
+                <button onclick="stopWebStatus()" class="btn" style="background:#ef4444;" id="btnStopWS" disabled>⏹ Dừng</button>
+                <div id="wsProgress" style="display:none; font-size:12px; color:var(--warning); margin-left:auto;">⏳ <span id="wsProgressText">Đang kiểm tra...</span></div>
+            </div>
+
+            <!-- Summary Stats -->
+            <div id="wsSummary" style="display:none; margin-bottom:15px;">
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:10px 16px; text-align:center; min-width:90px;">
+                        <div style="font-size:10px; color:var(--success); margin-bottom:3px;">✅ OK</div>
+                        <div id="wsStatOK" style="font-size:20px; font-weight:700; color:var(--success);">0</div>
+                    </div>
+                    <div style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.3); border-radius:8px; padding:10px 16px; text-align:center; min-width:90px;">
+                        <div style="font-size:10px; color:var(--warning); margin-bottom:3px;">⚡ Cloudflare</div>
+                        <div id="wsStatCF" style="font-size:20px; font-weight:700; color:var(--warning);">0</div>
+                    </div>
+                    <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:10px 16px; text-align:center; min-width:90px;">
+                        <div style="font-size:10px; color:var(--danger); margin-bottom:3px;">❌ Lỗi/Dead</div>
+                        <div id="wsStatErr" style="font-size:20px; font-weight:700; color:var(--danger);">0</div>
+                    </div>
+                    <div style="background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.3); border-radius:8px; padding:10px 16px; text-align:center; min-width:90px;">
+                        <div style="font-size:10px; color:#818cf8; margin-bottom:3px;">⏱ Timeout</div>
+                        <div id="wsStatTO" style="font-size:20px; font-weight:700; color:#818cf8;">0</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:10px 16px; text-align:center; min-width:90px;">
+                        <div style="font-size:10px; color:var(--text-muted); margin-bottom:3px;">TỔNG</div>
+                        <div id="wsStatTotal" style="font-size:20px; font-weight:700;">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead>
+                        <tr>
+                            <th style="padding:10px; text-align:left; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="3%">#</th>
+                            <th style="padding:10px; text-align:left; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="30%">URL</th>
+                            <th style="padding:10px; text-align:center; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="14%">🇻🇳 Qua Proxy VN</th>
+                            <th style="padding:10px; text-align:center; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="14%">🌍 Trực Tiếp QT</th>
+                            <th style="padding:10px; text-align:center; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="14%">📊 Kết Luận</th>
+                            <th style="padding:10px; text-align:left; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="25%">🔀 URL Redirect</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wsResultBody">
+                        <tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">Nhập danh sách URL và bấm <b>Bắt Đầu Kiểm Tra</b></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- HELP MODAL -->
@@ -6922,6 +7138,419 @@ window.wfClearProgress = function(nodeId) {
             console.log('✅ Injected Demo n8n Workflow!');
         }
     }, 2000);
+</script>
+
+<!-- ===== TAB 9: CHECK RANK JS ===== -->
+<script>
+    // Load saved Serper key on page load
+    window.addEventListener('load', function() {
+        const savedKey = localStorage.getItem('sys_serper_key') || '';
+        if (document.getElementById('rankSerperKey')) {
+            document.getElementById('rankSerperKey').value = savedKey;
+        }
+        // Load WS settings
+        wsLoadSettings();
+    });
+
+    function rankSaveKey() {
+        const key = document.getElementById('rankSerperKey').value.trim();
+        if (!key) return alert('Vui lòng nhập API Key trước!');
+        localStorage.setItem('sys_serper_key', key);
+        alert('✅ Đã lưu Serper API Key!');
+    }
+
+    async function rankTestSerperKey() {
+        const key = document.getElementById('rankSerperKey').value.trim() || localStorage.getItem('sys_serper_key') || '';
+        if (!key) return alert('Chưa có Serper API Key! Hãy nhập key trước.');
+        try {
+            const res = await fetch('https://google.serper.dev/search', {
+                method: 'POST',
+                headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ q: 'test', gl: 'vn', hl: 'vi', num: 1 })
+            });
+            if (res.ok) {
+                alert('✅ Serper API Key hợp lệ! Sẵn sàng check rank.');
+            } else {
+                const err = await res.json();
+                alert('❌ Key lỗi: ' + (err.message || res.status));
+            }
+        } catch(e) {
+            alert('❌ Lỗi kết nối: ' + e.message);
+        }
+    }
+
+    let rankRunning = false;
+    let rankData = [];
+
+    async function checkRankSingle(keyword, domain, device) {
+        const key = localStorage.getItem('sys_serper_key') || '';
+        const gl = document.getElementById('rankCountry')?.value || 'vn';
+        const hl = document.getElementById('rankLang')?.value || 'vi';
+        const body = { q: keyword, gl: gl, hl: hl, num: 100 };
+        if (device === 'mobile') body.device = 'mobile';
+        const res = await fetch('https://google.serper.dev/search', {
+            method: 'POST',
+            headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!data.organic) return 0;
+        const d = domain.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+        const found = data.organic.find(r => r.link && r.link.toLowerCase().indexOf(d) >= 0);
+        return found ? found.position : 0;
+    }
+
+    function rankBadge(rank) {
+        if (rank === 'N/A' || !rank || rank === 0) {
+            return `<span style="background:rgba(239,68,68,0.15); color:#f87171; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:700;">N/A</span>`;
+        }
+        const r = parseInt(rank);
+        let bg, color;
+        if (r <= 3)  { bg = 'rgba(16,185,129,0.2)'; color = '#34d399'; }
+        else if (r <= 10)  { bg = 'rgba(16,185,129,0.1)'; color = '#10b981'; }
+        else if (r <= 30)  { bg = 'rgba(245,158,11,0.15)'; color = '#fbbf24'; }
+        else if (r <= 100) { bg = 'rgba(99,102,241,0.15)'; color = '#818cf8'; }
+        else               { bg = 'rgba(239,68,68,0.15)'; color = '#f87171'; }
+        return `<span style="background:${bg}; color:${color}; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:700;">#${r}</span>`;
+    }
+
+    async function startCheckRank() {
+        const serperKey = localStorage.getItem('sys_serper_key') || document.getElementById('rankSerperKey').value.trim();
+        if (!serperKey) return alert('Chưa có Serper API Key! Hãy nhập và lưu key trước.');
+
+        const keywords = document.getElementById('rankKeywords').value.trim().split('\n').map(k => k.trim()).filter(Boolean);
+        const domainsRaw = document.getElementById('rankDomains').value.trim().split('\n').map(d => d.trim()).filter(Boolean);
+
+        if (!keywords.length) return alert('Vui lòng nhập ít nhất 1 từ khóa!');
+        if (!domainsRaw.length) return alert('Vui lòng nhập ít nhất 1 domain!');
+
+        // If only 1 domain → apply to all keywords
+        const domains = domainsRaw.length === 1
+            ? keywords.map(() => domainsRaw[0])
+            : domainsRaw;
+
+        rankRunning = true;
+        rankData = [];
+        document.getElementById('btnStartRank').disabled = true;
+        document.getElementById('btnStartRank').textContent = '⏳ Đang chạy...';
+        document.getElementById('rankProgress').style.display = 'flex';
+        document.getElementById('rankResultBody').innerHTML = '';
+        document.getElementById('rankSummary').style.display = 'none';
+
+        for (let i = 0; i < keywords.length; i++) {
+            if (!rankRunning) break;
+            const kw = keywords[i];
+            const site = domains[i] || domains[0] || '';
+            document.getElementById('rankProgressText').textContent = `(${i+1}/${keywords.length}) Đang check: ${kw} → ${site}`;
+
+            let rank_pc = 'N/A', rank_mb = 'N/A', total_rank = 'N/A';
+            try {
+                const [pc, mb] = await Promise.all([
+                    checkRankSingle(kw, site, 'desktop'),
+                    checkRankSingle(kw, site, 'mobile')
+                ]);
+                rank_pc  = pc > 0 ? pc : 'N/A';
+                rank_mb  = mb > 0 ? mb : 'N/A';
+                const vals = [pc, mb].filter(v => v > 0);
+                total_rank = vals.length ? Math.min(...vals) : 'N/A';
+            } catch(e) {
+                rank_pc = rank_mb = total_rank = 'Lỗi';
+            }
+
+            const row = { kw, site, rank_pc, rank_mb, total_rank };
+            rankData.push(row);
+
+            // Render row live
+            const topOnly = document.getElementById('rankTopOnly').checked;
+            if (!topOnly || (typeof total_rank === 'number' && total_rank <= 100)) {
+                const tbody = document.getElementById('rankResultBody');
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                tr.innerHTML = `
+                    <td style="padding:10px; color:var(--text-muted);">${i+1}</td>
+                    <td style="padding:10px; font-weight:500;">${kw}</td>
+                    <td style="padding:10px; color:#94a3b8; font-size:12px;">${site}</td>
+                    <td style="padding:10px; text-align:center;">${rankBadge(rank_pc)}</td>
+                    <td style="padding:10px; text-align:center;">${rankBadge(rank_mb)}</td>
+                    <td style="padding:10px; text-align:center;">${rankBadge(total_rank)}</td>
+                    <td style="padding:10px; text-align:center;">
+                        <button onclick="window.open('https://www.google.com/search?q=${encodeURIComponent(kw)}&gl=vn','_blank')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;border-radius:4px;cursor:pointer;font-size:10px;">🔍</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            }
+
+            // Small delay to avoid rate limit
+            if (i < keywords.length - 1) await new Promise(r => setTimeout(r, 500));
+        }
+
+        // Update summary
+        const top10  = rankData.filter(r => typeof r.total_rank === 'number' && r.total_rank >= 1 && r.total_rank <= 10).length;
+        const top30  = rankData.filter(r => typeof r.total_rank === 'number' && r.total_rank > 10 && r.total_rank <= 30).length;
+        const top100 = rankData.filter(r => typeof r.total_rank === 'number' && r.total_rank > 30 && r.total_rank <= 100).length;
+        const na     = rankData.filter(r => r.total_rank === 'N/A').length;
+
+        document.getElementById('rankSumTop10').textContent = top10;
+        document.getElementById('rankSumTop30').textContent = top30;
+        document.getElementById('rankSumTop100').textContent = top100;
+        document.getElementById('rankSumNA').textContent = na;
+        document.getElementById('rankSumTotal').textContent = rankData.length;
+        document.getElementById('rankSummary').style.display = 'block';
+
+        document.getElementById('rankProgress').style.display = 'none';
+        document.getElementById('btnStartRank').disabled = false;
+        document.getElementById('btnStartRank').textContent = '🚀 Bắt Đầu Check Rank';
+        rankRunning = false;
+    }
+
+    function exportRankCSV() {
+        if (!rankData.length) return alert('Chưa có dữ liệu để xuất!');
+        let csv = 'Từ Khóa,Domain,Rank PC,Rank Mobile,Rank Tốt Nhất\n';
+        rankData.forEach(r => {
+            csv += `"${r.kw}","${r.site}","${r.rank_pc}","${r.rank_mb}","${r.total_rank}"\n`;
+        });
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rank_check_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+    }
+</script>
+
+<!-- ===== TAB 10: WEB STATUS JS ===== -->
+<script>
+    let wsAbortController = null;
+    let wsResultData = [];
+    let wsStats = { ok: 0, cf: 0, err: 0, to: 0 };
+
+    function wsAutoSave() {
+        const settings = {
+            vpsUrl: document.getElementById('wsVpsUrl')?.value || '',
+            vpsToken: document.getElementById('wsVpsToken')?.value || '',
+            proxyHost: document.getElementById('wsProxyHost')?.value || '',
+            proxyPort: document.getElementById('wsProxyPort')?.value || '',
+            proxyUser: document.getElementById('wsProxyUser')?.value || '',
+            proxyPass: document.getElementById('wsProxyPass')?.value || ''
+        };
+        localStorage.setItem('wf_ws_tool_settings', JSON.stringify(settings));
+    }
+
+    function wsLoadSettings() {
+        try {
+            // Load from wf_system_settings (used by the workflow)
+            const sys = JSON.parse(localStorage.getItem('wf_system_settings') || '{}');
+            const tool = JSON.parse(localStorage.getItem('wf_ws_tool_settings') || '{}');
+
+            const vpsUrl = tool.vpsUrl || sys.vpsUrl || '';
+            const vpsToken = tool.vpsToken || sys.vpsToken || '';
+            const proxyHost = tool.proxyHost || localStorage.getItem('sys_proxy_host') || '';
+            const proxyPort = tool.proxyPort || localStorage.getItem('sys_proxy_port') || '';
+            const proxyUser = tool.proxyUser || localStorage.getItem('sys_proxy_user') || '';
+            const proxyPass = tool.proxyPass || localStorage.getItem('sys_proxy_pass') || '';
+
+            if (document.getElementById('wsVpsUrl')) document.getElementById('wsVpsUrl').value = vpsUrl;
+            if (document.getElementById('wsVpsToken')) document.getElementById('wsVpsToken').value = vpsToken;
+            if (document.getElementById('wsProxyHost')) document.getElementById('wsProxyHost').value = proxyHost;
+            if (document.getElementById('wsProxyPort')) document.getElementById('wsProxyPort').value = proxyPort;
+            if (document.getElementById('wsProxyUser')) document.getElementById('wsProxyUser').value = proxyUser;
+            if (document.getElementById('wsProxyPass')) document.getElementById('wsProxyPass').value = proxyPass;
+        } catch(e) {}
+    }
+
+    async function wsTestConnection() {
+        const vpsUrl = (document.getElementById('wsVpsUrl')?.value || '').replace(/\/$/, '');
+        const vpsToken = document.getElementById('wsVpsToken')?.value || '';
+        const statusEl = document.getElementById('wsVpsStatus');
+        if (!vpsUrl) { statusEl.innerHTML = '<span style="color:var(--danger)">❌ Chưa nhập VPS URL!</span>'; return; }
+        statusEl.innerHTML = '🟡 Đang kết nối...';
+        try {
+            const res = await fetch(vpsUrl + '/health', {
+                headers: { 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },
+                signal: AbortSignal.timeout(8000)
+            });
+            if (res.ok) {
+                const txt = await res.text();
+                statusEl.innerHTML = '<span style="color:var(--success)">✅ Kết nối VPS thành công! ' + txt.substring(0,80) + '</span>';
+            } else {
+                statusEl.innerHTML = `<span style="color:var(--danger)">❌ VPS trả lỗi HTTP ${res.status}</span>`;
+            }
+        } catch(e) {
+            statusEl.innerHTML = `<span style="color:var(--danger)">❌ Không kết nối được: ${e.message}</span>`;
+        }
+    }
+
+    function wsPasteExample() {
+        document.getElementById('wsUrlInput').value = 'https://google.com\nhttps://facebook.com\nhttps://shopee.vn\nhttps://tiki.vn\nhttps://example-dead-site-xyz.com';
+    }
+
+    function wsResetTable() {
+        document.getElementById('wsResultBody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">Nhập danh sách URL và bấm <b>Bắt Đầu Kiểm Tra</b></td></tr>';
+        document.getElementById('wsSummary').style.display = 'none';
+        wsStats = { ok: 0, cf: 0, err: 0, to: 0 };
+        wsResultData = [];
+    }
+
+    function wsStatusBadge(status) {
+        const s = String(status || '').toUpperCase();
+        if (s === 'OK' || s === '200') return `<span style="background:rgba(16,185,129,0.2);color:#34d399;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;">✅ OK</span>`;
+        if (s === 'CLOUDFLARE') return `<span style="background:rgba(245,158,11,0.2);color:#fbbf24;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;">⚡ CF</span>`;
+        if (s === 'TIMEOUT' || s === 'TIME OUT') return `<span style="background:rgba(99,102,241,0.2);color:#818cf8;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;">⏱ TOut</span>`;
+        if (s === '' || s === '-') return `<span style="color:#64748b;font-size:11px;">-</span>`;
+        return `<span style="background:rgba(239,68,68,0.2);color:#f87171;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;">${status}</span>`;
+    }
+
+    async function checkVN_tool(vpsUrl, vpsToken, url, proxyHost, proxyPort, proxyUser, proxyPass) {
+        try {
+            const body = {
+                url: url,
+                proxy: { host: proxyHost, port: parseInt(proxyPort), user: proxyUser, pass: proxyPass },
+                mode: 'proxy'
+            };
+            const res = await fetch(vpsUrl + '/check-web-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },
+                body: JSON.stringify(body),
+                signal: AbortSignal.timeout(12000)
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return data.proxy || data.result || null;
+        } catch(e) { return null; }
+    }
+
+    async function checkDirect_tool(vpsUrl, vpsToken, url) {
+        try {
+            const body = { url: url, mode: 'direct' };
+            const res = await fetch(vpsUrl + '/check-web-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },
+                body: JSON.stringify(body),
+                signal: AbortSignal.timeout(12000)
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return data.direct || data.result || null;
+        } catch(e) { return null; }
+    }
+
+    function stopWebStatus() {
+        wsAbortController?.abort();
+        document.getElementById('btnStopWS').disabled = true;
+        document.getElementById('wsProgressText').textContent = 'Đã dừng.';
+    }
+
+    async function startWebStatus() {
+        const vpsUrl = (document.getElementById('wsVpsUrl')?.value || '').trim().replace(/\/$/, '');
+        const vpsToken = document.getElementById('wsVpsToken')?.value || '';
+        const proxyHost = document.getElementById('wsProxyHost')?.value || '';
+        const proxyPort = document.getElementById('wsProxyPort')?.value || '';
+        const proxyUser = document.getElementById('wsProxyUser')?.value || '';
+        const proxyPass = document.getElementById('wsProxyPass')?.value || '';
+
+        if (!vpsUrl) return alert('Vui lòng nhập VPS URL trước! (Cần cài backend vps_puppeteer_api.js trên VPS)');
+
+        const rawUrls = document.getElementById('wsUrlInput').value.trim().split('\n').map(u => u.trim()).filter(Boolean);
+        if (!rawUrls.length) return alert('Vui lòng nhập ít nhất 1 URL!');
+
+        wsResultData = [];
+        wsStats = { ok: 0, cf: 0, err: 0, to: 0 };
+        document.getElementById('wsResultBody').innerHTML = '';
+        document.getElementById('wsSummary').style.display = 'none';
+        document.getElementById('wsProgress').style.display = 'flex';
+        document.getElementById('btnStartWS').disabled = true;
+        document.getElementById('btnStopWS').disabled = false;
+        wsAutoSave();
+
+        wsAbortController = new AbortController();
+
+        for (let i = 0; i < rawUrls.length; i++) {
+            if (wsAbortController.signal.aborted) break;
+            let url = rawUrls[i];
+            if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+            try { url = new URL(url).href; } catch(e) {}
+
+            document.getElementById('wsProgressText').textContent = `(${i+1}/${rawUrls.length}) ${url}`;
+
+            let pStatus = '-', dStatus = '-', conclusion = '-', redirect = '';
+
+            try {
+                // Layer 1: VN Proxy
+                const pResult = await checkVN_tool(vpsUrl, vpsToken, url, proxyHost, proxyPort, proxyUser, proxyPass);
+                pStatus = pResult ? String(pResult.status || 'TIMEOUT') : 'TIMEOUT';
+                const pOk = pStatus === '200';
+
+                if (pOk) {
+                    conclusion = 'OK';
+                    wsStats.ok++;
+                    const finalUrl = pResult?.finalUrl || '';
+                    redirect = finalUrl !== url ? finalUrl : '';
+                } else {
+                    // Layer 2: Direct (international)
+                    const dResult = await checkDirect_tool(vpsUrl, vpsToken, url);
+                    dStatus = dResult ? String(dResult.status || 'TIMEOUT') : 'TIMEOUT';
+                    const dFinalUrl = dResult?.finalUrl || '';
+                    redirect = dFinalUrl && dFinalUrl !== url ? dFinalUrl : '';
+
+                    if (dStatus === '200') {
+                        conclusion = 'Cloudflare';
+                        wsStats.cf++;
+                    } else if (dStatus === 'TIMEOUT' || pStatus === 'TIMEOUT') {
+                        conclusion = 'Timeout';
+                        wsStats.to++;
+                    } else {
+                        conclusion = dStatus;
+                        wsStats.err++;
+                    }
+                }
+            } catch(e) {
+                conclusion = 'Lỗi';
+                wsStats.err++;
+            }
+
+            const row = { url, pStatus, dStatus, conclusion, redirect };
+            wsResultData.push(row);
+
+            // Render row
+            const tbody = document.getElementById('wsResultBody');
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+            tr.innerHTML = `
+                <td style="padding:10px; color:var(--text-muted); font-size:12px;">${i+1}</td>
+                <td style="padding:10px; font-size:12px; word-break:break-all;"><a href="${url}" target="_blank" style="color:var(--primary); text-decoration:none;">${url}</a></td>
+                <td style="padding:10px; text-align:center;">${wsStatusBadge(pStatus)}</td>
+                <td style="padding:10px; text-align:center;">${wsStatusBadge(dStatus)}</td>
+                <td style="padding:10px; text-align:center;">${wsStatusBadge(conclusion)}</td>
+                <td style="padding:10px; font-size:11px; color:#64748b; word-break:break-all;">${redirect ? `<a href="${redirect}" target="_blank" style="color:#94a3b8;">${redirect}</a>` : '-'}</td>
+            `;
+            tbody.appendChild(tr);
+
+            // Update stats
+            document.getElementById('wsStatOK').textContent = wsStats.ok;
+            document.getElementById('wsStatCF').textContent = wsStats.cf;
+            document.getElementById('wsStatErr').textContent = wsStats.err;
+            document.getElementById('wsStatTO').textContent = wsStats.to;
+            document.getElementById('wsStatTotal').textContent = wsResultData.length;
+            document.getElementById('wsSummary').style.display = 'block';
+        }
+
+        document.getElementById('wsProgress').style.display = 'none';
+        document.getElementById('btnStartWS').disabled = false;
+        document.getElementById('btnStopWS').disabled = true;
+    }
+
+    function exportWSCSV() {
+        if (!wsResultData.length) return alert('Chưa có dữ liệu để xuất!');
+        let csv = 'URL,Proxy VN,Trực Tiếp QT,Kết Luận,URL Redirect\n';
+        wsResultData.forEach(r => {
+            csv += `"${r.url}","${r.pStatus}","${r.dStatus}","${r.conclusion}","${r.redirect}"\n`;
+        });
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `web_status_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+    }
 </script>
 </body>
 </html>
