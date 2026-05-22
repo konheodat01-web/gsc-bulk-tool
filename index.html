@@ -1052,6 +1052,10 @@
                             <input type="text" id="wsModeFormSheet" placeholder="https://docs.google.com/spreadsheets/d/..." style="width:100%; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box; font-family:monospace;">
                         </div>
                         <div>
+                            <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">[0b] Ten Tab Sheet <span style="color:#64748b;">(de trong = tab dau tien)</span></label>
+                            <input type="text" id="wsModeFormTabName" placeholder="Sheet1, Thang5..." style="width:100%; padding:8px; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box;">
+                        </div>
+                        <div>
                             <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:3px;">[1] Cột Domain Gốc <span style="color:#64748b;">(input)</span></label>
                             <input type="text" id="wsModeFormColInput" placeholder="B" maxlength="3" style="width:100%; padding:8px; font-size:13px; font-weight:700; text-transform:uppercase; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); box-sizing:border-box; text-align:center;">
                         </div>
@@ -7649,14 +7653,13 @@ window.wfClearProgress = function(nodeId) {
 
     function wsOpenAddMode(){
         document.getElementById('wsModeFormTitle').textContent='THEM MODE MOI';
-        ['wsModeFormId','wsModeFormName','wsModeFormSheet','wsModeFormColInput',
+        ['wsModeFormId','wsModeFormName','wsModeFormSheet','wsModeFormTabName','wsModeFormColInput',
          'wsModeFormColTT','wsModeFormColRed','wsModeFormColLS','wsModeFormColSeo'].forEach(function(id){
             var el=document.getElementById(id); if(el) el.value='';
         });
         document.getElementById('wsModeForm').style.display='block';
         document.getElementById('wsModeFormName').focus();
     }
-
     function wsOpenEditMode(id){
         var mode=wsGetModes().find(function(m){return m.id===id;}); if(!mode) return;
         document.getElementById('wsModeFormTitle').textContent='SUA MODE: '+mode.name.toUpperCase();
@@ -7669,6 +7672,8 @@ window.wfClearProgress = function(nodeId) {
         document.getElementById('wsModeFormColLS').value=mode.colLichSu301||'';
         var seoEl=document.getElementById('wsModeFormColSeo');
         if(seoEl) seoEl.value=mode.colSeoName||'';
+        var tabEl=document.getElementById('wsModeFormTabName');
+        if(tabEl) tabEl.value=mode.tabName||'';
         document.getElementById('wsModeForm').style.display='block';
         document.getElementById('wsModeFormName').focus();
     }
@@ -7688,6 +7693,7 @@ window.wfClearProgress = function(nodeId) {
             colRedirect:(document.getElementById('wsModeFormColRed').value.trim().toUpperCase()||'D'),
             colLichSu301:(document.getElementById('wsModeFormColLS').value.trim().toUpperCase()||'C'),
             colSeoName:(seoEl?seoEl.value.trim().toUpperCase():'')
+            tabName:(function(){var t=document.getElementById('wsModeFormTabName');return t?t.value.trim():'';})(),
         };
         var modes=wsGetModes(), idx=modes.findIndex(function(m){return m.id===mode.id;});
         if(idx>=0) modes[idx]=mode; else modes.push(mode);
@@ -7718,6 +7724,8 @@ window.wfClearProgress = function(nodeId) {
         var mt=mode.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
         if(!mt) return alert('Link Google Sheet khong hop le!');
         var sheetId=mt[1];
+        var tabName=mode.tabName||'';
+        function wsRangePrefix(col,from,to){var prefix=tabName?encodeURIComponent(tabName)+'!':'';return prefix+col+from+':'+col+to;}
         var colDomain=mode.colInput||'B';
         var colSeo=mode.colSeoName||'';
 
@@ -7726,7 +7734,7 @@ window.wfClearProgress = function(nodeId) {
         ta.value='Dang nap tu Sheet...';
         try {
             // Read domain column
-            var rng=colDomain+'2:'+colDomain+'2000';
+        var rng=tabName?(encodeURIComponent(tabName)+'!'+colDomain+'2:'+colDomain+'2000'):(colDomain+'2:'+colDomain+'2000');
             var res=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(rng),{headers:{'Authorization':'Bearer '+acc.token}});
             if(!res.ok){var ed=await res.json();throw new Error((ed.error&&ed.error.message)||'HTTP '+res.status);}
             var data=await res.json();
@@ -7737,7 +7745,7 @@ window.wfClearProgress = function(nodeId) {
             // Read SEO name column if configured
             window._wsSeoNames=[];
             if(colSeo){
-                var rngSeo=colSeo+'2:'+colSeo+'2000';
+                var rngSeo=tabName?(encodeURIComponent(tabName)+'!'+colSeo+'2:'+colSeo+'2000'):(colSeo+'2:'+colSeo+'2000');
                 var resSeo=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(rngSeo),{headers:{'Authorization':'Bearer '+acc.token}});
                 if(resSeo.ok){
                     var dataSeo=await resSeo.json();
@@ -7767,7 +7775,8 @@ window.wfClearProgress = function(nodeId) {
         var btnW=document.getElementById('btnWSWriteSheet'), orig=btnW.textContent;
         btnW.textContent='Dang ghi...'; btnW.disabled=true;
         async function writeCol(col,vals){
-            var rng=col+'2:'+col+(1+vals.length);
+            var tabPrefix=typeof mode!=='undefined'&&mode.tabName?encodeURIComponent(mode.tabName)+'!':'';
+            var rng=tabPrefix+col+'2:'+col+(1+vals.length);
             var r=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(rng)+'?valueInputOption=USER_ENTERED',
                 {method:'PUT',headers:{'Authorization':'Bearer '+acc.token,'Content-Type':'application/json'},
                  body:JSON.stringify({values:vals.map(function(v){return[v];})})});
