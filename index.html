@@ -7372,19 +7372,6 @@ window.wfClearProgress = function(nodeId) {
             proxyPass: localStorage.getItem('sys_proxy_pass') || ''
         };
     }
-
-    // Hiển thị thông tin cấu hình đang dùng lên info bar
-        const cfg = wsGetGlobalSettings();
-        const infoEl = document.getElementById('wsGlobalInfoText');
-        if (!infoEl) return;
-        if (!cfg.vpsUrl) {
-            infoEl.innerHTML = '<span style="color:#f87171;">⚠️ Chưa cấu hình VPS URL — Vào ⚙️ Cài Đặt để thêm</span>';
-        } else {
-            const proxyStr = cfg.proxyHost ? `${cfg.proxyHost}:${cfg.proxyPort}` : '(không có proxy)';
-            infoEl.innerHTML = `VPS: <b style="color:#e2e8f0;">${cfg.vpsUrl}</b> &nbsp;|&nbsp; Proxy: <b style="color:#e2e8f0;">${proxyStr}</b>`;
-        }
-    }
-
     // Mở panel cài đặt hệ thống
     function openSettingsPanel() {
         const btn = document.getElementById('settingsBtn') || document.querySelector('[data-target="settings"]');
@@ -7629,7 +7616,7 @@ window.wfClearProgress = function(nodeId) {
         if(btnDel)  btnDel.style.display=hasActive?'':'none';
         // Show/hide write button
         var btnW=document.getElementById('btnWSWriteSheet');
-        if(btnW) btnW.style.display=(hasActive&&wsResultData&&wsResultData.length>0)?'':'none';
+        if(btnW) btnW.style.display=(hasActive&&(typeof wsResultData!=='undefined'&&wsResultData&&wsResultData.length)>0)?'':'none';
     }
 
     function wsSelectMode(id){
@@ -7793,7 +7780,7 @@ window.wfClearProgress = function(nodeId) {
 
     function wsShowWriteBtn(){
         var mode=wsGetActiveMode(), btn=document.getElementById('btnWSWriteSheet');
-        if(btn) btn.style.display=(mode&&mode.sheetUrl&&wsResultData&&wsResultData.length>0)?'':'none';
+        if(btn) btn.style.display=(mode&&mode.sheetUrl&&(typeof wsResultData!=='undefined'&&wsResultData&&wsResultData.length)>0)?'':'none';
     }
 
     window.addEventListener('load',function(){setTimeout(wsRenderModes,150);});
