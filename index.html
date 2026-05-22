@@ -7578,16 +7578,7 @@ window.wfClearProgress = function(nodeId) {
             document.getElementById('wsSummary').style.display = 'block';
         }
 
-        // Auto-write to sheet if in mode
-        if (typeof wsGetActiveModeId === 'function' && wsGetActiveModeId() !== '' && !wsAbortController.signal.aborted) {
-            document.getElementById('wsProgress').style.display = 'flex';
-            document.getElementById('wsProgressText').textContent = 'Dang tu dong ghi ket qua vao Sheet...';
-            if (typeof wsWriteResultsToSheet === 'function') {
-                await wsWriteResultsToSheet(true);
-            }
-        } else {
-            document.getElementById('wsProgress').style.display = 'none';
-        }
+        document.getElementById('wsProgress').style.display = 'none';
         document.getElementById('btnStartWS').disabled = false;
         document.getElementById('btnStopWS').disabled = true;
         if (typeof wsShowWriteBtn === 'function') wsShowWriteBtn();
@@ -7767,27 +7758,21 @@ window.wfClearProgress = function(nodeId) {
     }
 
     // Ghi ket qua ve Sheet (dung getGoogleToken)
-    async function wsWriteResultsToSheet(auto = false){
+    async function wsWriteResultsToSheet(){
         var mode=wsGetActiveMode();
-        if(!mode) { if(!auto) alert('Chua chon Mode!'); return; }
-        if(typeof wsResultData==='undefined'||!wsResultData||!wsResultData.length) { if(!auto) alert('Chua co ket qua de ghi!'); return; }
-        if(!mode.sheetUrl) { if(!auto) alert('Mode chua co Link Google Sheet!'); return; }
+        if(!mode) return alert('Chua chon Mode!');
+        if(typeof wsResultData==='undefined'||!wsResultData||!wsResultData.length) return alert('Chua co ket qua de ghi!');
+        if(!mode.sheetUrl) return alert('Mode chua co Link Google Sheet!');
         var mt=mode.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-        if(!mt) { if(!auto) alert('Link Google Sheet khong hop le!'); return; }
+        if(!mt) return alert('Link Google Sheet khong hop le!');
         var token;
         try { token = await getGoogleToken(); } catch(e){ token = null; }
-        if(!token) { if(!auto) alert('Chua co Google Token!\nVui long vao Cai Dat He Thong -> dan Service Account JSON.'); return; }
+        if(!token) return alert('Chua co Google Token!\nVui long vao Cai Dat He Thong -> dan Service Account JSON.');
         var sheetId=mt[1], n=wsResultData.length;
         var colTT=mode.colTrangThai||'J', colRed=mode.colRedirect||'D', colLS=mode.colLichSu301||'C';
-        if(!auto) {
-            if(!confirm('Se ghi '+n+' dong ket qua vao Sheet?\n- Trang Thai -> Cot '+colTT+'\n- URL Redirect -> Cot '+colRed+'\n- Lich Su 301 -> Cot '+colLS+'\n\nDu lieu cu se bi ghi de!')) return;
-        }
-        var btnW=document.getElementById('btnWSWriteSheet'), orig=btnW?btnW.textContent:'';
-        if(btnW) { btnW.textContent='Dang ghi...'; btnW.disabled=true; }
-        if(auto) {
-            var pText = document.getElementById('wsProgressText');
-            if(pText) pText.textContent = 'Đang tự động ghi kết quả vào Sheet...';
-        }
+        if(!confirm('Se ghi '+n+' dong ket qua vao Sheet?\n- Trang Thai -> Cot '+colTT+'\n- URL Redirect -> Cot '+colRed+'\n- Lich Su 301 -> Cot '+colLS+'\n\nDu lieu cu se bi ghi de!')) return;
+        var btnW=document.getElementById('btnWSWriteSheet'), orig=btnW.textContent;
+        btnW.textContent='Dang ghi...'; btnW.disabled=true;
         async function writeCol(col,vals){
             var tabPfx=mode.tabName?encodeURIComponent(mode.tabName)+'!':'';
             var rng=tabPfx+col+'2:'+col+(1+vals.length);
@@ -7800,21 +7785,9 @@ window.wfClearProgress = function(nodeId) {
             await writeCol(colTT, wsResultData.map(function(r){return r.conclusion;}));
             await writeCol(colRed,wsResultData.map(function(r){return r.redirect;}));
             await writeCol(colLS, wsResultData.map(function(r){return r.redirect;}));
-            if(!auto) alert('Da ghi '+n+' dong thanh cong vao Sheet (Mode: '+mode.name+')!');
-            else {
-                var pText = document.getElementById('wsProgressText');
-                if(pText) pText.textContent = `Hoàn thành! Đã tự động ghi ${n} kết quả vào Sheet.`;
-                setTimeout(() => { var p = document.getElementById('wsProgress'); if(p) p.style.display = 'none'; }, 3000);
-            }
-        }catch(e){
-            if(!auto) alert('Loi ghi Sheet:\n'+e.message);
-            else {
-                var pText = document.getElementById('wsProgressText');
-                if(pText) pText.textContent = 'Lỗi tự động ghi Sheet: ' + e.message;
-                setTimeout(() => { var p = document.getElementById('wsProgress'); if(p) p.style.display = 'none'; }, 5000);
-            }
-        }
-        finally{if(btnW) { btnW.textContent=orig;btnW.disabled=false; }}
+            alert('Da ghi '+n+' dong thanh cong vao Sheet (Mode: '+mode.name+')!');
+        }catch(e){alert('Loi ghi Sheet:\n'+e.message);}
+        finally{btnW.textContent=orig;btnW.disabled=false;}
     }
     function wsShowWriteBtn(){
         var mode=wsGetActiveMode(), btn=document.getElementById('btnWSWriteSheet');
