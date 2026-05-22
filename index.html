@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -1026,8 +1026,17 @@
                     </div>
                 </div>
 
-                <!-- Mode cards list -->
-                <div id="wsModeList" style="display:flex; gap:8px; flex-wrap:wrap; min-height:38px;"></div>
+                <!-- Mode dropdown selector -->
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <select id="wsModeSelect" onchange="wsSelectMode(this.value)"
+                        style="flex:1; padding:7px 10px; font-size:13px; font-weight:600; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); cursor:pointer; max-width:360px;">
+                        <option value="">— Chưa chọn mode —</option>
+                    </select>
+                    <button onclick="wsOpenEditSelectedMode()" id="btnEditSelMode" title="Sửa mode đang chọn"
+                        style="padding:6px 10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-muted); border-radius:6px; cursor:pointer; font-size:12px; display:none;">✏️</button>
+                    <button onclick="wsDeleteSelectedMode()" id="btnDelSelMode" title="Xóa mode đang chọn"
+                        style="padding:6px 10px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.3); color:var(--danger); border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; display:none;">✕</button>
+                </div>
 
                 <!-- Inline add/edit form -->
                 <div id="wsModeForm" style="display:none; margin-top:12px; background:rgba(99,102,241,0.06); border:1px solid rgba(99,102,241,0.25); border-radius:8px; padding:14px;">
@@ -1059,6 +1068,10 @@
                             <input type="text" id="wsModeFormColLS" placeholder="C" maxlength="3" style="width:100%; padding:8px; font-size:13px; font-weight:700; text-transform:uppercase; background:var(--bg); border:1px solid rgba(16,185,129,0.3); border-radius:6px; color:var(--text); box-sizing:border-box; text-align:center;">
                         </div>
                     </div>
+                        <div style="grid-column:1/-1;">
+                            <label style="font-size:11px; display:block; margin-bottom:3px;"><span style="color:#60a5fa;">[ tên SEO ]</span> <span style="color:var(--text-muted);">Cột Tên SEO <span style="color:#64748b;">(để trống → mặc định: admin)</span></span></label>
+                            <input type="text" id="wsModeFormColSeo" placeholder="A  (hoac de trong)" maxlength="3" style="width:100%; padding:8px; font-size:13px; font-weight:700; text-transform:uppercase; background:var(--bg); border:1px solid rgba(96,165,250,0.3); border-radius:6px; color:var(--text); box-sizing:border-box; text-align:center;">
+                        </div>
                     <div style="display:flex; gap:8px;">
                         <button onclick="wsSaveModeForm()" style="padding:7px 18px; background:#4f46e5; border:none; color:white; border-radius:6px; cursor:pointer; font-size:12px; font-weight:700;">💾 Lưu Mode</button>
                         <button onclick="wsCancelModeForm()" style="padding:7px 14px; background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-muted); border-radius:6px; cursor:pointer; font-size:12px;">Hủy</button>
@@ -1122,13 +1135,13 @@
                             <th style="padding:10px; text-align:center; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="14%">🇻🇳 Qua Proxy VN</th>
                             <th style="padding:10px; text-align:center; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="14%">🌍 Trực Tiếp QT</th>
                             <th style="padding:10px; text-align:center; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="14%">📊 Kết Luận</th>
-                            <th style="padding:10px; text-align:left; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="25%">🔀 URL Redirect</th>
+                            <th style="padding:10px; text-align:left; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="20%">🔀 URL Redirect</th>
+                            <th style="padding:10px; text-align:left; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="10%">👤 Tên SEO</th>
                         </tr>
                     </thead>
                     <tbody id="wsResultBody">
-                        <tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">Nhập danh sách URL và bấm <b>Bắt Đầu Kiểm Tra</b></td></tr>
+                        <tr><td colspan="7" style="text-align:center; padding:40px; color:var(--text-muted);">Nhap danh sach URL va bam <b>Bat Dau Kiem Tra</b></td></tr>
                     </tbody>
-                </table>
             </div>
         </div>
     </div>
@@ -7531,7 +7544,8 @@ window.wfClearProgress = function(nodeId) {
                 wsStats.err++;
             }
 
-            const row = { url, pStatus, dStatus, conclusion, redirect };
+            const seoName = (window._wsSeoNames && window._wsSeoNames[i]) ? window._wsSeoNames[i] : 'admin';
+            const row = { url, pStatus, dStatus, conclusion, redirect, seoName };
             wsResultData.push(row);
 
             // Render row
@@ -7565,9 +7579,9 @@ window.wfClearProgress = function(nodeId) {
 
     function exportWSCSV() {
         if (!wsResultData.length) return alert('Chưa có dữ liệu để xuất!');
-        let csv = 'URL,Proxy VN,Trực Tiếp QT,Kết Luận,URL Redirect\n';
+        let csv = 'URL,Proxy VN,Truc Tiep QT,Ket Luan,URL Redirect,Ten SEO\n';
         wsResultData.forEach(r => {
-            csv += `"${r.url}","${r.pStatus}","${r.dStatus}","${r.conclusion}","${r.redirect}"\n`;
+            csv += `"${r.url}","${r.pStatus}","${r.dStatus}","${r.conclusion}","${r.redirect}","${r.seoName||'admin'}"\n`;
         });
         const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
@@ -7580,45 +7594,72 @@ window.wfClearProgress = function(nodeId) {
 
 <!-- ===== TAB 10: MODE MANAGER JS ===== -->
 <script>
-    function wsGetModes() { try { return JSON.parse(localStorage.getItem('ws_tool_modes') || '[]'); } catch(e) { return []; } }
-    function wsSaveModes(m) { localStorage.setItem('ws_tool_modes', JSON.stringify(m)); }
-    function wsGetActiveModeId() { return localStorage.getItem('ws_active_mode_id') || ''; }
-    function wsSetActiveModeId(id) { if (id) localStorage.setItem('ws_active_mode_id', id); else localStorage.removeItem('ws_active_mode_id'); }
-    function wsGetActiveMode() { var id = wsGetActiveModeId(); if (!id) return null; return wsGetModes().find(function(m){return m.id===id;})||null; }
+    function wsGetModes(){try{return JSON.parse(localStorage.getItem('ws_tool_modes')||'[]');}catch(e){return[];}}
+    function wsSaveModes(m){localStorage.setItem('ws_tool_modes',JSON.stringify(m));}
+    function wsGetActiveModeId(){return localStorage.getItem('ws_active_mode_id')||'';}
+    function wsSetActiveModeId(id){if(id)localStorage.setItem('ws_active_mode_id',id);else localStorage.removeItem('ws_active_mode_id');}
+    function wsGetActiveMode(){var id=wsGetActiveModeId();if(!id)return null;return wsGetModes().find(function(m){return m.id===id;})||null;}
 
-    function wsRenderModes() {
-        var modes = wsGetModes(), activeId = wsGetActiveModeId(), list = document.getElementById('wsModeList');
-        if (!list) return;
-        if (modes.length === 0) {
-            list.innerHTML = '<div style="font-size:12px;color:var(--text-muted);font-style:italic;padding:8px 0;">Chưa có mode nào — bấm <b style="color:#818cf8;">+</b> để tạo mode đầu tiên</div>';
-            var b=document.getElementById('btnWSWriteSheet'); if(b) b.style.display='none';
-            return;
+    // Render dropdown + show/hide edit/delete buttons
+    function wsRenderModes(){
+        var modes=wsGetModes(), activeId=wsGetActiveModeId();
+        var sel=document.getElementById('wsModeSelect');
+        if(!sel)return;
+        // Save current value to reselect
+        var curVal=sel.value;
+        sel.innerHTML='<option value="">— Chua chon mode —</option>';
+        modes.forEach(function(m){
+            var opt=document.createElement('option');
+            opt.value=m.id; opt.textContent=m.name;
+            if(m.id===activeId) opt.selected=true;
+            sel.appendChild(opt);
+        });
+        // If active mode not in list, clear selection
+        if(activeId && !modes.find(function(m){return m.id===activeId;})){
+            wsSetActiveModeId(''); sel.value='';
         }
-        list.innerHTML = modes.map(function(m){
-            var a=m.id===activeId;
-            return '<div style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid '+(a?'#4f46e5':'var(--border)')+';background:'+(a?'rgba(79,70,229,0.2)':'rgba(255,255,255,0.03)')+';color:'+(a?'#a5b4fc':'var(--text-muted)')+';transition:all 0.15s;" onclick="wsSelectMode(\''+m.id+'\')">'+
-            (a?'✅ ':'')+m.name+
-            ' <span onclick="event.stopPropagation();wsOpenEditMode(\''+m.id+'\')" style="opacity:0.5;font-size:10px;padding:1px 5px;cursor:pointer;" title="Sửa">✏️</span>'+
-            ' <span onclick="event.stopPropagation();wsDeleteMode(\''+m.id+'\')" style="opacity:0.5;font-size:10px;padding:1px 5px;cursor:pointer;" title="Xóa">✕</span></div>';
-        }).join('');
+        var hasActive=sel.value!=='';
+        var btnEdit=document.getElementById('btnEditSelMode');
+        var btnDel=document.getElementById('btnDelSelMode');
+        if(btnEdit) btnEdit.style.display=hasActive?'':'none';
+        if(btnDel)  btnDel.style.display=hasActive?'':'none';
+        // Show/hide write button
+        var btnW=document.getElementById('btnWSWriteSheet');
+        if(btnW) btnW.style.display=(hasActive&&wsResultData&&wsResultData.length>0)?'':'none';
     }
 
-    function wsSelectMode(id) {
-        wsSetActiveModeId(id); wsRenderModes();
-        var mode=wsGetModes().find(function(m){return m.id===id;}), btn=document.getElementById('btnWSWriteSheet');
-        if(btn&&mode&&mode.sheetUrl&&wsResultData&&wsResultData.length>0) btn.style.display='';
+    function wsSelectMode(id){
+        wsSetActiveModeId(id);
+        wsRenderModes();
     }
 
-    function wsOpenAddMode() {
-        document.getElementById('wsModeFormTitle').textContent='THÊM MODE MỚI';
-        ['wsModeFormId','wsModeFormName','wsModeFormSheet','wsModeFormColInput','wsModeFormColTT','wsModeFormColRed','wsModeFormColLS'].forEach(function(id){document.getElementById(id).value='';});
+    // Edit selected mode from dropdown
+    function wsOpenEditSelectedMode(){
+        var id=document.getElementById('wsModeSelect').value;
+        if(!id) return;
+        wsOpenEditMode(id);
+    }
+
+    // Delete selected mode from dropdown
+    function wsDeleteSelectedMode(){
+        var id=document.getElementById('wsModeSelect').value;
+        if(!id) return;
+        wsDeleteMode(id);
+    }
+
+    function wsOpenAddMode(){
+        document.getElementById('wsModeFormTitle').textContent='THEM MODE MOI';
+        ['wsModeFormId','wsModeFormName','wsModeFormSheet','wsModeFormColInput',
+         'wsModeFormColTT','wsModeFormColRed','wsModeFormColLS','wsModeFormColSeo'].forEach(function(id){
+            var el=document.getElementById(id); if(el) el.value='';
+        });
         document.getElementById('wsModeForm').style.display='block';
         document.getElementById('wsModeFormName').focus();
     }
 
-    function wsOpenEditMode(id) {
+    function wsOpenEditMode(id){
         var mode=wsGetModes().find(function(m){return m.id===id;}); if(!mode) return;
-        document.getElementById('wsModeFormTitle').textContent='SỬA MODE: '+mode.name.toUpperCase();
+        document.getElementById('wsModeFormTitle').textContent='SUA MODE: '+mode.name.toUpperCase();
         document.getElementById('wsModeFormId').value=mode.id;
         document.getElementById('wsModeFormName').value=mode.name;
         document.getElementById('wsModeFormSheet').value=mode.sheetUrl||'';
@@ -7626,101 +7667,128 @@ window.wfClearProgress = function(nodeId) {
         document.getElementById('wsModeFormColTT').value=mode.colTrangThai||'';
         document.getElementById('wsModeFormColRed').value=mode.colRedirect||'';
         document.getElementById('wsModeFormColLS').value=mode.colLichSu301||'';
+        var seoEl=document.getElementById('wsModeFormColSeo');
+        if(seoEl) seoEl.value=mode.colSeoName||'';
         document.getElementById('wsModeForm').style.display='block';
         document.getElementById('wsModeFormName').focus();
     }
 
-    function wsSaveModeForm() {
+    function wsSaveModeForm(){
         var name=document.getElementById('wsModeFormName').value.trim();
-        if(!name) return alert('Vui lòng nhập Tên Mode!');
+        if(!name) return alert('Vui long nhap Ten Mode!');
         var sheetUrl=document.getElementById('wsModeFormSheet').value.trim();
-        if(!sheetUrl) return alert('Vui lòng nhập Link Google Sheet!');
+        if(!sheetUrl) return alert('Vui long nhap Link Google Sheet!');
         var eid=document.getElementById('wsModeFormId').value;
-        var mode={id:eid||('mode_'+Date.now()),name:name,sheetUrl:sheetUrl,
+        var seoEl=document.getElementById('wsModeFormColSeo');
+        var mode={
+            id:eid||('mode_'+Date.now()),
+            name:name, sheetUrl:sheetUrl,
             colInput:(document.getElementById('wsModeFormColInput').value.trim().toUpperCase()||'B'),
             colTrangThai:(document.getElementById('wsModeFormColTT').value.trim().toUpperCase()||'J'),
             colRedirect:(document.getElementById('wsModeFormColRed').value.trim().toUpperCase()||'D'),
-            colLichSu301:(document.getElementById('wsModeFormColLS').value.trim().toUpperCase()||'C')};
+            colLichSu301:(document.getElementById('wsModeFormColLS').value.trim().toUpperCase()||'C'),
+            colSeoName:(seoEl?seoEl.value.trim().toUpperCase():'')
+        };
         var modes=wsGetModes(), idx=modes.findIndex(function(m){return m.id===mode.id;});
         if(idx>=0) modes[idx]=mode; else modes.push(mode);
         wsSaveModes(modes); wsSetActiveModeId(mode.id); wsCancelModeForm(); wsRenderModes();
     }
 
-    function wsCancelModeForm() { document.getElementById('wsModeForm').style.display='none'; }
+    function wsCancelModeForm(){document.getElementById('wsModeForm').style.display='none';}
 
-    function wsDeleteMode(id) {
+    function wsDeleteMode(id){
         var modes=wsGetModes(), mode=modes.find(function(m){return m.id===id;}); if(!mode) return;
-        if(!confirm('Xóa mode "'+mode.name+'"?')) return;
+        if(!confirm('Xoa mode "'+mode.name+'"?')) return;
         var nm=modes.filter(function(m){return m.id!==id;});
         wsSaveModes(nm);
         if(wsGetActiveModeId()===id) wsSetActiveModeId(nm.length>0?nm[0].id:'');
         wsRenderModes();
     }
 
-    async function wsLoadFromSheet() {
+    // Nap URLs + SEO names tu Sheet
+    async function wsLoadFromSheet(){
         var mode=wsGetActiveMode();
-        if(!mode) return alert('Vui lòng chọn hoặc tạo một Mode trước!\n(Bấm + để thêm mode mới)');
-        if(!mode.sheetUrl) return alert('Mode này chưa có Link Google Sheet!');
+        if(!mode) return alert('Vui long chon hoac tao mot Mode truoc!\n(Bam + de them mode moi)');
+        if(!mode.sheetUrl) return alert('Mode nay chua co Link Google Sheet!');
         if(!window.gscAccounts||!window.activeAccountEmails||window.activeAccountEmails.length===0)
-            return alert('Chưa đăng nhập Google!\nVui lòng sang Tab GSC → Thêm Tài Khoản Google trước.');
+            return alert('Chua dang nhap Google!\nVui long sang Tab GSC -> Them Tai Khoan Google truoc.');
         var acc=window.gscAccounts.find(function(a){return a.email===window.activeAccountEmails[0];});
         if(!acc||!acc.token||Date.now()>acc.expiresAt)
-            return alert('Tài khoản Google đã hết phiên.\nVui lòng sang Tab GSC → bấm 🔄 Refresh.');
+            return alert('Tai khoan Google da het phien.\nVui long sang Tab GSC -> bam Refresh.');
         var mt=mode.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-        if(!mt) return alert('Link Google Sheet không hợp lệ!');
-        var sheetId=mt[1], col=mode.colInput||'B', range=col+'2:'+col+'2000';
+        if(!mt) return alert('Link Google Sheet khong hop le!');
+        var sheetId=mt[1];
+        var colDomain=mode.colInput||'B';
+        var colSeo=mode.colSeoName||'';
+
+        // Determine range: if seo col exists, read both columns
         var ta=document.getElementById('wsUrlInput');
-        ta.value='⏳ Đang nạp từ Sheet...';
+        ta.value='Dang nap tu Sheet...';
         try {
-            var res=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(range),{headers:{'Authorization':'Bearer '+acc.token}});
+            // Read domain column
+            var rng=colDomain+'2:'+colDomain+'2000';
+            var res=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(rng),{headers:{'Authorization':'Bearer '+acc.token}});
             if(!res.ok){var ed=await res.json();throw new Error((ed.error&&ed.error.message)||'HTTP '+res.status);}
             var data=await res.json();
-            if(!data.values||data.values.length===0){ta.value='';return alert('Sheet rỗng hoặc cột '+col+' không có dữ liệu từ dòng 2!');}
+            if(!data.values||data.values.length===0){ta.value='';return alert('Sheet rong hoac cot '+colDomain+' khong co du lieu tu dong 2!');}
             var urls=data.values.map(function(r){return(r[0]||'').trim();}).filter(Boolean);
             ta.value=urls.join('\n');
-            alert('✅ Đã nạp '+urls.length+' URL từ cột '+col+' (Mode: '+mode.name+')');
-        } catch(e){ta.value='';alert('❌ Lỗi đọc Sheet:\n'+e.message);}
+
+            // Read SEO name column if configured
+            window._wsSeoNames=[];
+            if(colSeo){
+                var rngSeo=colSeo+'2:'+colSeo+'2000';
+                var resSeo=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(rngSeo),{headers:{'Authorization':'Bearer '+acc.token}});
+                if(resSeo.ok){
+                    var dataSeo=await resSeo.json();
+                    window._wsSeoNames=(dataSeo.values||[]).map(function(r){return(r[0]||'').trim()||'admin';});
+                }
+            }
+            alert('Da nap '+urls.length+' URL tu cot '+colDomain+(colSeo?' + ten SEO tu cot '+colSeo:'')+'  (Mode: '+mode.name+')');
+        } catch(e){ta.value='';alert('Loi doc Sheet:\n'+e.message);}
     }
 
-    async function wsWriteResultsToSheet() {
+    // Ghi ket qua ve Sheet
+    async function wsWriteResultsToSheet(){
         var mode=wsGetActiveMode();
-        if(!mode) return alert('Chưa chọn Mode!');
-        if(!wsResultData||!wsResultData.length) return alert('Chưa có kết quả để ghi!');
-        if(!mode.sheetUrl) return alert('Mode chưa có Link Google Sheet!');
+        if(!mode) return alert('Chua chon Mode!');
+        if(!wsResultData||!wsResultData.length) return alert('Chua co ket qua de ghi!');
+        if(!mode.sheetUrl) return alert('Mode chua co Link Google Sheet!');
         if(!window.gscAccounts||!window.activeAccountEmails||window.activeAccountEmails.length===0)
-            return alert('Chưa đăng nhập Google!\nVui lòng sang Tab GSC → Thêm Tài Khoản Google trước.');
+            return alert('Chua dang nhap Google!\nVui long sang Tab GSC truoc.');
         var acc=window.gscAccounts.find(function(a){return a.email===window.activeAccountEmails[0];});
         if(!acc||!acc.token||Date.now()>acc.expiresAt)
-            return alert('Tài khoản Google đã hết phiên.\nVui lòng sang Tab GSC → bấm 🔄 Refresh.');
+            return alert('Tai khoan Google da het phien.\nVui long sang Tab GSC -> bam Refresh.');
         var mt=mode.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
-        if(!mt) return alert('Link Google Sheet không hợp lệ!');
+        if(!mt) return alert('Link Google Sheet khong hop le!');
         var sheetId=mt[1], n=wsResultData.length;
         var colTT=mode.colTrangThai||'J', colRed=mode.colRedirect||'D', colLS=mode.colLichSu301||'C';
-        if(!confirm('Sẽ ghi '+n+' dòng kết quả vào Sheet?\n• Trạng Thái → Cột '+colTT+'\n• URL Redirect → Cột '+colRed+'\n• Lịch Sử 301 → Cột '+colLS+'\n\nDữ liệu cũ sẽ bị ghi đè!')) return;
+        if(!confirm('Se ghi '+n+' dong ket qua vao Sheet?\n- Trang Thai -> Cot '+colTT+'\n- URL Redirect -> Cot '+colRed+'\n- Lich Su 301 -> Cot '+colLS+'\n\nDu lieu cu se bi ghi de!')) return;
         var btnW=document.getElementById('btnWSWriteSheet'), orig=btnW.textContent;
-        btnW.textContent='⏳ Đang ghi...'; btnW.disabled=true;
+        btnW.textContent='Dang ghi...'; btnW.disabled=true;
         async function writeCol(col,vals){
             var rng=col+'2:'+col+(1+vals.length);
             var r=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(rng)+'?valueInputOption=USER_ENTERED',
-                {method:'PUT',headers:{'Authorization':'Bearer '+acc.token,'Content-Type':'application/json'},body:JSON.stringify({values:vals.map(function(v){return[v];})})});
+                {method:'PUT',headers:{'Authorization':'Bearer '+acc.token,'Content-Type':'application/json'},
+                 body:JSON.stringify({values:vals.map(function(v){return[v];})})});
             if(!r.ok){var e=await r.json();throw new Error((e.error&&e.error.message)||'HTTP '+r.status);}
         }
-        try {
+        try{
             await writeCol(colTT, wsResultData.map(function(r){return r.conclusion;}));
             await writeCol(colRed,wsResultData.map(function(r){return r.redirect;}));
             await writeCol(colLS, wsResultData.map(function(r){return r.redirect;}));
-            alert('✅ Đã ghi '+n+' dòng thành công vào Sheet (Mode: '+mode.name+')!');
-        } catch(e){alert('❌ Lỗi ghi Sheet:\n'+e.message);}
+            alert('Da ghi '+n+' dong thanh cong vao Sheet (Mode: '+mode.name+')!');
+        }catch(e){alert('Loi ghi Sheet:\n'+e.message);}
         finally{btnW.textContent=orig;btnW.disabled=false;}
     }
 
-    function wsShowWriteBtn() {
+    function wsShowWriteBtn(){
         var mode=wsGetActiveMode(), btn=document.getElementById('btnWSWriteSheet');
         if(btn) btn.style.display=(mode&&mode.sheetUrl&&wsResultData&&wsResultData.length>0)?'':'none';
     }
 
-    window.addEventListener('load', function(){ setTimeout(wsRenderModes,150); });
-    document.addEventListener('click', function(e){
+    window.addEventListener('load',function(){setTimeout(wsRenderModes,150);});
+    document.addEventListener('click',function(e){
         var t=e.target&&e.target.closest&&e.target.closest('[onclick]');
         if(t&&(t.getAttribute('onclick')||'').indexOf('tab10')>=0) setTimeout(wsRenderModes,60);
     });
