@@ -7493,7 +7493,7 @@ window.wfClearProgress = function(nodeId) {
             rawUrls = (window._wsLoadedUrls || []).slice();
             if (!rawUrls.length) return; // wsLoadFromSheet da alert loi
         } else {
-            rawUrls = document.getElementById('wsUrlInput').value.trim().split('\\n').map(u => u.trim()).filter(Boolean);
+            rawUrls = document.getElementById('wsUrlInput').value.split(/[\r\n]+/).map(u => u.trim()).filter(Boolean);
             if (!rawUrls.length) return alert('Vui long nhap it nhat 1 URL!');
         }
 
