@@ -451,8 +451,36 @@
 <body>
 
 <div id="debug-banner" style="position:fixed; top:0; left:0; width:100%; background:red; color:white; text-align:center; padding:10px; z-index:99999999; font-weight:bold; font-size:16px;">
-    ĐÂY LÀ DỰ ÁN GSC-BULK-TOOL! Nếu sếp thấy dòng chữ này tức là đang xem đúng trang, và code đã được cập nhật! (Banner này sẽ được xóa sau)
+    ĐÂY LÀ DỰ ÁN GSC-BULK-TOOL! Băng rôn đỏ này chứng tỏ code đã update. (Sẽ xóa sau)
 </div>
+
+<script>
+// FORCE INJECT DOCK VIA JS TO AVOID HTML STRUCTURE ERRORS
+document.addEventListener("DOMContentLoaded", function() {
+    var dock = document.createElement("div");
+    dock.id = "app-bottom-nav";
+    dock.style.cssText = "position:fixed; bottom:24px; right:24px; z-index:2147483647; display:flex; flex-direction:column; align-items:center; gap:8px;";
+    
+    dock.innerHTML = `
+    <!-- Settings -->
+    <div onclick="toggleGlobalSettings(true)" title="Cai dat he thong" style="width:54px;height:54px;background:linear-gradient(135deg,#0ea5e9,#0284c7);border:2px solid #38bdf8;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(14,165,233,0.5);gap:3px; transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 30px rgba(14,165,233,0.8)';" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(14,165,233,0.5)';">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span style="font-size:7px;color:white;font-weight:700;font-family:sans-serif;letter-spacing:0.3px;">CÀI ĐẶT</span>
+    </div>
+    <!-- AI Copilot -->
+    <div onclick="toggleManagerChat(true)" title="Tro ly AI" id="ai-c-btn" style="width:54px;height:54px;background:linear-gradient(135deg,#8b5cf6,#d946ef);border:2px solid #c084fc;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(139,92,246,0.6);gap:3px; transition:transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 30px rgba(217,70,239,0.8)';" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(139,92,246,0.6)';">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M9.5 2A6.5 6.5 0 0 1 16 8.5c0 .94-.2 1.83-.55 2.64A4.5 4.5 0 0 1 18 15a4.5 4.5 0 0 1-4.5 4.5H9A6.5 6.5 0 0 1 9.5 2zm0 2A4.5 4.5 0 0 0 5 8.5c0 1.08.38 2.07 1.01 2.85-.01.05-.01.1-.01.15A4.5 4.5 0 0 0 9 19.5h4.5A2.5 2.5 0 0 0 16 17a2.5 2.5 0 0 0-1.5-2.29V13h-2v2H9a2.5 2.5 0 0 1 0-5h.5V8h-2v1.5A4.5 4.5 0 0 1 9.5 4z"/></svg>
+        <span style="font-size:7px;color:white;font-weight:700;font-family:sans-serif;letter-spacing:0.3px;">AI</span>
+    </div>
+    <!-- Workflow -->
+    <button id="wfl-sys-btn" onclick="openAutomationPanel()" title="Workflow Builder" style="width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,#10b981,#059669);border:2px solid #34d399;color:white;cursor:pointer;box-shadow:0 4px 20px rgba(16,185,129,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px; transition:transform 0.2s, box-shadow 0.2s; padding:0;" onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 30px rgba(16,185,129,0.8)';" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(16,185,129,0.5)';">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span style="font-size:7px;color:white;font-weight:700;font-family:sans-serif;letter-spacing:0.3px;">WORKFLOW</span>
+    </button>
+    `;
+    document.body.appendChild(dock);
+});
+</script>
 
 <div class="wrapper">
 
@@ -7871,38 +7899,6 @@ window.wfClearProgress = function(nodeId) {
         if(t&&(t.getAttribute('onclick')||'').indexOf('tab10')>=0) setTimeout(function(){wsRenderModes();wsUpdateInputMode();},60);
     });
 </script>
-
-<!-- UNIFIED APP NAV -->
-<div id="app-bottom-nav" style="position:fixed; bottom:24px; right:24px; z-index:2147483647; display:flex; flex-direction:column; align-items:center; gap:8px;">
-    <!-- Settings -->
-    <div onclick="toggleGlobalSettings(true)" title="Cai dat he thong"
-         style="width:54px;height:54px;background:linear-gradient(135deg,#0ea5e9,#0284c7);border:2px solid #38bdf8;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(14,165,233,0.5);gap:3px;"
-         onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 30px rgba(14,165,233,0.8)';"
-         onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(14,165,233,0.5)';">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        <span style="font-size:7px;color:white;font-weight:700;font-family:sans-serif;letter-spacing:0.3px;">CÀI ĐẶT</span>
-    </div>
-    <!-- AI Copilot -->
-    <div onclick="toggleManagerChat(true)" title="Tro ly AI" id="ai-c-btn"
-         style="width:54px;height:54px;background:linear-gradient(135deg,#8b5cf6,#d946ef);border:2px solid #c084fc;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(139,92,246,0.6);gap:3px;"
-         onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 30px rgba(217,70,239,0.8)';"
-         onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(139,92,246,0.6)';">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M9.5 2A6.5 6.5 0 0 1 16 8.5c0 .94-.2 1.83-.55 2.64A4.5 4.5 0 0 1 18 15a4.5 4.5 0 0 1-4.5 4.5H9A6.5 6.5 0 0 1 9.5 2zm0 2A4.5 4.5 0 0 0 5 8.5c0 1.08.38 2.07 1.01 2.85-.01.05-.01.1-.01.15A4.5 4.5 0 0 0 9 19.5h4.5A2.5 2.5 0 0 0 16 17a2.5 2.5 0 0 0-1.5-2.29V13h-2v2H9a2.5 2.5 0 0 1 0-5h.5V8h-2v1.5A4.5 4.5 0 0 1 9.5 4z"/></svg>
-        <span style="font-size:7px;color:white;font-weight:700;font-family:sans-serif;letter-spacing:0.3px;">AI</span>
-    </div>
-    <!-- Workflow -->
-    <button id="wfl-sys-btn" onclick="openAutomationPanel()" title="Workflow Builder"
-            style="width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,#10b981,#059669);border:2px solid #34d399;color:white;cursor:pointer;box-shadow:0 4px 20px rgba(16,185,129,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;"
-            onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 30px rgba(16,185,129,0.8)';"
-            onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(16,185,129,0.5)';">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-        <span style="font-size:7px;color:white;font-weight:700;font-family:sans-serif;letter-spacing:0.3px;">WORKFLOW</span>
-    </button>
-</div>
-<style>
-#app-bottom-nav { display:flex !important; visibility:visible !important; opacity:1 !important; }
-#app-bottom-nav > * { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-</style>
 
 </body>
 </html>
