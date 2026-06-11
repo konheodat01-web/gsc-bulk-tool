@@ -6570,7 +6570,28 @@ ${appState}`;
     <style>
     @keyframes dockPulse { 0%,100%{box-shadow:0 4px 20px rgba(139,92,246,0.45);} 50%{box-shadow:0 4px 30px rgba(139,92,246,0.8);} }
     #floatingDock > div:first-child:hover { transform:rotate(45deg); }
+    /* Ensure dock is always visible */
+    #floatingDock { display:flex !important; visibility:visible !important; opacity:1 !important; }
     </style>
+    <script>
+    // Force dock visible immediately - tránh bị ẩn bởi JS crash hoặc style override
+    (function() {
+        function ensureDockVisible() {
+            var dock = document.getElementById('floatingDock');
+            if (dock) {
+                dock.style.cssText = 'position:fixed !important; bottom:30px !important; right:30px !important; z-index:2147483647 !important; display:flex !important; flex-direction:column !important; align-items:center !important; gap:12px !important; visibility:visible !important; opacity:1 !important;';
+            }
+        }
+        // Chạy ngay
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', ensureDockVisible);
+        } else {
+            ensureDockVisible();
+        }
+        // Chạy lại sau 1s để chắc chắn
+        setTimeout(ensureDockVisible, 1000);
+    })();
+    </script>
 
     <!-- Automation Sliding Panel -->
     <div id="automationPanel">

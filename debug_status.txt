@@ -1,0 +1,360 @@
+[2026-05-13T09:28:06.622Z] === Bắt đầu: https://286bet.bet/ ===
+[2026-05-13T09:28:08.880Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console/about
+[2026-05-13T09:28:08.881Z] Phát hiện tài khoản mới ở trang /about, tìm nút Start Now...
+[2026-05-13T09:28:08.891Z] Đã bấm Start Now, đợi chuyển trang...
+[2026-05-13T09:28:09.191Z] Kiểm tra ô nhập URL...
+[2026-05-13T09:28:09.248Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T09:28:13.252Z] Mở Dropdown...
+[2026-05-13T09:28:13.257Z] Đợi 2s sau dropdown
+[2026-05-13T09:28:15.263Z] Click Thêm tài sản
+[2026-05-13T09:28:15.302Z] Đợi 2s form Add property hiện
+[2026-05-13T09:28:17.317Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T09:28:27.328Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T09:30:26.949Z] === Bắt đầu: https://286bet.bet/ ===
+[2026-05-13T09:30:31.855Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://v5d.uk.com/
+[2026-05-13T09:30:31.857Z] Kiểm tra ô nhập URL...
+[2026-05-13T09:30:31.899Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T09:30:35.908Z] Mở Dropdown...
+[2026-05-13T09:30:35.992Z] Đợi 2s sau dropdown
+[2026-05-13T09:30:38.000Z] Click Thêm tài sản
+[2026-05-13T09:30:38.180Z] Đợi 2s form Add property hiện
+[2026-05-13T09:30:40.183Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T09:30:40.201Z] Chuyển sang tab URL Prefix
+[2026-05-13T09:30:40.713Z] Clear input
+[2026-05-13T09:30:40.767Z] Gõ URL: https://286bet.bet/
+[2026-05-13T09:30:40.911Z] Ấn Enter để Tiếp tục
+[2026-05-13T09:30:40.937Z] Đợi Thẻ HTML hoặc Auto-verified 15s
+[2026-05-13T09:30:44.103Z] Đợi nội dung mã HTML 5s
+[2026-05-13T09:30:44.117Z] Extract HTML
+[2026-05-13T09:30:44.120Z] Đóng trình duyệt, OK
+[2026-05-13T09:34:51.707Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T09:34:54.723Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://v5d.uk.com/
+[2026-05-13T09:34:54.724Z] Kiểm tra ô nhập URL...
+[2026-05-13T09:34:55.151Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T09:34:59.154Z] Mở Dropdown...
+[2026-05-13T09:34:59.226Z] Đợi 2s sau dropdown
+[2026-05-13T09:35:01.226Z] Click Thêm tài sản
+[2026-05-13T09:35:01.381Z] Đợi 2s form Add property hiện
+[2026-05-13T09:35:03.387Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T09:35:03.420Z] Chuyển sang tab URL Prefix
+[2026-05-13T09:35:03.933Z] Clear input
+[2026-05-13T09:35:03.991Z] Gõ URL: https://xsk.uk.com/
+[2026-05-13T09:35:04.122Z] Ấn Enter để Tiếp tục
+[2026-05-13T09:35:04.141Z] Đợi Thẻ HTML hoặc Auto-verified 15s
+[2026-05-13T09:35:09.898Z] Đợi nội dung mã HTML 5s
+[2026-05-13T09:35:09.933Z] Extract HTML
+[2026-05-13T09:35:09.939Z] Đóng trình duyệt, OK
+[2026-05-13T09:39:47.833Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T09:39:51.367Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://v5d.uk.com/
+[2026-05-13T09:39:51.368Z] Kiểm tra ô nhập URL...
+[2026-05-13T09:39:51.911Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T09:39:55.921Z] Mở Dropdown...
+[2026-05-13T09:39:55.986Z] Đợi 2s sau dropdown
+[2026-05-13T09:39:57.989Z] Click Thêm tài sản
+[2026-05-13T09:39:58.143Z] Đợi 2s form Add property hiện
+[2026-05-13T09:40:00.155Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T09:40:00.191Z] Chuyển sang tab URL Prefix
+[2026-05-13T09:40:00.701Z] Clear input
+[2026-05-13T09:40:00.737Z] Gõ URL: https://xsk.uk.com/
+[2026-05-13T09:40:00.870Z] Ấn Enter để Tiếp tục
+[2026-05-13T09:40:00.895Z] Đợi Thẻ HTML hoặc Auto-verified 15s
+[2026-05-13T09:40:06.801Z] Đợi nội dung mã HTML 5s
+[2026-05-13T09:40:06.825Z] Extract HTML
+[2026-05-13T09:40:06.827Z] Đóng trình duyệt, OK
+[2026-05-13T09:45:18.262Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T09:45:22.924Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://v5d.uk.com/
+[2026-05-13T09:45:22.925Z] Kiểm tra ô nhập URL...
+[2026-05-13T09:45:23.192Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T09:45:27.201Z] Mở Dropdown...
+[2026-05-13T09:45:27.270Z] Đợi 2s sau dropdown
+[2026-05-13T09:45:29.274Z] Click Thêm tài sản
+[2026-05-13T09:45:29.429Z] Đợi 2s form Add property hiện
+[2026-05-13T09:45:31.446Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T09:45:31.485Z] Chuyển sang tab URL Prefix
+[2026-05-13T09:45:31.994Z] Clear input
+[2026-05-13T09:45:32.052Z] Gõ URL: https://xsk.uk.com/
+[2026-05-13T09:45:32.194Z] Ấn Enter để Tiếp tục
+[2026-05-13T09:45:32.211Z] Đợi Thẻ HTML hoặc Auto-verified 15s
+[2026-05-13T09:45:36.440Z] Đợi nội dung mã HTML 5s
+[2026-05-13T09:45:36.477Z] Extract HTML
+[2026-05-13T09:45:36.487Z] Đóng trình duyệt, OK
+[2026-05-13T09:53:52.954Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T09:53:54.468Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console/about
+[2026-05-13T09:53:54.468Z] Phát hiện tài khoản mới ở trang /about, tìm nút Start Now...
+[2026-05-13T09:53:54.479Z] Đã bấm Start Now, đợi chuyển trang...
+[2026-05-13T09:53:54.672Z] Kiểm tra ô nhập URL...
+[2026-05-13T09:53:54.890Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T09:53:58.897Z] Mở Dropdown...
+[2026-05-13T09:53:58.900Z] Đợi 2s sau dropdown
+[2026-05-13T09:54:00.907Z] Click Thêm tài sản
+[2026-05-13T09:54:00.936Z] Đợi 2s form Add property hiện
+[2026-05-13T09:54:02.949Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T09:54:12.968Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T10:02:09.326Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T10:02:10.893Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console/about
+[2026-05-13T10:02:10.895Z] Phát hiện tài khoản mới ở trang /about, tìm nút Start Now...
+[2026-05-13T10:02:10.969Z] Đã bấm Start Now, đợi chuyển trang...
+[2026-05-13T10:02:11.971Z] Bị đá ra login sau khi bấm Start Now. Cookie chết.
+[2026-05-13T10:02:24.200Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T10:02:26.556Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://v5d.uk.com/
+[2026-05-13T10:02:26.557Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:02:26.849Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:02:30.862Z] Mở Dropdown...
+[2026-05-13T10:02:30.924Z] Đợi 2s sau dropdown
+[2026-05-13T10:02:32.935Z] Click Thêm tài sản
+[2026-05-13T10:02:32.993Z] Đợi 2s form Add property hiện
+[2026-05-13T10:02:35.006Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:02:45.017Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T10:07:15.131Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T10:07:17.632Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://v5d.uk.com/
+[2026-05-13T10:07:17.633Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:07:17.822Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:07:21.831Z] Mở Dropdown...
+[2026-05-13T10:07:21.877Z] Đợi 2s sau dropdown
+[2026-05-13T10:07:23.890Z] Click Thêm tài sản
+[2026-05-13T10:07:23.928Z] Đợi 2s form Add property hiện
+[2026-05-13T10:07:25.932Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:07:35.943Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T10:07:47.945Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T10:07:50.117Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://v5d.uk.com/
+[2026-05-13T10:07:50.118Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:07:50.460Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:07:54.474Z] Mở Dropdown...
+[2026-05-13T10:07:54.518Z] Đợi 2s sau dropdown
+[2026-05-13T10:07:56.528Z] Click Thêm tài sản
+[2026-05-13T10:07:56.557Z] Đợi 2s form Add property hiện
+[2026-05-13T10:07:58.571Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:08:08.574Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T10:10:14.904Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T10:10:17.574Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://v5d.uk.com/
+[2026-05-13T10:10:17.575Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:10:17.653Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:10:21.656Z] Mở Dropdown...
+[2026-05-13T10:10:21.693Z] Đợi 2s sau dropdown
+[2026-05-13T10:10:23.695Z] Click Thêm tài sản
+[2026-05-13T10:10:23.707Z] Đợi 2s form Add property hiện
+[2026-05-13T10:10:25.713Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:10:35.722Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T10:10:40.957Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T10:10:43.324Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://v5d.uk.com/
+[2026-05-13T10:10:43.324Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:10:43.511Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:10:47.519Z] Mở Dropdown...
+[2026-05-13T10:10:47.569Z] Đợi 2s sau dropdown
+[2026-05-13T10:10:49.575Z] Click Thêm tài sản
+[2026-05-13T10:10:49.588Z] Đợi 2s form Add property hiện
+[2026-05-13T10:10:51.601Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:11:01.609Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T10:16:00.958Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T10:16:03.507Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://v5d.uk.com/
+[2026-05-13T10:16:03.509Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:16:03.707Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:16:07.723Z] Mở Dropdown...
+[2026-05-13T10:16:07.763Z] Đợi 2s sau dropdown
+[2026-05-13T10:16:09.774Z] Click Thêm tài sản
+[2026-05-13T10:16:09.808Z] Đợi 2s form Add property hiện
+[2026-05-13T10:16:11.811Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:16:11.827Z] Chuyển sang tab URL Prefix
+[2026-05-13T10:16:12.340Z] Clear input
+[2026-05-13T10:16:12.857Z] Click & Gõ URL: https://xsk.uk.com/
+[2026-05-13T10:16:13.061Z] Ấn Enter để Tiếp tục
+[2026-05-13T10:16:13.077Z] Đợi Thẻ HTML hoặc Auto-verified 15s
+[2026-05-13T10:16:15.122Z] Đợi nội dung mã HTML 5s
+[2026-05-13T10:16:15.138Z] Extract HTML
+[2026-05-13T10:16:15.142Z] Đóng trình duyệt, OK
+[2026-05-13T10:19:52.219Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T10:19:53.545Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console/about
+[2026-05-13T10:19:53.546Z] Phát hiện tài khoản mới ở trang /about, tìm nút Start Now...
+[2026-05-13T10:19:53.599Z] Đã bấm Start Now, đợi chuyển trang...
+[2026-05-13T10:19:53.688Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:19:53.993Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:19:57.994Z] Mở Dropdown...
+[2026-05-13T10:19:57.996Z] Đợi 2s sau dropdown
+[2026-05-13T10:20:00.006Z] Click Thêm tài sản
+[2026-05-13T10:20:00.013Z] Đợi 2s form Add property hiện
+[2026-05-13T10:20:02.029Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:20:12.048Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T10:24:44.532Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T10:24:45.872Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console/about
+[2026-05-13T10:24:45.873Z] Phát hiện tài khoản mới ở trang /about, tìm nút Start Now...
+[2026-05-13T10:24:45.920Z] Đã bấm Start Now, đợi chuyển trang...
+[2026-05-13T10:24:45.985Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:24:46.460Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:24:50.472Z] Mở Dropdown...
+[2026-05-13T10:24:50.477Z] Đợi 2s sau dropdown
+[2026-05-13T10:24:52.481Z] Click Thêm tài sản
+[2026-05-13T10:24:52.484Z] Đợi 2s form Add property hiện
+[2026-05-13T10:24:54.489Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:25:04.504Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T10:27:17.073Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T10:27:19.394Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://v5d.uk.com/
+[2026-05-13T10:27:19.394Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:27:19.720Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:27:23.723Z] Mở Dropdown...
+[2026-05-13T10:27:23.781Z] Đợi 2s sau dropdown
+[2026-05-13T10:27:25.785Z] Click Thêm tài sản
+[2026-05-13T10:27:25.816Z] Đợi 2s form Add property hiện
+[2026-05-13T10:27:27.829Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:27:27.847Z] Chuyển sang tab URL Prefix
+[2026-05-13T10:27:28.354Z] Clear input
+[2026-05-13T10:27:28.872Z] Click & Gõ URL: https://xsk.uk.com/
+[2026-05-13T10:27:29.171Z] Ấn Enter để Tiếp tục
+[2026-05-13T10:27:29.198Z] Đợi Thẻ HTML hoặc Auto-verified 15s
+[2026-05-13T10:27:34.624Z] Trạng thái: Đã tự động xác minh
+[2026-05-13T10:31:40.372Z] === Bắt đầu: https://xsk.uk.com/ ===
+[2026-05-13T10:31:42.944Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://v5d.uk.com/
+[2026-05-13T10:31:42.945Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:31:43.182Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:31:47.185Z] Mở Dropdown...
+[2026-05-13T10:31:47.229Z] Đợi 2s sau dropdown
+[2026-05-13T10:31:49.231Z] Click Thêm tài sản
+[2026-05-13T10:31:49.258Z] Đợi 2s form Add property hiện
+[2026-05-13T10:31:51.269Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:31:51.279Z] Chuyển sang tab URL Prefix
+[2026-05-13T10:31:51.782Z] Clear input
+[2026-05-13T10:31:52.299Z] Click & Gõ URL: https://xsk.uk.com/
+[2026-05-13T10:31:52.421Z] Ấn Enter để Tiếp tục
+[2026-05-13T10:31:52.432Z] Đợi Thẻ HTML hoặc Auto-verified 15s
+[2026-05-13T10:31:53.444Z] Trạng thái: Đã tự động xác minh
+[2026-05-13T10:36:38.281Z] === Bắt đầu: https://hjy.uk.com/ ===
+[2026-05-13T10:36:40.686Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://xsk.uk.com/
+[2026-05-13T10:36:40.688Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:36:41.031Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:36:45.038Z] Mở Dropdown...
+[2026-05-13T10:36:45.075Z] Đợi 2s sau dropdown
+[2026-05-13T10:36:47.076Z] Click Thêm tài sản
+[2026-05-13T10:36:47.095Z] Đợi 2s form Add property hiện
+[2026-05-13T10:36:49.097Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:36:49.111Z] Chuyển sang tab URL Prefix
+[2026-05-13T10:36:49.626Z] Clear input
+[2026-05-13T10:36:50.138Z] Click & Gõ URL: https://hjy.uk.com/
+[2026-05-13T10:36:50.246Z] Ấn Enter để Tiếp tục
+[2026-05-13T10:36:50.255Z] Đợi Thẻ HTML hoặc Auto-verified 15s
+[2026-05-13T10:36:56.384Z] Đợi nội dung mã HTML 5s
+[2026-05-13T10:36:56.400Z] Extract HTML
+[2026-05-13T10:36:56.404Z] Đóng trình duyệt, OK
+[2026-05-13T10:37:55.657Z] === Bắt đầu: https://hjy.uk.com/ ===
+[2026-05-13T10:37:56.897Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console/about
+[2026-05-13T10:37:56.899Z] Phát hiện tài khoản mới ở trang /about, tìm nút Start Now...
+[2026-05-13T10:37:56.947Z] Đã bấm Start Now, đợi chuyển trang...
+[2026-05-13T10:37:57.029Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:37:57.367Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:38:01.368Z] Mở Dropdown...
+[2026-05-13T10:38:01.371Z] Đợi 2s sau dropdown
+[2026-05-13T10:38:03.378Z] Click Thêm tài sản
+[2026-05-13T10:38:03.381Z] Đợi 2s form Add property hiện
+[2026-05-13T10:38:05.396Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:38:08.282Z] EXCEPTION BẮT ĐƯỢC: Waiting failed
+[2026-05-13T10:38:22.283Z] === Bắt đầu: https://hjy.uk.com/ ===
+[2026-05-13T10:38:24.139Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://xsk.uk.com/
+[2026-05-13T10:38:24.140Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:38:24.489Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:38:28.505Z] Mở Dropdown...
+[2026-05-13T10:38:28.545Z] Đợi 2s sau dropdown
+[2026-05-13T10:38:30.560Z] Click Thêm tài sản
+[2026-05-13T10:38:30.579Z] Đợi 2s form Add property hiện
+[2026-05-13T10:38:32.585Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:38:32.596Z] Chuyển sang tab URL Prefix
+[2026-05-13T10:38:33.098Z] Clear input
+[2026-05-13T10:38:33.612Z] Click & Gõ URL: https://hjy.uk.com/
+[2026-05-13T10:38:33.744Z] Ấn Enter để Tiếp tục
+[2026-05-13T10:38:33.754Z] Đợi Thẻ HTML hoặc Auto-verified 15s
+[2026-05-13T10:38:38.596Z] Trạng thái: Đã tự động xác minh
+[2026-05-13T10:48:19.118Z] === Bắt đầu: https://zkd.uk.com/ ===
+[2026-05-13T10:48:22.343Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://hjy.uk.com/
+[2026-05-13T10:48:22.344Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:48:22.513Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:48:26.521Z] Mở Dropdown...
+[2026-05-13T10:48:26.558Z] Đợi 2s sau dropdown
+[2026-05-13T10:48:28.574Z] Click Thêm tài sản
+[2026-05-13T10:48:28.598Z] Đợi 2s form Add property hiện
+[2026-05-13T10:48:30.606Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:48:30.624Z] Chuyển sang tab URL Prefix
+[2026-05-13T10:48:31.136Z] Clear input
+[2026-05-13T10:48:31.648Z] Click & Gõ URL: https://zkd.uk.com/
+[2026-05-13T10:48:31.739Z] Ấn Enter để Tiếp tục
+[2026-05-13T10:48:31.749Z] Đợi Thẻ HTML hoặc Auto-verified 15s
+[2026-05-13T10:48:36.681Z] Đợi nội dung mã HTML 5s
+[2026-05-13T10:48:36.709Z] Extract HTML
+[2026-05-13T10:48:36.715Z] Đóng trình duyệt, OK
+[2026-05-13T10:54:05.289Z] === Bắt đầu: https://zkd.uk.com/ ===
+[2026-05-13T10:54:10.972Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://hjy.uk.com/
+[2026-05-13T10:54:10.973Z] Kiểm tra ô nhập URL...
+[2026-05-13T10:54:10.996Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T10:54:15.010Z] Mở Dropdown...
+[2026-05-13T10:54:15.057Z] Đợi 2s sau dropdown
+[2026-05-13T10:54:17.061Z] Click Thêm tài sản
+[2026-05-13T10:54:17.083Z] Đợi 2s form Add property hiện
+[2026-05-13T10:54:19.098Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T10:54:19.111Z] Chuyển sang tab URL Prefix
+[2026-05-13T10:54:19.616Z] Clear input
+[2026-05-13T10:54:20.127Z] Click & Gõ URL: https://zkd.uk.com/
+[2026-05-13T10:54:20.250Z] Ấn Enter để Tiếp tục
+[2026-05-13T10:54:20.264Z] Đợi Thẻ HTML hoặc Auto-verified 15s
+[2026-05-13T10:54:22.655Z] Đợi nội dung mã HTML 5s
+[2026-05-13T10:54:22.678Z] Extract HTML
+[2026-05-13T10:54:22.689Z] Đóng trình duyệt, OK
+[2026-05-13T11:00:18.165Z] === Bắt đầu: https://zkd.uk.com/ ===
+[2026-05-13T11:00:23.422Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console/about
+[2026-05-13T11:00:23.423Z] Phát hiện tài khoản mới ở trang /about, tìm nút Start Now...
+[2026-05-13T11:00:23.434Z] Đã bấm Start Now, đợi chuyển trang...
+[2026-05-13T11:00:24.027Z] Bị đá ra login sau khi bấm Start Now. Đứng chờ sếp đăng nhập...
+[2026-05-13T11:00:39.988Z] === Bắt đầu: https://zkd.uk.com/ ===
+[2026-05-13T11:00:45.505Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://hjy.uk.com/
+[2026-05-13T11:00:45.506Z] Kiểm tra ô nhập URL...
+[2026-05-13T11:00:45.518Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T11:00:49.522Z] Mở Dropdown...
+[2026-05-13T11:00:49.526Z] Đợi 2s sau dropdown
+[2026-05-13T11:00:51.537Z] Click Thêm tài sản
+[2026-05-13T11:00:51.540Z] Đợi 2s form Add property hiện
+[2026-05-13T11:00:53.548Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T11:01:03.554Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T11:01:14.763Z] === Bắt đầu: https://zkd.uk.com/ ===
+[2026-05-13T11:01:20.310Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://hjy.uk.com/
+[2026-05-13T11:01:20.310Z] Kiểm tra ô nhập URL...
+[2026-05-13T11:01:20.321Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T11:01:24.331Z] Mở Dropdown...
+[2026-05-13T11:01:24.334Z] Đợi 2s sau dropdown
+[2026-05-13T11:01:26.340Z] Click Thêm tài sản
+[2026-05-13T11:01:26.344Z] Đợi 2s form Add property hiện
+[2026-05-13T11:01:28.346Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T11:01:38.360Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T11:04:40.749Z] === Bắt đầu: https://zkd.uk.com/ ===
+[2026-05-13T11:04:47.226Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://hjy.uk.com/
+[2026-05-13T11:04:47.227Z] Kiểm tra ô nhập URL...
+[2026-05-13T11:04:47.248Z] Không có sẵn ô nhập URL, đợi GSC load 4s...
+[2026-05-13T11:04:51.255Z] Mở Dropdown...
+[2026-05-13T11:04:51.260Z] Đợi 2s sau dropdown
+[2026-05-13T11:04:53.264Z] Click Thêm tài sản
+[2026-05-13T11:04:53.268Z] Đợi 2s form Add property hiện
+[2026-05-13T11:04:55.270Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T11:05:05.274Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T11:09:15.557Z] === Bắt đầu: https://zkd.uk.com/ ===
+[2026-05-13T11:09:21.884Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://hjy.uk.com/
+[2026-05-13T11:09:21.885Z] Kiểm tra ô nhập URL...
+[2026-05-13T11:09:21.891Z] Bảng Thêm tài sản chưa mở, đợi GSC load 4s...
+[2026-05-13T11:09:25.901Z] Mở Dropdown (Tự động thử lại nếu React chưa load)...
+[2026-05-13T11:09:33.456Z] Đợi 2s form Add property hiện
+[2026-05-13T11:09:35.470Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T11:09:45.487Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T11:23:57.404Z] === Bắt đầu: https://zkd.uk.com/ ===
+[2026-05-13T11:24:06.006Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://hjy.uk.com/
+[2026-05-13T11:24:06.007Z] Kiểm tra ô nhập URL...
+[2026-05-13T11:24:06.012Z] Bảng Thêm tài sản chưa mở, đợi GSC load 4s...
+[2026-05-13T11:24:10.016Z] Mở Dropdown (Tự động thử lại nếu React chưa load)...
+[2026-05-13T11:24:17.580Z] Đợi 2s form Add property hiện
+[2026-05-13T11:24:19.596Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T11:24:29.606Z] EXCEPTION BẮT ĐƯỢC: Waiting failed: 10000ms exceeded
+[2026-05-13T11:26:32.677Z] === Bắt đầu: https://zkd.uk.com/ ===
+[2026-05-13T11:26:38.980Z] Kiểm tra auth... URL hiện tại: https://search.google.com/search-console?resource_id=https://hjy.uk.com/
+[2026-05-13T11:26:38.980Z] Kiểm tra ô nhập URL...
+[2026-05-13T11:26:38.985Z] Bảng Thêm tài sản chưa mở, đợi GSC load 4s...
+[2026-05-13T11:26:42.990Z] Mở Dropdown (Tự động thử lại nếu React chưa load)...
+[2026-05-13T11:26:44.531Z] Đợi 2s form Add property hiện
+[2026-05-13T11:26:46.533Z] Đợi input[type=url] hoặc ô nhập text 10s
+[2026-05-13T11:26:46.544Z] Chuyển sang tab URL Prefix
+[2026-05-13T11:26:47.049Z] Clear input
+[2026-05-13T11:26:47.565Z] Click & Gõ URL: https://zkd.uk.com/
+[2026-05-13T11:26:47.673Z] Ấn Enter để Tiếp tục
+[2026-05-13T11:26:47.685Z] Đợi Thẻ HTML hoặc Auto-verified 15s
+[2026-05-13T11:26:51.666Z] Trạng thái: Đã tự động xác minh

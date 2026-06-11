@@ -1,0 +1,6058 @@
+﻿    // --- FIREBASE SYNC CONFIG ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyB9FnjWvhtQVoTntV9wOvrLQJu2eOnskfE",
+      authDomain: "gsc-bulk-tool-e4e1c.firebaseapp.com",
+      databaseURL: "https://gsc-bulk-tool-e4e1c-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "gsc-bulk-tool-e4e1c",
+      storageBucket: "gsc-bulk-tool-e4e1c.firebasestorage.app",
+      messagingSenderId: "289973612938",
+      appId: "1:289973612938:web:e57efb3bf7dcb049f39873",
+      measurementId: "G-96B5D1X0LB"
+    };
+    
+    // Initialize Firebase Compat
+    firebase.initializeApp(firebaseConfig);
+    const fbDb = firebase.database();
+
+    async function syncWorkflowsToFirebase(list) {
+        try {
+            // Firebase từ chối undefined — làm sạch bằng JSON round-trip (undefined → null)
+            const clean = JSON.parse(JSON.stringify(list, (k, v) => v === undefined ? null : v));
+            await fbDb.ref('workflows/shared_list').set(clean);
+            console.log("☁️ Đã đồng bộ Workflow lên Firebase! Tổng: " + clean.length);
+        } catch (e) { console.error("Lỗi sync Firebase:", e); }
+    }
+
+    async function syncSettingsToFirebase() {
+        const SYNC_KEYS = [
+            'sys_ai_engine', 'gemini_api_key', 'sys_ollama_url', 'sys_ollama_model',
+            'sys_serper_key', 'telegram_bot_token', 'tele_chat_id',
+            'wf_system_settings', 'google_client_id', 'global_sheet_url',
+            'vps_ip', 'ai_skills', 'gsc_emails', 'wf_user_deleted', 'vps_google_json',
+            'sys_proxy_host', 'sys_proxy_port', 'sys_proxy_user', 'sys_proxy_pass'
+        ];
+        const settings = {};
+        SYNC_KEYS.forEach(k => {
+            const v = localStorage.getItem(k);
+            if (v !== null && v !== '') settings[k] = v;
+        });
+        try {
+            await fbDb.ref('settings/shared').set(settings);
+            console.log("☁️ Đã đồng bộ Settings lên Firebase!");
+        } catch (e) { console.error("Lỗi sync Settings Firebase:", e); }
+    }
+
+    async function loadSettingsFromFirebase() {
+        try {
+            const snapshot = await fbDb.ref('settings/shared').once('value');
+            const settings = snapshot.val();
+            if (settings && typeof settings === 'object') {
+                // Firebase luôn là nguồn duy nhất — ghi đè tất cả
+                Object.keys(settings).forEach(k => {
+                    localStorage.setItem(k, settings[k]);
+                });
+                console.log("☁️ Đã tải & đồng bộ Settings từ Firebase!");
+            }
+        } catch (e) { console.error("Lỗi load Settings Firebase:", e); }
+    }
+
+    function startWorkflowRealTimeSync() {
+        // Lắng nghe danh sách WFL đã xóa từ Firebase
+        fbDb.ref('workflows/deleted_names').on('value', (snap) => {
+            const fbDeleted = snap.val();
+            if (fbDeleted && Array.isArray(fbDeleted) && fbDeleted.length > 0) {
+                const localDeleted = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
+                const merged = [...new Set([...localDeleted, ...fbDeleted])];
+                localStorage.setItem('wf_user_deleted', JSON.stringify(merged));
+            }
+        });
+
+        // Lắng nghe real-time danh sách WFL
+        fbDb.ref('workflows/shared_list').on('value', (snapshot) => {
+            const list = snapshot.val();
+            const deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
+            if (list && Array.isArray(list) && list.length > 0) {
+                // Lọc ra các WFL user đã xóa trước khi áp dụng
+                let filtered = list.filter(w => !deletedNames.includes(w.name));
+                
+                // Tự động inject bản V2 nếu chưa có và user chưa chủ động xóa bản V2
+                const hasV2 = filtered.find(w => w.name === "🔍 Check Rank Từ Khóa (Bản Mới 2.4)");
+                const deletedV2 = deletedNames.includes("🔍 Check Rank Từ Khóa (Bản Mới 2.4)");
+                const oldWf = filtered.find(w => w.name.includes("Check Rank"));
+                
+                if (!hasV2 && !deletedV2) {
+                    console.log("☁️ Auto-injecting V2 Workflow...");
+                    seedDefaultWorkflows(true, oldWf);
+                    filtered = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+                    syncWorkflowsToFirebase(filtered);
+                } else {
+                    localStorage.setItem('wf_builder_list', JSON.stringify(filtered));
+                    // Luôn đảm bảo Status WFL ở bản mới nhất sau khi Firebase sync
+                    if (typeof seedStatusWorkflow === 'function') seedStatusWorkflow(true); // skipSync=true tránh loop
+                }
+                
+                localStorage.setItem('wf_seeded_v2', '1'); // Chặn seed chạy lại
+                if (typeof renderWfLibrary === 'function') renderWfLibrary();
+                if (typeof renderSavedWfList === 'function') renderSavedWfList();
+                updateAutomationBadge();
+                console.log("☁️ [Real-time] Đồng bộ Workflow từ Firebase! Tổng: " + filtered.length);
+            } else {
+                // Firebase rỗng → chạy seed mặc định rồi push lên Firebase
+                console.log("☁️ Firebase WFL rỗng → chạy seed mặc định...");
+                seedDefaultWorkflows(true);
+                const seeded = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+                if (seeded.length > 0) syncWorkflowsToFirebase(seeded);
+                if (typeof renderWfLibrary === 'function') renderWfLibrary();
+                if (typeof renderSavedWfList === 'function') renderSavedWfList();
+                updateAutomationBadge();
+            }
+        });
+    }
+
+    // Load ngay khi mở trang + bật real-time sync
+    loadSettingsFromFirebase();
+    startWorkflowRealTimeSync();
+
+
+    // --- BỔ SUNG: XÁC THỰC SERVICE ACCOUNT KHÔNG CẦN POPUP ---
+    async function getGoogleToken() {
+        // Ưu tiên dùng Service Account nếu sếp đã dán
+        const saJson = document.getElementById('sysVpsGoogleJson')?.value?.trim();
+        if (saJson) {
+            try {
+                const creds = JSON.parse(saJson);
+                const header = { alg: 'RS256', typ: 'JWT' };
+                const iat = KJUR.jws.IntDate.get('now');
+                const exp = KJUR.jws.IntDate.get('now + 1hour');
+                const payload = {
+                    iss: creds.client_email,
+                    scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/webmasters',
+                    aud: creds.token_uri,
+                    exp: exp,
+                    iat: iat
+                };
+                
+                const sHeader = JSON.stringify(header);
+                const sPayload = JSON.stringify(payload);
+                const sJWT = KJUR.jws.JWS.sign("RS256", sHeader, sPayload, creds.private_key);
+                
+                const res = await fetch(creds.token_uri, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${sJWT}`
+                });
+                const data = await res.json();
+                if (data.access_token) {
+                    console.log("✅ Đã lấy Token ngầm thành công bằng Service Account!");
+                    return data.access_token;
+                }
+                throw new Error("Không lấy được Token: " + JSON.stringify(data));
+            } catch (err) {
+                console.error("Lỗi xác thực Service Account:", err);
+                // Fallback nếu lỗi
+            }
+        }
+        
+        // Nếu không có Service Account thì dùng token cũ (từ Popup)
+        return localStorage.getItem('google_oauth_token');
+    }
+
+
+    function getActiveLocationName() {
+        const autoPanel = document.getElementById('automationPanel');
+        if (autoPanel && autoPanel.classList.contains('open')) {
+            const libView = document.getElementById('wfLibraryView');
+            const builderView = document.getElementById('wfBuilderView');
+            if (libView && libView.classList.contains('active')) return 'Workflow Library';
+            if (builderView && builderView.classList.contains('active')) return 'Workflow Builder (Canvas)';
+            return 'Workflow Builder';
+        }
+        
+        const settingsOverlay = document.getElementById('globalSettingsOverlay');
+        if (settingsOverlay && settingsOverlay.style.display === 'flex') return 'Hệ Thống Cài Đặt';
+        
+        const activeTabEl = document.querySelector('.tab-btn.active');
+        if (activeTabEl) return activeTabEl.innerText.trim();
+        
+        return 'Tổng Quan';
+    }
+
+    function updateAiLocationUI() {
+        const loc = document.getElementById('aiCurrentLocation');
+        if (loc) loc.innerText = getActiveLocationName();
+    }
+    
+    // Auto update every 500ms so it catches modal opens, tab switches, etc without manually hooking everything
+    setInterval(updateAiLocationUI, 500);
+
+    async function importFromSheet(targetTextareaId) {
+        if (!activeAccountEmails || activeAccountEmails.length === 0) {
+            return alert('Vui lòng qua Bước 1 để thêm hoặc chọn Tài khoản Google trước! Tool cần quyền để đọc Sheet.');
+        }
+        
+        let activeAcc = gscAccounts.find(a => a.email === activeAccountEmails[0]);
+        if (!activeAcc || !activeAcc.token || Date.now() > activeAcc.expiresAt) {
+            return alert('Tài khoản đã hết phiên. Vui lòng sang Bước 1 bấm Refresh (🔄).');
+        }
+
+        let sheetUrl = localStorage.getItem('global_sheet_url');
+        if (!sheetUrl) {
+            sheetUrl = prompt('Vui lòng dán Link Google Sheet vào đây:\n(Lưu ý: Bạn có thể lưu link này ở phần Cấu hình Chung phía trên)');
+            if (!sheetUrl) return;
+        }
+
+        let sheetId = '';
+        try {
+            const match = sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (match && match[1]) sheetId = match[1];
+            else throw new Error('Invalid URL');
+        } catch(e) {
+            return alert('Link Google Sheet không hợp lệ! Vui lòng kiểm tra lại Link ở phần Cấu hình Chung.');
+        }
+
+        const range = prompt('Nhập vùng dữ liệu cần lấy (Mặc định: A2:E100):\nVí dụ: Lấy 1 cột thì nhập A2:A100. Lấy nhiều cột (Gốc, Đích, User, Pass) thì nhập A2:E100', 'A2:A100');
+        if (!range) return;
+
+        try {
+            document.getElementById(targetTextareaId).value = 'Đang tải dữ liệu từ Google Sheet...';
+            const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`, {
+                headers: { 'Authorization': 'Bearer ' + activeAcc.token }
+            });
+            
+            if (!res.ok) {
+                if(res.status === 403) throw new Error('Lỗi 403: Không có quyền truy cập. Bạn đã share Sheet này cho email ' + activeAcc.email + ' chưa? Hoặc hãy mở quyền "Anyone with the link".');
+                throw new Error('Lỗi HTTP: ' + res.status);
+            }
+            
+            const data = await res.json();
+            if (!data.values || data.values.length === 0) {
+                document.getElementById(targetTextareaId).value = '';
+                return alert('Google Sheet rỗng hoặc vùng dữ liệu không có gì!');
+            }
+
+            let resultText = '';
+            data.values.forEach(row => {
+                // Lọc các ô trống và nối lại bằng dấu cách (để phù hợp với format web-gốc web-đích admin user pass)
+                const line = row.filter(cell => cell.trim() !== '').join(' ');
+                if(line) resultText += line + '\n';
+            });
+
+            document.getElementById(targetTextareaId).value = resultText.trim();
+            
+            // Cập nhật số lượng tổng ngay lập tức nếu là Tab Tổng Quan
+            if (targetTextareaId === 'overviewUrlInput') {
+                const lines = resultText.trim().split('\n').filter(l => l.trim());
+                document.getElementById('statTotal').innerText = lines.length;
+                document.getElementById('overviewBody').innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 40px; color:var(--success)">✅ Đã nạp ${lines.length} website! Mời sếp bấm nút "Quét Toàn Bộ Hệ Thống" để bắt đầu.</td></tr>`;
+            }
+
+            alert('✅ Đã nạp thành công ' + data.values.length + ' dòng dữ liệu từ Google Sheet!');
+            
+        } catch(e) {
+            document.getElementById(targetTextareaId).value = '';
+            alert('❌ Lỗi khi đọc Sheet:\n' + e.message);
+        }
+    }
+    const HELP_DATA = {
+        'telegram': {
+            icon: '📬', title: 'Cấu hình Telegram Bot',
+            desc: 'Kết nối bot Telegram để tool tự động gửi báo cáo sau mỗi lần chạy (Check 301, Outbound Audit, Check Bot...).',
+            steps: [
+                'Tạo bot: nhắn <b>@BotFather</b> → gõ <code>/newbot</code> → đặt tên → sao chép <b>Token</b>.',
+                'Lấy Chat ID: nhắn <b>@userinfobot</b>, nó trả về dãy số ID của sếp.',
+                'Dán <b>Bot Token</b> và <b>Chat ID</b> vào 2 ô rồi bấm <b>🔔 Test</b> để kiểm tra.',
+                'Nếu Telegram nhận được tin nhắn test là xong — tool sẽ tự báo cáo sau mỗi lần quét.'
+            ],
+            tip: '💡 Cấu hình được đồng bộ lên cloud, nên nhiều máy/người dùng chung tool đều nhận báo cáo cùng lúc.'
+        },
+                'gsc-insights': {
+            icon: '📈', title: 'Phân tích Chỉ số GSC',
+            desc: 'Tự động quét Clicks, Impressions, Position của toàn bộ website và tính toán tỷ lệ tăng trưởng.',
+            steps: [
+                'Chọn mốc thời gian: <b>Ngày</b> (hôm qua vs hôm kia), <b>Tuần</b> (7 ngày qua vs 7 ngày trước), <b>Tháng</b> (30 ngày).',
+                'Bấm <b>🚀 Quét Toàn Bộ Website</b>.',
+                'Tool tự động lấy danh sách web từ Tab 1, sau đó tải dữ liệu GSC về so sánh.',
+                'Quan sát mũi tên Xanh/Đỏ để biết ngay web nào đang tăng hay tụt dốc.'
+            ],
+            tip: '💡 Dữ liệu GSC luôn trễ khoảng 3 ngày. Tool đã tự động lùi 3 ngày để làm mốc thời gian lấy dữ liệu.'
+        },
+        'gsc-account': {
+            icon: '👤', title: 'Bước 1 – Quản lý Tài khoản GSC',
+            desc: 'Thêm và quản lý nhiều tài khoản Google Search Console. Hỗ trợ đa tài khoản, add web vào nhiều GSC cùng lúc.',
+            steps: [
+                'Bấm <b>➕ Thêm Tài Khoản Google</b> → đăng nhập tài khoản GSC muốn dùng.',
+                'Tick checkbox để <b>chọn tài khoản</b> sẽ dùng. Có thể chọn nhiều tài khoản.',
+                'Nếu badge đỏ <i>Hết phiên</i> → bấm <b>🔄 Refresh</b> để lấy lại token (không cần nhập pass).',
+                'Bấm <b>❌ Xóa</b> để gỡ tài khoản khỏi danh sách.'
+            ],
+            tip: '💡 Phiên đăng nhập có hiệu lực ~58 phút. Tool không lưu mật khẩu — chỉ lưu token tạm trong bộ nhớ trình duyệt.'
+        },
+        'gsc-sitemap': {
+            icon: '🗺️', title: 'Bước 2 – Add Web & Nạp Sitemap',
+            desc: 'Tự động add hàng loạt domain vào GSC, lấy mã xác minh HTML Meta Tag và nộp sitemap — tất cả chỉ 1 click.',
+            steps: [
+                'Nhập danh sách domain vào textarea (mỗi dòng 1 domain, có hoặc không có https).',
+                'Điền tên các file sitemap cách nhau bằng dấu phẩy vào ô <b>Sitemap Names</b>.',
+                'Đảm bảo đã chọn tài khoản (Bước 1), rồi bấm <b>🚀 Bắt đầu Add & Lấy Mã</b>.',
+                'Cột <b>Mã HTML</b>: copy meta tag dán vào &lt;head&gt; website. Cột <b>Xác minh</b>: bấm để verify với Google.',
+                'Bấm <b>Nạp Sitemap</b> bất kỳ lúc nào để nộp sitemap cho tất cả web trong bảng.'
+            ],
+            tip: '💡 Nếu domain đã có trong GSC với quyền Owner, tool bỏ qua bước add và chuyển thẳng sang nộp sitemap.'
+        },
+        'check301': {
+            icon: '🔍', title: 'Check Website & 301 Status',
+            desc: 'Kiểm tra hàng loạt: trạng thái sống/chết, 301 redirect đúng đích chưa, admin còn hoạt động không, đăng nhập tự động.',
+            steps: [
+                '<b>Quét đầy đủ:</b> Nhập <code>web-gốc web-đích admin-path user pass</code> (mỗi dòng 1 web). Bấm <b>🔍 Quét Trạng Thái (Full)</b>.',
+                '<b>Chỉ check 301:</b> Dán list web gốc (1 dòng 1 URL), bấm <b>🔄 Chỉ Check 301</b> để xuất URL đích tương ứng.',
+                'Cột <b>So khớp 301</b>: ✅ KHHP = redirect đúng đích. 🚨 LHCH = redirect sai đích.',
+                'Cột <b>Login</b>: Có user/pass → bấm 🔑 Login để mở wp-admin tự động trong tab mới.'
+            ],
+            tip: '💡 Tool dùng proxy công khai (codetabs, allorigins). Web có Cloudflare bảo vệ có thể trả kết quả không chính xác.'
+        },
+        'outbound': {
+            icon: '🔗', title: 'Outbound Link Auditor',
+            desc: 'Quét mã nguồn trang web, tìm và kiểm tra tất cả link trỏ ra ngoài. Phát hiện affiliate cloaking qua đường dẫn /mlink/.',
+            steps: [
+                'Nhập danh sách URL cần quét (mỗi dòng 1 URL).',
+                'Bấm <b>🚀 Quét Tất Cả Outbound</b> để tìm toàn bộ link ngoài (thẻ a, onclick, data-href, JS...).',
+                'Bấm <b>🔗 Chỉ Check /mlink/ Cloaking</b> để chỉ kiểm tra link affiliate ẩn qua /mlink/.',
+                'Kết quả hiện link đích thực sau redirect (cột RDR), ✅ SỐNG / ❌ CHẾT, và HTTP code.'
+            ],
+            tip: '💡 Tool quét 5 nguồn: thẻ &lt;a&gt;, onclick, data-href, nội dung &lt;script&gt;, &lt;noscript&gt;. Rất hữu ích để audit PBN có link cloaking.'
+        },
+        'checkbot': {
+            icon: '🤖', title: 'Check Trạng Thái Mở Bot (Index)',
+            desc: 'Kiểm tra nhanh Googlebot có được phép thu thập dữ liệu không, hay bị chặn bởi robots.txt hoặc meta noindex.',
+            steps: [
+                'Nhập danh sách website vào textarea (mỗi dòng 1 URL).',
+                'Bấm <b>🤖 Bắt đầu Check Mở Bot</b>.',
+                '<b>🟢 MỞ BOT:</b> robots.txt không chặn + không có meta noindex → Googlebot vào được.',
+                '<b>🔴 ĐÓNG BOT:</b> Có <code>Disallow: /</code> trong robots.txt hoặc <code>meta noindex</code> → Googlebot bị chặn.'
+            ],
+            tip: '💡 Tool kiểm tra 2 lớp: (1) robots.txt có Disallow: / không, (2) trang chủ có meta robots=noindex không.'
+        }
+    };
+
+    // =====================================================================
+    // HÀM ĐỒNG BỘ COOKIE LÊN VPS
+    // =====================================================================
+    async function syncCookieForId(profileId) {
+        const inputEl = document.getElementById(`cookie_input_${profileId}`);
+        const btnEl = document.getElementById(`btn_sync_${profileId}`);
+        const cookieData = inputEl.value.trim();
+        
+        if (!cookieData) {
+            alert('Vui lòng dán nội dung Cookie JSON vào ô trống của tài khoản ' + profileId + '!');
+            return;
+        }
+
+        const vpsIp = localStorage.getItem('vps_ip') || '';
+        if(!vpsIp) { alert("Vui lòng điền IP VPS ở phần Cài đặt chung (Bánh răng góc phải)!"); return; }
+        
+        // Lưu lại Cookie để không bị mất khi F5
+        localStorage.setItem('cookie_json_' + profileId, cookieData);
+
+        const useHttps = location.protocol === 'https:';
+        const apiUrl = useHttps
+            ? 'https://' + vpsIp.replace(/https?:\/\//, '').split(':')[0] + ':3001'
+            : (vpsIp.includes('http') ? vpsIp.replace(/:300\d/,'') : 'http://' + vpsIp) + ':3002';
+        
+        const oldHtml = btnEl.innerHTML;
+        btnEl.innerHTML = '⏳ Đang đồng bộ...';
+        btnEl.parentNode.disabled = true;
+        
+        try {
+            const res = await fetch(apiUrl + '/update-cookie', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: profileId, cookieData: cookieData })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(`✅ THÀNH CÔNG!\n\n${data.message}`);
+                inputEl.value = ''; // Xóa trắng sau khi thành công
+            } else {
+                alert(`❌ LỖI TỪ MÁY CHỦ:\n\n${data.message}`);
+            }
+        } catch (e) {
+            alert(`❌ LỖI KẾT NỐI:\n\nKhông thể kết nối đến VPS.\nChi tiết: ${e.message}`);
+        } finally {
+            btnEl.innerHTML = oldHtml;
+            btnEl.parentNode.disabled = false;
+        }
+    }
+
+    function showHelp(id) {
+        const d = HELP_DATA[id]; if (!d) return;
+        document.getElementById('helpTitle').innerHTML = d.icon + ' ' + d.title;
+        document.getElementById('helpDesc').textContent = d.desc;
+        document.getElementById('helpSteps').innerHTML = d.steps.map((s, i) =>
+            '<li><span class="step-num">' + (i+1) + '</span><span>' + s + '</span></li>'
+        ).join('');
+        const tip = document.getElementById('helpTip');
+        if (d.tip) { tip.innerHTML = d.tip; tip.style.display = 'block'; }
+        else tip.style.display = 'none';
+        document.getElementById('helpOverlay').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeHelp() {
+        document.getElementById('helpOverlay').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHelp(); });
+
+    let GOOGLE_CLIENT_ID = localStorage.getItem('google_client_id') || "938057045964-r7r5osdav10sgf6rhev3c8vri2qbal4r.apps.googleusercontent.com";
+    let accessToken = null;
+
+    
+    // === VPS PROXY HELPERS ===
+
+    function stripLocalePath(url) {
+        // Bỏ các path locale kiểu /vi-vn/, /en-us/, /vi/, /en/ ở ĐẦU path. 
+        // Vd: https://domain.com/vi-vn/wp-admin -> https://domain.com/wp-admin
+        try {
+            const u = new URL(url);
+            // Thay thế ngay đầu pathname: /vi-vn/ -> /
+            u.pathname = u.pathname.replace(/^\/([a-z]{2}(-[a-z]{2,3})?)\//i, '/');
+            return u.href; 
+        } catch(e) { return url; }
+    }
+
+    function getVpsProxyUrl(url, raw = false) {
+        const ip = document.getElementById('sysVpsIp')?.value.trim();
+        if (ip) {
+            const target = `http://${ip}:3001/proxy?url=${encodeURIComponent(url)}&raw=${raw}`;
+            return `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`;
+        }
+        return null;
+    }
+
+        async function vpsProxyRaw(url, signal) {
+        const ip = document.getElementById('sysVpsIp')?.value.trim();
+        if (ip) {
+            try {
+                const ctrl2 = new AbortController();
+                const tid = setTimeout(() => ctrl2.abort(), 15000); // Tăng timeout lên 15s cho VPS
+                const vpsUrl = `http://${ip}:3001/proxy?url=${encodeURIComponent(url)}&raw=true`;
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(vpsUrl)}`;
+                const res = await fetch(proxyUrl, { signal: ctrl2.signal });
+                clearTimeout(tid);
+                if (res.ok) return await res.text();
+                throw new Error('VPS Proxy returned error');
+            } catch(e) { 
+                console.error('VPS Proxy failed:', e);
+                throw e; // Trả lỗi luôn, không đi vòng vèo qua proxy công cộng nữa
+            }
+        }
+        // Chỉ dùng proxy công cộng nếu KHÔNG CÓ IP VPS
+        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, { signal });
+        if (res.ok) return await res.text();
+        throw new Error('Public Proxy failed');
+    }
+
+        async function vpsProxyJson(url, signal) {
+        const ip = document.getElementById('sysVpsIp')?.value.trim();
+        if (ip) {
+            try {
+                const ctrl2 = new AbortController();
+                const tid = setTimeout(() => ctrl2.abort(), 15000);
+                const vpsUrl = `http://${ip}:3001/proxy?url=${encodeURIComponent(url)}`;
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(vpsUrl)}`;
+                const res = await fetch(proxyUrl, { signal: ctrl2.signal });
+                clearTimeout(tid);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && data.status) return data;
+                }
+                throw new Error('VPS JSON Proxy failed');
+            } catch(e) {
+                console.error('VPS JSON Proxy failed:', e);
+                throw e;
+            }
+        }
+        // Fallback: allorigins chỉ dùng khi không có VPS
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { signal });
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.status) return data;
+        }
+        throw new Error('Public JSON Proxy failed');
+    }
+
+    async function callVps(ip, path) {
+        // Phải đi qua HTTPS proxy vì trang chạy trên HTTPS (Mixed Content block)
+        const vpsUrl = 'http://' + ip + ':3001' + path;
+        const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(vpsUrl);
+        const ctrl = new AbortController();
+        setTimeout(() => ctrl.abort(), 12000);
+        const res = await fetch(proxyUrl, { signal: ctrl.signal });
+        return res.json();
+    }
+
+    // --- TELEGRAM LOGIC ---
+    const TELE_JSON_URL = "https://api.restful-api.dev/objects/ff8081819d82fab6019dd7f81ef5626c";
+    
+        async function syncCredentialsToVps() {
+            const ip = document.getElementById('sysVpsIp').value.trim();
+            const jsonContent = document.getElementById('sysVpsGoogleJson').value.trim();
+            if (!ip || !jsonContent) { alert('Vui lòng nhập IP và dán JSON trong phần Cài đặt Hệ thống!'); return; }
+            try {
+                const data = await callVps(ip, `/update-credentials?jsonContent=${encodeURIComponent(jsonContent)}`);
+                if (data.success) { alert('✅ Đã lưu chìa khóa lên VPS thành công!'); }
+                else { alert('❌ Thất bại: ' + data.message); }
+            } catch (error) { alert('❌ Lỗi kết nối VPS. Kiểm tra IP và cổng.'); }
+        }
+
+        async function upgradeAgent() {
+            const ip = document.getElementById('sysVpsIp').value.trim();
+            if (!ip) { alert('Vui lòng nhập IP VPS trong phần Cài đặt Hệ thống!'); return; }
+            if (!confirm('Sếp có chắc muốn nâng cấp Agent từ xa không?')) return;
+            try {
+                const data = await callVps(ip, '/update-agent');
+                if (data.success) { alert('✅ ' + data.message); }
+                else { alert('⚠️ ' + (data.message || 'Không rõ trạng thái')); }
+            } catch (error) { alert('❌ Lỗi: VPS chưa chạy hoặc sai IP.'); }
+        }
+
+        async function syncToVps() {
+            const ip = document.getElementById('sysVpsIp').value.trim();
+            const token = document.getElementById('sysTeleToken').value.trim();
+            const chatId = document.getElementById('sysTeleChatId').value.trim();
+            const sheetUrl = document.getElementById('sysGlobalSheetUrl').value.trim();
+            if (!ip) { alert('Vui lòng nhập IP VPS!'); return; }
+            if (!token || !chatId || !sheetUrl) { alert('Vui lòng điền đủ Token, Chat ID và Sheet URL!'); return; }
+            try {
+                const data = await callVps(ip, `/update-config?telegramToken=${encodeURIComponent(token)}&chatId=${encodeURIComponent(chatId)}&sheetUrl=${encodeURIComponent(sheetUrl)}`);
+                if (data.success) { alert('✅ Đồng bộ thành công! Agent đang khởi động lại...'); }
+                else { alert('❌ Thất bại: ' + data.message); }
+            } catch (error) { alert('❌ Lỗi kết nối! Đảm bảo VPS đã mở cổng 3001.'); }
+        }
+
+    // Legacy stub — data now lives in Settings Modal
+    async function saveTeleSettings() {
+        // Tự động lưu từ localStorage (không cần form cũ)
+        const st = document.getElementById('teleStatus');
+        if (st) { st.style.display = 'block'; setTimeout(() => st.style.display = 'none', 3001); }
+    }
+    async function loadTeleSettings() {
+        // Load từ cloud và lưu vào localStorage
+        try {
+            const res = await fetch(TELE_JSON_URL + "?t=" + Date.now());
+            if (!res.ok) return;
+            const resData = await res.json();
+            const data = resData.data;
+            if (data) {
+                if (data.tele_token) localStorage.setItem('telegram_bot_token', data.tele_token);
+                if (data.tele_chat_id) localStorage.setItem('tele_chat_id', data.tele_chat_id);
+                if (data.global_sheet_url) localStorage.setItem('global_sheet_url', data.global_sheet_url);
+                if (data.google_client_id) { localStorage.setItem('google_client_id', data.google_client_id); GOOGLE_CLIENT_ID = data.google_client_id; }
+                if (data.gsc_emails && Array.isArray(data.gsc_emails) && typeof gscAccounts !== 'undefined') {
+                    data.gsc_emails.forEach(email => { if (!gscAccounts.find(a => a.email === email)) gscAccounts.push({ email, token: null, expiresAt: 0 }); });
+                    if (gscAccounts.length > 0 && activeAccountEmails.length === 0) activeAccountEmails = [gscAccounts[0].email];
+                    renderAccounts();
+                    localStorage.setItem('gsc_emails', JSON.stringify(data.gsc_emails));
+                }
+            }
+        } catch(e) { console.error("Lỗi đồng bộ cấu hình (Load)", e); }
+    }
+    async function sendToTelegram(msg) {
+        const t = localStorage.getItem('telegram_bot_token'), c = localStorage.getItem('tele_chat_id');
+        if (!t || !c) return;
+        try {
+            // Dùng GET + URLSearchParams để tránh CORS preflight (POST/JSON bị chặn từ browser)
+            const params = new URLSearchParams({
+                chat_id: c, text: msg, parse_mode: 'HTML', disable_web_page_preview: '1'
+            });
+            const res = await fetch(`https://api.telegram.org/bot${t}/sendMessage?${params.toString()}`);
+            return res.ok;
+        } catch(e) { return false; }
+    }
+    async function testTele() {
+        const ok = await sendToTelegram('<b>🔔 Test thành công!</b>\nTool GSC đã kết nối được với Telegram của sếp.');
+        if (ok) alert("✅ Bot đã gửi tin nhắn test thành công! Sếp kiểm tra Telegram nhé.");
+        else alert("❌ Lỗi! Sếp kiểm tra lại Token hoặc Chat ID trong phần Cài đặt Hệ thống ⚙️.");
+    }
+    let gscAccounts = []; // { email, token, expiresAt }
+    let activeAccountEmails = [];
+
+    function saveAccountsToLocal() {
+        const emails = gscAccounts.map(a => a.email);
+        localStorage.setItem('gsc_emails', JSON.stringify(emails));
+        const token = localStorage.getItem('telegram_bot_token') || '';
+        const chatId = localStorage.getItem('tele_chat_id') || '';
+        fetch(TELE_JSON_URL, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ data: { tele_token: token, tele_chat_id: chatId, gsc_emails: emails } })
+        }).catch(e => console.error(e));
+    }
+
+
+    function loadAccountsFromLocal() {
+        try {
+            const emails = JSON.parse(localStorage.getItem('gsc_emails') || '[]');
+            emails.forEach(email => {
+                if(!gscAccounts.find(a=>a.email === email)) {
+                    gscAccounts.push({ email: email, token: null, expiresAt: 0 });
+                }
+            });
+            if(gscAccounts.length > 0 && activeAccountEmails.length === 0) activeAccountEmails = [gscAccounts[0].email];
+            renderAccounts();
+        } catch(e) {}
+    }
+
+    function renderAccounts() {
+        const list = document.getElementById('accountList');
+        if (!list) return;
+        if (gscAccounts.length === 0) {
+            list.innerHTML = '<div style="font-size:12px; color:var(--text-muted); font-style:italic;">Chưa có tài khoản nào. Vui lòng thêm tài khoản.</div>';
+            document.getElementById('btnStart').disabled = true;
+            return;
+        }
+        
+        let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
+        let allTokensValid = true;
+        let hasSelected = false;
+
+        gscAccounts.forEach(acc => {
+            const isActive = activeAccountEmails.includes(acc.email);
+            const isExpired = !acc.token || Date.now() > acc.expiresAt;
+            if (isActive) {
+                hasSelected = true;
+                if (isExpired) allTokensValid = false;
+            }
+            html += `
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border:1px solid ${isActive?'var(--primary)':'var(--border)'}; border-radius:6px; background:${isActive?'rgba(59,130,246,0.05)':'transparent'};">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="checkbox" ${isActive?'checked':''} onchange="toggleAccount('${acc.email}')" style="cursor:pointer; width:16px; height:16px; accent-color:var(--primary);">
+                        <span style="font-weight:600; font-size:13px; color:${isActive?'var(--primary)':'var(--text)'};">${acc.email}</span>
+                        ${isExpired ? '<span style="font-size:10px; color:var(--danger); padding:2px 6px; background:rgba(231,76,60,0.1); border-radius:4px; font-weight:600;">Hết phiên</span>' : '<span style="font-size:10px; color:var(--success); padding:2px 6px; background:rgba(46,204,113,0.1); border-radius:4px; font-weight:600;">Đang kết nối</span>'}
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn-mini" onclick="refreshAccount('${acc.email}')" style="background:var(--bg-card); color:var(--text); border:1px solid var(--border);" title="Lấy lại quyền truy cập (không cần nhập lại pass)">🔄 Refresh</button>
+                        <button class="btn-mini" onclick="removeAccount('${acc.email}')" style="background:var(--danger); color:#fff; border:none;" title="Xóa tài khoản này">❌ Xóa</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        list.innerHTML = html;
+        
+        if (hasSelected && allTokensValid) {
+            document.getElementById('btnStart').disabled = false;
+        } else {
+            document.getElementById('btnStart').disabled = true;
+        }
+    }
+
+    function toggleAccount(email) {
+        if(activeAccountEmails.includes(email)) {
+            activeAccountEmails = activeAccountEmails.filter(e => e !== email);
+        } else {
+            activeAccountEmails.push(email);
+        }
+        renderAccounts();
+    }
+
+    function removeAccount(email) {
+        gscAccounts = gscAccounts.filter(a => a.email !== email);
+        activeAccountEmails = activeAccountEmails.filter(e => e !== email);
+        if (gscAccounts.length > 0 && activeAccountEmails.length === 0) activeAccountEmails.push(gscAccounts[0].email);
+        saveAccountsToLocal();
+        renderAccounts();
+    }
+
+    function addGoogleAccount() {
+        const client = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/siteverification https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets.readonly',
+            callback: async (res) => { 
+                if (res.access_token) { 
+                    try {
+                        const uRes = await fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', { headers: { 'Authorization': `Bearer ${res.access_token}` } });
+                        const uData = await uRes.json();
+                        if(uData.email) {
+                            const existing = gscAccounts.find(a => a.email === uData.email);
+                            if (existing) {
+                                existing.token = res.access_token;
+                                existing.expiresAt = Date.now() + 3500000;
+                                await fetchAccountSites(existing);
+                            } else {
+                                const newAcc = { email: uData.email, token: res.access_token, expiresAt: Date.now() + 3500000, sites: [] };
+                                gscAccounts.push(newAcc);
+                                await fetchAccountSites(newAcc);
+                            }
+                            if(!activeAccountEmails.includes(uData.email)) activeAccountEmails.push(uData.email);
+                            saveAccountsToLocal();
+                            renderAccounts();
+                        }
+                    } catch(e) { alert("Lỗi khi lấy thông tin Email hoặc Danh sách website. Vui lòng thử lại."); }
+                } 
+            }
+        });
+        client.requestAccessToken({prompt: 'select_account'});
+    }
+
+    async function fetchAccountSites(acc) {
+        try {
+            const res = await fetch('https://www.googleapis.com/webmasters/v3/sites', { headers: { 'Authorization': `Bearer ${acc.token}` } });
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.siteEntry) {
+                acc.sites = data.siteEntry.map(e => ({ siteUrl: e.siteUrl, permissionLevel: e.permissionLevel }));
+            } else {
+                acc.sites = [];
+            }
+            saveAccountsToLocal();
+        } catch(e) { console.error("Lỗi fetch sites cho " + acc.email, e); }
+    }
+
+    function refreshAccount(email) {
+        const client = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/siteverification https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/spreadsheets.readonly',
+            callback: async (res) => { 
+                if (res.access_token) { 
+                    const existing = gscAccounts.find(a => a.email === email);
+                    if (existing) {
+                        existing.token = res.access_token;
+                        existing.expiresAt = Date.now() + 3500000;
+                        await fetchAccountSites(existing);
+                        renderAccounts();
+                    }
+                } 
+            }
+        });
+        // Use login_hint to silently re-auth if the user is already logged into this email in Chrome
+        client.requestAccessToken({login_hint: email, prompt: ''});
+    }
+
+    window.addEventListener('load', () => {
+        loadTeleSettings();
+        loadAccountsFromLocal();
+        // Hiển thị badge workflow đã lưu
+        updateAutomationBadge();
+        // Khôi phục panel nếu đang mở
+        if (sessionStorage.getItem('panelOpen') === '1') openAutomationPanel();
+        // Khôi phục tab đang làm việc (F5 trở về tab cũ)
+        const lastTab = sessionStorage.getItem('lastTab');
+        if (lastTab && document.getElementById(lastTab)) {
+            switchTab(lastTab);
+        }
+        // Khôi phục trạng thái panel điều khiển nếu đang mở
+        if (sessionStorage.getItem('panelOpen') === '1') {
+            openAutomationPanel();
+        }
+    });
+
+    
+    
+    function openAutomationPanel() {
+        document.getElementById('automationPanel').classList.add('open');
+        document.getElementById('autoOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        sessionStorage.setItem('panelOpen', '1');
+        // Init builder the first time
+        if (!window._wfBuilderInited) {
+            window._wfBuilderInited = true;
+            initWorkflowBuilder();
+        } else {
+            renderSavedWfList();
+        }
+    }
+
+    function closeAutomationPanel() {
+        document.getElementById('automationPanel').classList.remove('open');
+        document.getElementById('autoOverlay').classList.remove('open');
+        document.body.style.overflow = '';
+        sessionStorage.removeItem('panelOpen');
+    }
+
+
+    // ===== WORKFLOW BUILDER ENGINE =====
+    // Workflow Builder Engine - all functions
+        const CATEGORIES = [
+        { id: 'trigger', label: '⚡ Trình Kích Hoạt' },
+        { id: 'core',    label: '⚙️ Cốt Lõi & Logic' },
+        { id: 'app',     label: '🌐 Ứng Dụng' },
+        { id: 'seo',     label: '🔍 Nghiệp Vụ SEO' }
+    ];
+
+    const ATOMIC_BLOCKS = [
+        // Triggers
+        { type: 'trigger-manual', category: 'trigger', icon: '▶️', label: 'Manual Trigger', color: '#f59e0b', desc: 'Kích hoạt bằng nút bấm' },
+        { type: 'trigger-cron',   category: 'trigger', icon: '⏱️', label: 'Schedule Trigger', color: '#f59e0b', desc: 'Hẹn giờ chạy tự động' },
+        { type: 'trigger-webhook',category: 'trigger', icon: '🪝', label: 'Webhook Trigger', color: '#f59e0b', desc: 'Kích hoạt từ app khác' },
+        
+        // Cốt lõi & Logic
+        { type: 'custom-code', category: 'core', icon: '💻', label: 'Chạy Code JS',     color: '#64748b', desc: 'Xử lý dữ liệu bằng mã Javascript tùy chỉnh' },
+        { type: 'input',       category: 'core', icon: '📥', label: 'Nhập Dữ Liệu',     color: '#3b82f6', desc: 'Danh sách URL / domain đầu vào' },
+        { type: 'tech-monitor', category: 'core', icon: '🩺', label: 'Giám Sát Node',    color: '#f59e0b', desc: 'Kiểm tra lỗi kỹ thuật của hệ thống' },
+        { type: 'ai-audit',     category: 'core', icon: '🤖', label: 'AI Audit Lỗi Lạ',   color: '#a855f7', desc: 'AI phân tích và giải thích lỗi kỹ thuật không xác định' },
+        { type: 'merge',      category: 'core', icon: '⑃',  label: 'Merge',             color: '#06b6d4', desc: 'Gộp các nhánh song song thành một luồng' },
+        { type: 'condition',   category: 'core', icon: '⑂',  label: 'Điều Kiện / Lọc',  color: '#f97316', desc: 'Rẽ nhánh: Đúng → A, Sai → B' },
+        { type: 'loop',        category: 'core', icon: '🔁', label: 'Vòng Lặp',         color: '#ec4899', desc: 'Chạy lặp qua từng phần tử' },
+        
+        // Ứng dụng
+        { type: 'ai-vision-search', category: 'app', icon: '👁️', label: 'Nghiên cứu Đối thủ', color: '#ec4899', desc: 'AI tìm và phân tích hình ảnh đối thủ' },
+        { type: 'n8n-webhook', category: 'app', icon: '☁️', label: 'Gọi Webhook n8n', color: '#ff6d5a', desc: 'Đóng gói dữ liệu bắn sang n8n qua Webhook' },
+        { type: 'telegram',    category: 'app', icon: '📩', label: 'Báo Cáo Telegram',  color: '#0088cc', desc: 'Gửi kết quả qua Telegram bot' },
+        { type: 'ai-content',  category: 'app', icon: '✍️', label: 'AI Viết Bài',      color: '#a855f7', desc: 'Tạo nội dung SEO bằng AI' },
+        { type: 'gsc-auth',    category: 'app', icon: '🔗', label: 'Kết Nối Google',    color: '#4f46e5', desc: 'Xác thực tài khoản Google OAuth' },
+        { type: 'gsc-verify',  category: 'app', icon: '✅', label: 'Xác Minh Site',     color: '#7c3aed', desc: 'Xác minh quyền sở hữu trong GSC' },
+        { type: 'gsc-sitemap', category: 'app', icon: '🗺️', label: 'Nạp Sitemap',      color: '#8b5cf6', desc: 'Submit sitemap lên Google Search' },
+        { type: 'fetch-gsc',   category: 'app', icon: '📊', label: 'Lấy Data GSC',      color: '#06b6d4', desc: 'Lấy dữ liệu click / impression' },
+        { type: 'update-sheet', category: 'app', icon: '📤', label: 'Cập nhật Sheet',    color: '#10b981', desc: 'Ghi dữ liệu kết quả vào Google Sheet' },
+        
+        // SEO
+        { type: 'http-status', category: 'seo', icon: '🌐', label: 'Check Trạng Thái', color: '#10b981', desc: 'Dò lỗi 404, 502, Time out, Trắng trang...' },
+        { type: 'check-301',   category: 'seo', icon: '🔀', label: 'Check 301',         color: '#f59e0b', desc: 'Kiểm tra redirect 301 có đúng không' },
+        { type: 'check-login', category: 'seo', icon: '🔑', label: 'Check WP Login',    color: '#ef4444', desc: 'Kiểm tra đăng nhập WordPress' },
+        { type: 'check-bot',   category: 'seo', icon: '🤖', label: 'Check Bot Access',  color: '#10b981', desc: 'Kiểm tra bot được phép truy cập' },
+    ];
+    
+    const COMPOUND_BLOCKS = [
+        { type: 'tool-gsc',      icon: '📦', label: 'GSC Full',       color: '#1e40af', desc: 'Auth + Verify + Sitemap đầy đủ' },
+        { type: 'tool-301',      icon: '📦', label: 'Check 301 & WP', color: '#92400e', desc: '301 + WP Login check toàn hệ thống' },
+        { type: 'tool-bot',      icon: '📦', label: 'Check Bot Full', color: '#065f46', desc: 'Bot check toàn hệ thống' },
+        { type: 'tool-overview', icon: '📦', label: 'System Audit',   color: '#3730a3', desc: 'Quét tổng quan toàn bộ hệ thống' },
+    ];
+    
+    let wfNodes = [];
+    let wfEdges = [];
+    let wfNodeCount = 0;
+    let draggingPalette = null;
+    let draggingNode = null;
+    let wfZoom = 1;
+    let wfPanX = 0;
+    let wfPanY = 0;
+    let isCanvasPanning = false;
+    let canvasPanStartX = 0;
+    let canvasPanStartY = 0;
+    let connectingFrom = null;
+    let tempLine = null;
+    
+    function seedDefaultWorkflows(force = false, oldWf = null) {
+        if (!force && localStorage.getItem("wf_seeded_v2")) return;
+        localStorage.removeItem("wf_seeded_v1");
+
+        var RANK_CODE = [
+            "// CHECK RANK REAL-TIME via Serper API",
+            "// Input: Col A = tu khoa, Col B = domain",
+            "// Output: rank_pc, rank_mb, total_rank",
+            "var serperKey = localStorage.getItem(\"sys_serper_key\") || \"\";",
+            "if (!serperKey) { alert(\"Chua co Serper API Key! Vao Cai dat >> Serper.\"); return items; }",
+            "async function checkRank(keyword, domain, device) {",
+            "    var body = { q: keyword, gl: \"vn\", hl: \"vi\", num: 100 };",
+            "    if (device === \"mobile\") body.device = \"mobile\";",
+            "    var res = await fetch(\"https://google.serper.dev/search\", {",
+            "        method: \"POST\",",
+            "        headers: { \"X-API-KEY\": serperKey, \"Content-Type\": \"application/json\" },",
+            "        body: JSON.stringify(body)",
+            "    });",
+            "    var data = await res.json();",
+            "    console.log('[Serper API Debug] Kw:', keyword, 'Device:', device, 'Response:', data);",
+            "    if (!data.organic) return 0;",
+            "    var d = domain.replace(/^https?:\\/\\//, \"\").replace(/\\/$/, \"\").toLowerCase();",
+            "    var found = data.organic.find(function(r) { return r.link && r.link.toLowerCase().indexOf(d) >= 0; });",
+            "    return found ? found.position : 0;",
+            "}",
+            "for (var i = 0; i < items.length; i++) {",
+            "    var item = items[i];",
+            "    var kw = (item.A || item.keyword || \"\").trim();",
+            "    var site = (item.D || item.domain || \"\").trim();",
+            "    if (!kw || !site) { item.rank_pc='N/A'; item.rank_mb='N/A'; item.total_rank='N/A'; continue; }",
+            "    item.keyword = kw; item.domain = site;",
+            "    try {",
+            "        var results = await Promise.all([checkRank(kw, site, \"desktop\"), checkRank(kw, site, \"mobile\")]);",
+            "        item.rank_pc = results[0] > 0 ? results[0] : 'N/A';",
+            "        item.rank_mb = results[1] > 0 ? results[1] : 'N/A';",
+            "        var v = [results[0], results[1]].filter(function(r) { return r > 0; });",
+            "        item.total_rank = v.length ? Math.min.apply(null, v) : 'N/A';",
+            "    } catch(e) { item.rank_pc='N/A'; item.rank_mb='N/A'; item.total_rank='N/A'; }",
+            "}",
+            "return items;"
+        ].join("\n");
+
+        var FILTER_CODE = [
+            "var ts = new Date().toLocaleDateString('vi-VN');",
+            "var top = items.filter(function(i) { return i.total_rank !== 'N/A' && i.total_rank > 0 && i.total_rank <= 100; });",
+            "var topLines = top.map(function(i) {",
+            "    return i.domain + \" (\" + i.keyword + \") -> Rank \" + i.total_rank;",
+            "}).join(\"\\n\");",
+            "if (!topLines) topLines = \"- Không có website nào lọt Top 100.\";",
+            "",
+            "var allLines = items.map(function(i) {",
+            "    var r = (i.total_rank !== 'N/A' && i.total_rank > 0) ? \"Rank \" + i.total_rank : 'N/A';",
+            "    return i.domain + \" (\" + i.keyword + \") -> \" + r;",
+            "}).join(\"\\n\");",
+            "",
+            "var msg = \"Em gửi báo cáo rank ngày \" + ts + \"\\n\\n\" +",
+            "\"1. Các website có Top\\n\" + topLines + \"\\n\\n\" +",
+            "\"2. Các website đã check Rank hôm nay\\n\" + allLines;",
+            "",
+            "return [{baocao: msg}];"
+        ].join("\n");
+
+        function defOf(type) {
+            var all = [].concat(
+                typeof ATOMIC_BLOCKS !== "undefined" ? ATOMIC_BLOCKS : [],
+                typeof COMPOUND_BLOCKS !== "undefined" ? COMPOUND_BLOCKS : []
+            );
+            for (var i = 0; i < all.length; i++) { if (all[i].type === type) return all[i]; }
+            return {type: type, category:"core", icon:"⚙️", label:type, color:"#64748b", desc:""};
+        }
+
+        var wf = {
+            name: "🔍 Check Rank Từ Khóa (Bản Mới 2.4)",
+            savedAt: new Date().toISOString(),
+            nodes: [
+                {id:"n1",type:"trigger-manual",category:"trigger",x:40,  y:200,def:defOf("trigger-manual"),config:{},data:{}},
+                {id:"n2",type:"input",          category:"core",   x:280, y:200,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",range:"A2:D500"}},
+                {id:"n3",type:"custom-code",    category:"core",   x:520, y:200,def:defOf("custom-code"),   config:{customName:"Check Rank PC+Mobile (Serper)"},data:{code:RANK_CODE}},
+                {id:"n4",type:"update-sheet",   category:"app",    x:760, y:200,def:defOf("update-sheet"),  config:{},data:{sheetUrl:"",range:"K2",colMap:"rank_pc,rank_mb,total_rank"}},
+                {id:"n5",type:"custom-code",    category:"core",   x:1000,y:200,def:defOf("custom-code"),   config:{customName:"Loc Top 100 & Tao Bao Cao"},data:{code:FILTER_CODE}},
+                {id:"n6",type:"telegram",       category:"app",    x:1240,y:200,def:defOf("telegram"),      config:{},data:{token:"",chatId:"",template:"{baocao}"}}
+            ],
+            edges:[{from:"n1",to:"n2"},{from:"n2",to:"n3"},{from:"n3",to:"n4"},{from:"n4",to:"n5"},{from:"n5",to:"n6"}]
+        };
+        var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
+        lib = lib.filter(function(w) { return w.name.indexOf("Check Rank") < 0; });
+        
+        if (oldWf && oldWf.nodes) {
+            var oldInp = oldWf.nodes.find(function(n) { return n.id === "n2"; });
+            var newInp = wf.nodes.find(function(n) { return n.id === "n2"; });
+            if (oldInp && newInp) newInp.data.sheetUrl = oldInp.data.sheetUrl || "";
+            
+            var oldUpd = oldWf.nodes.find(function(n) { return n.id === "n4"; });
+            var newUpd = wf.nodes.find(function(n) { return n.id === "n4"; });
+            if (oldUpd && newUpd) newUpd.data.sheetUrl = oldUpd.data.sheetUrl || "";
+            
+            var oldTele = oldWf.nodes.find(function(n) { return n.id === "n6"; });
+            var newTele = wf.nodes.find(function(n) { return n.id === "n6"; });
+            if (oldTele && newTele) {
+                newTele.data.token = oldTele.data.token || "";
+                newTele.data.chatId = oldTele.data.chatId || "";
+            }
+        }
+        
+        lib.unshift(wf);
+
+        var n8nWf = {
+            id: Date.now() + 1000,
+            name: "Demo: Từ Khóa sang n8n",
+            version: 1.0,
+            nodes: [
+                { id: "n1", type: "input", x: 100, y: 150, data: { value: "Đau mỏi vai gáy\nThuốc trị thoái hóa cột sống" }, label: "Nhập Từ Khóa", inputIds: [], outputIds: ["n2"] },
+                { id: "n2", type: "n8n-webhook", x: 450, y: 150, data: { webhookUrl: "https://<ip-vps>:5678/webhook/tao-bai-viet", method: "POST", customData: "{\"keywords\": \"{{input}}\"}" }, label: "Gọi n8n Xử Lý", inputIds: ["n1"], outputIds: [] }
+            ],
+            connections: [
+                { id: "c1", from: "n1", to: "n2" }
+            ],
+            updatedAt: Date.now()
+        };
+        lib.unshift(n8nWf);
+
+        localStorage.setItem("wf_builder_list", JSON.stringify(lib));
+        localStorage.setItem("wf_seeded_v2", "1");
+        // KHÔNG sync lên Firebase ở đây — seed chỉ là fallback local
+        // Firebase sẽ được sync riêng bởi startWorkflowRealTimeSync khi Firebase rỗng
+    }
+
+    function initWorkflowBuilder() {
+        // Seed chỉ chạy nếu Firebase rỗng (xử lý bởi startWorkflowRealTimeSync)
+        // Nếu wf_seeded_v2 chưa set (Firebase cũng chưa có data), seed local trước
+        if (!localStorage.getItem('wf_seeded_v2')) seedDefaultWorkflows();
+        seedStatusWorkflow();
+        renderPalette();
+        initCanvasDrop();
+        initCanvasPanZoom();
+        renderSavedWfList();
+        restoreCanvasFromSession();
+    }
+    
+    function seedStatusWorkflow(skipSync) {
+        var STATUS_WFL_NAME = "🌐 Kiểm Tra Trạng Thái Web";
+        var STATUS_WFL_VER  = 27; // v27: normalize IDN/Unicode URLs to Punycode (xn--)
+        var lib = JSON.parse(localStorage.getItem("wf_builder_list") || "[]");
+        var existingIdx = lib.findIndex(function(w) { return w.name === STATUS_WFL_NAME; });
+        var deletedNames = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
+        if (deletedNames.includes(STATUS_WFL_NAME)) return;
+        // Version-gate: skip if stored version >= current version
+        if (existingIdx >= 0 && lib[existingIdx]._ver >= STATUS_WFL_VER) return;
+
+        function defOf(t) {
+            var all = [].concat(
+                typeof ATOMIC_BLOCKS !== 'undefined' ? ATOMIC_BLOCKS : [],
+                typeof COMPOUND_BLOCKS !== 'undefined' ? COMPOUND_BLOCKS : []
+            );
+            return all.find(function(b){ return b.type===t; }) || {type:t,category:'core',icon:'⚙️',label:t,color:'#64748b',desc:''};
+        }
+
+        var STATUS_CODE = [
+
+            "var proxyHost = localStorage.getItem('sys_proxy_host') || '';",
+            "var proxyPort = localStorage.getItem('sys_proxy_port') || '';",
+            "var proxyUser = localStorage.getItem('sys_proxy_user') || '';",
+            "var proxyPass = localStorage.getItem('sys_proxy_pass') || '';",
+            "var vpsSettings = JSON.parse(localStorage.getItem('wf_system_settings') || '{}');",
+            "var vpsUrl = (vpsSettings.vpsUrl || '').replace(/\\/$/,'');",
+            "var vpsToken = vpsSettings.vpsToken || '';",
+            "if (!vpsUrl) throw new Error('Chua cau hinh VPS URL trong Cai dat chung!');",
+            "if (!proxyHost || !proxyPort) throw new Error('Chua cau hinh Proxy trong Cai dat chung!');",
+            "",
+            "// Batch 1: Check qua proxy VN",
+            "async function checkVN(url) {",
+            "    try {",
+            "        var body = { url: url, proxy: { host: proxyHost, port: parseInt(proxyPort), user: proxyUser, pass: proxyPass }, mode: 'proxy' };",
+            "        var res = await fetch(vpsUrl + '/check-web-status', {",
+            "            method: 'POST',",
+            "            headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },",
+            "            body: JSON.stringify(body),",
+            "            signal: AbortSignal.timeout(10000)",
+            "        });",
+            "        if (!res.ok) return null;",
+            "        var data = await res.json();",
+            "        return (data.proxy || data.result || null);",
+            "    } catch(e) { return null; }",
+            "}",
+            "",
+            "// Batch 2: Check truc tiep (quoc te)",
+            "async function checkDirect(url) {",
+            "    try {",
+            "        var body = { url: url, mode: 'direct' };",
+            "        var res = await fetch(vpsUrl + '/check-web-status', {",
+            "            method: 'POST',",
+            "            headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },",
+            "            body: JSON.stringify(body),",
+            "            signal: AbortSignal.timeout(10000)",
+            "        });",
+            "        if (!res.ok) return null;",
+            "        var data = await res.json();",
+            "        return (data.direct || data.result || null);",
+            "    } catch(e) { return null; }",
+            "}",
+            "",
+            "function normalizeUrl(u) {",
+            "    if (!u) return u;",
+            "    try { return new URL(u).href; } catch(e) { return u; }",
+            "}",
+            "",
+            "var hasValidUrl = false;",
+            "for (var i = 0; i < items.length; i++) {",
+            "    var item = items[i];",
+            "    var url = '';",
+            "    if (item.hasOwnProperty('B')) { url = (item.B || '').trim(); }",
+            "    else { url = (item.url || '').trim(); }",
+            "    if (typeof updateProgress === 'function') updateProgress(i + 1, items.length, 'Đang quét: ' + (url || '...'));",
+            "    if (!url) { ",
+            "        item.trang_thai = item.J || '';",
+            "        item.url_redirect = item.D || '';",
+            "        item.lich_su_301 = item.C || '';",
+            "        continue; ",
+            "    }",
+            "    hasValidUrl = true;",
+            "    if (!/^https?:\\/\\//i.test(url)) url = 'https://' + url;",
+            "    url = normalizeUrl(url);",
+            "    item.url = url;",
+            "    try {",
+            "        // Batch 1: check VN proxy",
+            "        var pResult = await checkVN(url);",
+            "        var pStatus = pResult ? String(pResult.status || 'TIMEOUT') : 'TIMEOUT';",
+            "        var pOk = pStatus === '200';",
+            "        if (pOk) {",
+            "            item.trang_thai = 'OK';",
+            "            var pFinal = normalizeUrl(pResult.finalUrl || url);",
+            "            item.url_redirect = (pFinal !== url) ? pFinal : (item.D || '');",
+            "            var oldC = (item.C || '').trim();",
+            "            var normOldC = oldC.split('\\n').map(function(x) { return normalizeUrl(x.trim()); }).join('\\n');",
+            "            if (item.url_redirect && normOldC.indexOf(item.url_redirect) === -1) {",
+            "                item.lich_su_301 = oldC ? oldC + '\\n' + item.url_redirect : item.url_redirect;",
+            "            } else { item.lich_su_301 = oldC; }",
+            "            continue;",
+            "        }",
+            "        // Batch 2: VN fail => check quoc te",
+            "        var dResult = await checkDirect(url);",
+            "        var dStatus = dResult ? String(dResult.status || 'TIMEOUT') : 'TIMEOUT';",
+            "        var dOk = dStatus === '200';",
+            "        if (dOk) {",
+            "            item.trang_thai = 'Cloudflare';",
+            "        } else {",
+            "            item.trang_thai = (dStatus === 'TIMEOUT') ? 'Time out' : dStatus;",
+            "        }",
+            "        var dFinal = normalizeUrl(dResult ? (dResult.finalUrl || url) : url);",
+            "        item.url_redirect = (dFinal !== url) ? dFinal : (item.D || '');",
+            "        var oldC2 = (item.C || '').trim();",
+            "        var normOldC2 = oldC2.split('\\n').map(function(x) { return normalizeUrl(x.trim()); }).join('\\n');",
+            "        if (item.url_redirect && normOldC2.indexOf(item.url_redirect) === -1) {",
+            "            item.lich_su_301 = oldC2 ? oldC2 + '\\n' + item.url_redirect : item.url_redirect;",
+            "        } else { item.lich_su_301 = oldC2; }",
+            "    } catch(e) { item.trang_thai = (item.J || 'Time out'); item.url_redirect = (item.D || ''); item.lich_su_301 = (item.C || ''); }",
+            "}",
+            "if (!hasValidUrl) throw new Error('CẢNH BÁO: Dữ liệu cột B hoàn toàn trống! Vui lòng kiểm tra lại Google Sheet hoặc khai báo đúng cột chứa tên miền.');",
+            "return items;"
+        ].join("\n");
+
+        var wf = {
+            name: STATUS_WFL_NAME,
+            _ver: STATUS_WFL_VER,
+            savedAt: new Date().toISOString(),
+            nodes: [
+                {id:"s1",type:"trigger-manual",category:"trigger",x:30,  y:180,def:defOf("trigger-manual"),config:{},data:{}},
+                {id:"s2",type:"input",          category:"core",   x:280, y:180,def:defOf("input"),         config:{},data:{mode:"sheet",sheetUrl:"",sheetRange:"A2:Z500"}},
+                {id:"s3",type:"custom-code",    category:"core",   x:530, y:180,def:defOf("custom-code"),   config:{customName:"Check Status + CLF + Redirect"},data:{code:STATUS_CODE}},
+                {id:"s4",type:"update-sheet",   category:"app",    x:800, y:40, def:defOf("update-sheet"),  config:{customName:"Redirect → Col D"},data:{sheetUrl:"",range:"D2",colMap:"url_redirect"}},
+                {id:"s5",type:"update-sheet",   category:"app",    x:800, y:180,def:defOf("update-sheet"),  config:{customName:"Trạng Thái → Col J"},data:{sheetUrl:"",range:"J2",colMap:"trang_thai"}},
+                {id:"s7",type:"update-sheet",   category:"app",    x:800, y:320,def:defOf("update-sheet"),  config:{customName:"Lịch Sử 301 → Col C"},data:{sheetUrl:"",range:"C2",colMap:"lich_su_301"}},
+                {id:"sm",type:"merge",           category:"core",   x:1060,y:180,def:defOf("merge"),         config:{customName:"Merge (Chờ 3 Nhánh)"},data:{}},
+                {id:"s6",type:"telegram",       category:"app",    x:1310,y:180,def:defOf("telegram"),      config:{customName:"Báo Cáo Thành Công"},data:{token:"",chatId:"",template:"Domain: {{A}} | Status: {{trang_thai}}"}},
+                
+                {id:"s8",type:"tech-monitor",   category:"core",   x:800,y:480,def:defOf("tech-monitor"),  config:{customName:"Giám Sát Lỗi Kỹ Thuật"},data:{knownErrors:"timeout, failed to fetch, 401, 403, 404, econnrefused, chua cau hinh"}},
+                {id:"s9",type:"ai-audit",       category:"core",   x:1060,y:480,def:defOf("ai-audit"),      config:{customName:"AI Phân Tích Lỗi"},data:{apiKey:"",prompt:"Bạn là chuyên gia hạ tầng. Hệ thống gặp lỗi kỹ thuật LẠ trong quy trình Check Trạng Thái Web. Xem log lỗi sau, giải thích nguyên nhân và cách khắc phục ngắn gọn:"}},
+                {id:"s10",type:"telegram",      category:"app",    x:1310,y:480,def:defOf("telegram"),      config:{customName:"Báo Cáo Sự Cố"},data:{token:"",chatId:"",template:"⚠️ LỖI HỆ THỐNG:\n{{errorMsg}}\n\n🤖 AI Phân Tích:\n{{ai_analysis}}"}}
+            ],
+            edges: [
+                {from:"s1",to:"s2",type:"success"},{from:"s2",to:"s3",type:"success"},
+                {from:"s3",to:"s4",type:"success"},{from:"s3",to:"s5",type:"success"},{from:"s3",to:"s7",type:"success"},
+                {from:"s4",to:"sm",type:"success"},{from:"s5",to:"sm",type:"success"},{from:"s7",to:"sm",type:"success"},
+                {from:"sm",to:"s6",type:"success"},
+                {from:"s2",to:"s8",type:"error"},{from:"s3",to:"s8",type:"error"},
+                {from:"s4",to:"s8",type:"error"},{from:"s5",to:"s8",type:"error"},{from:"s7",to:"s8",type:"error"},
+                {from:"s8",to:"s9",type:"success"},{from:"s9",to:"s10",type:"success"}
+            ]
+        };
+        if (existingIdx >= 0) {
+            var oldNodes = lib[existingIdx].nodes || [];
+            var oldInput = oldNodes.find(function(n){ return n.id==="s2"; });
+            if (oldInput && oldInput.data && oldInput.data.sheetUrl) {
+                wf.nodes[1].data.sheetUrl = oldInput.data.sheetUrl;
+            }
+            if (oldInput && oldInput.data && (oldInput.data.sheetRange || oldInput.data.range)) {
+                wf.nodes[1].data.sheetRange = oldInput.data.sheetRange || oldInput.data.range;
+            }
+            // Preserve all output node settings + merge node
+            ['s4','s5','s7','sm','s6'].forEach(function(nid) {
+                var oldN = oldNodes.find(function(n){ return n.id===nid; });
+                if (oldN && oldN.data) {
+                    var newN = wf.nodes.find(function(n){ return n.id===nid; });
+                    if (newN) {
+                        if (oldN.data.sheetUrl) newN.data.sheetUrl = oldN.data.sheetUrl;
+                        if (oldN.data.range) newN.data.range = oldN.data.range;
+                        if (oldN.data.colMap) newN.data.colMap = oldN.data.colMap;
+                        if (nid === 's6') {
+                            if (oldN.data.token)    newN.data.token    = oldN.data.token;
+                            if (oldN.data.chatId)   newN.data.chatId   = oldN.data.chatId;
+                        }
+                    }
+                }
+            });
+            // Also preserve token/chatId for the new s10 error telegram node
+            var newS10 = wf.nodes.find(function(n){ return n.id==='s10'; });
+            var oldS6 = oldNodes.find(function(n){ return n.id==='s6'; });
+            if (newS10 && oldS6 && oldS6.data) {
+                if (oldS6.data.token) newS10.data.token = oldS6.data.token;
+                if (oldS6.data.chatId) newS10.data.chatId = oldS6.data.chatId;
+            }
+            
+            // Preserve x and y coordinates for all nodes EXCEPT when rolling out v23 redesign
+            if (STATUS_WFL_VER !== 23) {
+                wf.nodes.forEach(function(newN) {
+                    var oldN = oldNodes.find(function(n){ return n.id === newN.id; });
+                    if (oldN && oldN.x !== undefined && oldN.y !== undefined) {
+                        newN.x = oldN.x;
+                        newN.y = oldN.y;
+                    }
+                });
+            }
+            
+            lib[existingIdx] = wf;
+        } else {
+            lib.push(wf);
+        }
+        localStorage.setItem("wf_builder_list", JSON.stringify(lib));
+        if (!skipSync && typeof syncWorkflowsToFirebase === 'function') syncWorkflowsToFirebase(lib);
+        console.log("WFL v" + STATUS_WFL_VER + " cap nhat: " + STATUS_WFL_NAME);
+    }
+
+    function getUserBlocks() {
+        try { return JSON.parse(localStorage.getItem('wf_user_blocks') || '[]'); } catch(e) { return []; }
+    }
+    function saveUserBlocks(blocks) {
+        localStorage.setItem('wf_user_blocks', JSON.stringify(blocks));
+    }
+    window.getUserBlocks = getUserBlocks;
+    window.saveUserBlocks = saveUserBlocks;
+    window.openBlockFactory = function(idx) {
+        document.getElementById('blockFactoryOverlay').style.display = 'flex';
+        openBlockFactory(idx);
+    };
+    function allBlocks() { return [...ATOMIC_BLOCKS, ...COMPOUND_BLOCKS, ...getUserBlocks()]; }
+    
+    function renderPalette() {
+        const atomicEl = document.getElementById('atomicPaletteList');
+        const compoundEl = document.getElementById('compoundPaletteList');
+        if (!atomicEl || !compoundEl) return;
+        
+        atomicEl.innerHTML = '';
+        CATEGORIES.forEach(cat => {
+            const items = ATOMIC_BLOCKS.filter(b => b.category === cat.id);
+            if (items.length === 0) return;
+            
+            const catDiv = document.createElement('div');
+            catDiv.style.cssText = 'font-size:11px; font-weight:700; color:#a78bfa; margin: 15px 0 5px 5px; text-transform:uppercase; letter-spacing:0.5px;';
+            catDiv.innerText = cat.label;
+            atomicEl.appendChild(catDiv);
+            
+            items.forEach(b => {
+                const el = document.createElement('div');
+                el.className = 'palette-item';
+                el.draggable = true;
+                el.dataset.btype = b.type;
+                el.dataset.bcat = 'atomic';
+                el.title = b.desc;
+                el.innerHTML = `<span class="pi-icon">${b.icon}</span><div class="pi-text"><div class="pi-label">${b.label}</div><div class="pi-desc">${b.desc.substring(0,32)}...</div></div>`;
+                atomicEl.appendChild(el);
+            });
+        });
+
+        compoundEl.innerHTML = COMPOUND_BLOCKS.map(b =>
+            `<div class="palette-item" draggable="true" data-btype="${b.type}" data-bcat="compound" title="${b.desc}" style="border-color:rgba(245,158,11,0.25);background:rgba(245,158,11,0.06);">
+                <span class="pi-icon">${b.icon}</span>
+                <div class="pi-text"><div class="pi-label" style="color:#fbbf24;">${b.label}</div><div class="pi-desc">${b.desc.substring(0,32)}...</div></div>
+            </div>`
+        ).join('');
+        
+        // ---- Render User Custom Blocks ----
+        const userBlocks = getUserBlocks();
+        const userSection = document.getElementById('userBlockPaletteList');
+        if (userSection) {
+            if (userBlocks.length === 0) {
+                userSection.innerHTML = '<div style="font-size:11px; color:#475569; padding:8px 5px; font-style:italic;">Chưa có viên gạch nào. Tạo viên gạch đầu tiên của bạn!</div>';
+            } else {
+                userSection.innerHTML = '';
+                userBlocks.forEach((b, idx) => {
+                    const el = document.createElement('div');
+                    el.className = 'palette-item';
+                    el.draggable = true;
+                    el.dataset.btype = b.type;
+                    el.dataset.bcat = 'user';
+                    el.title = b.desc || b.label;
+                    el.style.cssText = 'border-color:rgba(236,72,153,0.3); background:rgba(236,72,153,0.05); position:relative;';
+                    el.innerHTML = `
+                        <span class="pi-icon">${b.icon}</span>
+                        <div class="pi-text">
+                            <div class="pi-label" style="color:#f9a8d4;">${b.label}</div>
+                            <div class="pi-desc">${(b.desc||'').substring(0,30)}...</div>
+                        </div>
+                        <div style="display:flex; gap:4px; margin-left:auto; flex-shrink:0;">
+                            <button onclick="event.stopPropagation(); openBlockFactory(${idx})" style="background:rgba(255,255,255,0.1); border:none; color:#e2e8f0; padding:3px 7px; border-radius:4px; cursor:pointer; font-size:10px;">✏️</button>
+                            <button onclick="event.stopPropagation(); deleteUserBlock(${idx})" style="background:rgba(239,68,68,0.15); border:none; color:#f87171; padding:3px 7px; border-radius:4px; cursor:pointer; font-size:10px;">🗑</button>
+                        </div>
+                    `;
+                    userSection.appendChild(el);
+                });
+            }
+        }
+
+        // Attach drag events to ALL palette items
+        document.querySelectorAll('#atomicPaletteList .palette-item, #compoundPaletteList .palette-item, #userBlockPaletteList .palette-item').forEach(el => {
+            el.addEventListener('dragstart', e => {
+                draggingPalette = { type: el.dataset.btype, cat: el.dataset.bcat };
+                e.dataTransfer.effectAllowed = 'copy';
+            });
+        });
+    }
+    
+    function initCanvasDrop() {
+        const wrap = document.getElementById('wfCanvasWrap');
+        if (!wrap) return;
+        wrap.addEventListener('dragover', e => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'copy';
+            wrap.classList.add('drag-over');
+        });
+        wrap.addEventListener('dragleave', e => {
+            if (!wrap.contains(e.relatedTarget)) wrap.classList.remove('drag-over');
+        });
+        wrap.addEventListener('drop', e => {
+            e.preventDefault();
+            wrap.classList.remove('drag-over');
+            if (!draggingPalette) return;
+            const canvas = document.getElementById('wfCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.max(10, (e.clientX - rect.left) / wfZoom - 85);
+            const y = Math.max(10, (e.clientY - rect.top) / wfZoom  - 40);
+            addNode(draggingPalette.type, draggingPalette.cat, x, y);
+            draggingPalette = null;
+            saveCanvasToSession();
+        });
+        wrap.addEventListener('mousemove', e => {
+            if (!connectingFrom || !tempLine) return;
+            const fromNode = wfNodes.find(n => n.id === connectingFrom.nodeId);
+            if (!fromNode) return;
+            const canvas = document.getElementById('wfCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const edgeType = connectingFrom.portType || 'success';
+            const from = getPortCoords(fromNode, edgeType);
+            const toX = (e.clientX - rect.left) / wfZoom;
+            const toY = (e.clientY - rect.top) / wfZoom;
+            tempLine.setAttribute('d', bezierPath(from.x, from.y, toX, toY, edgeType));
+        });
+        wrap.addEventListener('click', e => {
+            // Only cancel if user clicked empty canvas (not on any port or node)
+            if (connectingFrom && !e.target.closest('.wf-port') && !e.target.closest('.wf-node')) {
+                connectingFrom = null;
+                if (tempLine) { tempLine.remove(); tempLine = null; }
+            }
+        });
+    }
+    
+    function addNode(type, cat, x, y) {
+        const def = allBlocks().find(b => b.type === type);
+        if (!def) return;
+        const id = 'node_' + (++wfNodeCount);
+        wfNodes.push({ id, type, cat, x, y, def });
+        renderNode(id);
+        hideHint();
+    }
+    
+    function renderNode(nodeId) {
+        const node = wfNodes.find(n => n.id === nodeId);
+        if (!node) return;
+        const canvas = document.getElementById('wfCanvas');
+        const el = document.createElement('div');
+        el.className = 'wf-node' + (node.cat === 'compound' ? ' compound' : '');
+        el.id = nodeId;
+        el.style.cssText = `left:${node.x}px;top:${node.y}px;border-left-color:${node.def.color};`;
+        const title = (node.config && node.config.customName) ? node.config.customName : node.def.label;
+        const catMap = { trigger:'TRIGGER', core:'LOGIC', app:'ỨNG DỤNG', seo:'SEO' };
+        const catLabel = catMap[node.def.category] || (node.def.category||'').toUpperCase();
+        const isTrigger = node.type.includes('trigger');
+        const inPort     = !isTrigger ? `<div class="wf-port port-in" data-nodeid="${nodeId}" data-port="in" title="Nhận dữ liệu vào"></div>` : '';
+        const successPort = `<div class="wf-port port-success" data-nodeid="${nodeId}" data-port="success" title="Output ✅ Thành công"></div>`;
+        const errorPort   = !isTrigger ? `<div class="wf-port port-error" data-nodeid="${nodeId}" data-port="error" title="Output ❌ Khi lỗi"></div>` : '';
+        el.innerHTML = `
+            ${inPort}
+            <div class="wf-node-header">
+                <span class="wf-node-icon">${node.def.icon}</span>
+                <div class="wf-node-titles">
+                    <div class="wf-node-category">${catLabel}</div>
+                    <div class="wf-node-title">${title}</div>
+                </div>
+                <button class="wf-node-del" data-delid="${nodeId}" title="Xóa">✕</button>
+            </div>
+            <div class="wf-node-body">${node.def.desc}</div>
+            ${successPort}${errorPort}`;
+        el.addEventListener('mousedown', e => {
+            if (e.target.closest('.wf-port') || e.target.closest('.wf-node-del')) return;
+            e.preventDefault();
+            draggingNode = { id: nodeId, startX: node.x, startY: node.y, mx: e.clientX, my: e.clientY };
+            document.addEventListener('mousemove', onNodeDrag);
+            document.addEventListener('mouseup', onNodeDragEnd);
+        });
+        el.querySelector('.wf-node-del').addEventListener('click', () => deleteNode(nodeId));
+        el.querySelectorAll('.wf-port').forEach(p => p.addEventListener('click', e => onPortClick(e, nodeId, p.dataset.port)));
+        canvas.appendChild(el);
+    }
+    
+    function onNodeDrag(e) {
+        if (!draggingNode) return;
+        const node = wfNodes.find(n => n.id === draggingNode.id);
+        if (!node) return;
+        node.x = Math.max(0, draggingNode.startX + (e.clientX - draggingNode.mx) / wfZoom);
+        node.y = Math.max(0, draggingNode.startY + (e.clientY - draggingNode.my) / wfZoom);
+        const el = document.getElementById(draggingNode.id);
+        if (el) { el.style.left = node.x + 'px'; el.style.top = node.y + 'px'; }
+        renderConnections();
+    }
+    
+    function onNodeDragEnd() {
+        draggingNode = null;
+        document.removeEventListener('mousemove', onNodeDrag);
+        document.removeEventListener('mouseup', onNodeDragEnd);
+        saveCanvasToSession();
+    }
+    
+    function deleteNode(id) {
+        wfNodes = wfNodes.filter(n => n.id !== id);
+        wfEdges = wfEdges.filter(e => e.from !== id && e.to !== id);
+        const el = document.getElementById(id);
+        if (el) el.remove();
+        renderConnections();
+        if (wfNodes.length === 0) showHint();
+        saveCanvasToSession();
+    }
+    
+    function onPortClick(e, nodeId, portType) {
+        e.stopPropagation();
+        if (portType === 'success' || portType === 'error') {
+            connectingFrom = { nodeId, portType };
+            const svg = document.getElementById('wfSvg');
+            if (tempLine) tempLine.remove();
+            tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            tempLine.classList.add('wf-connection-line', 'temp');
+            if (portType === 'error') tempLine.classList.add('error-edge');
+            svg.appendChild(tempLine);
+        } else if (portType === 'in' && connectingFrom) {
+            if (connectingFrom.nodeId !== nodeId) {
+                const edgeType = connectingFrom.portType === 'error' ? 'error' : 'success';
+                const exists = wfEdges.find(ex => ex.from === connectingFrom.nodeId && ex.to === nodeId && ex.type === edgeType);
+                if (!exists) {
+                    wfEdges.push({ from: connectingFrom.nodeId, to: nodeId, type: edgeType });
+                    renderConnections();
+                    saveCanvasToSession();
+                }
+            }
+            connectingFrom = null;
+            if (tempLine) { tempLine.remove(); tempLine = null; }
+        }
+    }
+
+    function updateCanvasTransform() {
+        const canvas = document.getElementById('wfCanvas');
+        if (canvas) {
+            canvas.style.transformOrigin = '0 0';
+            canvas.style.transform = `translate(${wfPanX}px, ${wfPanY}px) scale(${wfZoom})`;
+        }
+    }
+
+    function initCanvasPanZoom() {
+        const wrap = document.getElementById('wfCanvasWrap');
+        if (!wrap) return;
+        
+        wrap.style.overflow = 'hidden';
+
+        wrap.addEventListener('wheel', e => {
+            if (!e.ctrlKey) return;
+            e.preventDefault();
+            const rect = wrap.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            const pointX = (mouseX - wfPanX) / wfZoom;
+            const pointY = (mouseY - wfPanY) / wfZoom;
+            
+            const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            wfZoom = Math.min(Math.max(wfZoom * zoomFactor, 0.2), 3);
+            
+            wfPanX = mouseX - pointX * wfZoom;
+            wfPanY = mouseY - pointY * wfZoom;
+            
+            updateCanvasTransform();
+        }, { passive: false });
+
+        wrap.addEventListener('mousedown', e => {
+            if (e.button !== 0) return;
+            if (e.target === wrap || e.target.id === 'wfCanvas' || e.target.closest('#wfSvg') || e.target.closest('#wfHint')) {
+                isCanvasPanning = true;
+                canvasPanStartX = e.clientX - wfPanX;
+                canvasPanStartY = e.clientY - wfPanY;
+                wrap.style.cursor = 'grabbing';
+            }
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (isCanvasPanning) {
+                wfPanX = e.clientX - canvasPanStartX;
+                wfPanY = e.clientY - canvasPanStartY;
+                updateCanvasTransform();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isCanvasPanning) {
+                isCanvasPanning = false;
+                if (wrap) wrap.style.cursor = '';
+            }
+        });
+    }
+
+    function getPortCoords(node, portType) {
+        const el = document.getElementById(node.id);
+        const w = (el && el.offsetWidth > 0) ? el.offsetWidth  : 250;
+        const h = (el && el.offsetHeight > 0) ? el.offsetHeight : 90;
+        if (portType === 'in')      return { x: node.x,       y: node.y + h / 2 };
+        if (portType === 'success') return { x: node.x + w,   y: node.y + h / 2 };
+        if (portType === 'error')   return { x: node.x + w/2, y: node.y + h };
+        return { x: node.x + w, y: node.y + h / 2 };
+    }
+
+    function renderConnections() {
+        const svg = document.getElementById('wfSvg');
+        if (!svg) return;
+        svg.querySelectorAll('.wf-connection-line:not(.temp)').forEach(l => l.remove());
+        wfEdges.forEach(edge => {
+            const f = wfNodes.find(n => n.id === edge.from);
+            const t = wfNodes.find(n => n.id === edge.to);
+            if (!f || !t) return;
+            const edgeType = edge.type || 'success';
+            const from = getPortCoords(f, edgeType);
+            const to   = getPortCoords(t, 'in');
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.classList.add('wf-connection-line');
+            if (edgeType === 'error') path.classList.add('error-edge');
+            path.setAttribute('d', bezierPath(from.x, from.y, to.x, to.y, edgeType));
+            svg.insertBefore(path, svg.firstChild);
+        });
+    }
+
+    function bezierPath(x1, y1, x2, y2, type) {
+        if (type === 'error') {
+            // Error: exits bottom-center, arrives left-center
+            // Route: go down, then right, then up to target
+            const midY = Math.max(y1 + 40, y2 + 40);
+            return `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+        }
+        // Success: exits right, arrives left - n8n style clamped bezier
+        const dx = x2 - x1;
+        const cx = Math.max(Math.min(Math.abs(dx) * 0.45, 120), 40);
+        return `M ${x1} ${y1} C ${x1+cx} ${y1}, ${x2-cx} ${y2}, ${x2} ${y2}`;
+    }
+    
+    function hideHint() { const h = document.getElementById('wfHint'); if(h) h.style.opacity = '0'; }
+    function showHint()  { const h = document.getElementById('wfHint'); if(h) h.style.opacity = '1'; }
+    
+    function clearCanvas() {
+        if (wfNodes.length > 0 && !confirm('Xóa toàn bộ canvas?')) return;
+        wfNodes = []; wfEdges = []; wfNodeCount = 0; connectingFrom = null;
+        if (tempLine) { tempLine.remove(); tempLine = null; }
+        document.querySelectorAll('#wfCanvas .wf-node').forEach(el => el.remove());
+        const svg = document.getElementById('wfSvg');
+        if (svg) svg.innerHTML = '';
+        showHint();
+        saveCanvasToSession();
+    }
+    
+    // saveCurrentWorkflow is defined below (line ~3941) - this duplicate removed
+    
+    function renderSavedWfList() {
+        const el = document.getElementById('savedWfList');
+        if (!el) return;
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        if (!list.length) { el.innerHTML = '<div style="padding:12px 14px;font-size:11px;color:#475569;">Chưa có workflow nào</div>'; return; }
+        el.innerHTML = list.map((wf, i) =>
+            `<div class="wf-saved-item">
+                <span onclick="loadWorkflow(${i})" style="flex:1;cursor:pointer;" title="Load">${wf.name}</span>
+                <div class="wf-si-actions">
+                    <button class="wf-si-btn" onclick="loadWorkflow(${i})">📂</button>
+                    <button class="wf-si-btn" onclick="deleteWorkflowByIdx(${i})" style="color:#f87171;">🗑️</button>
+                </div>
+            </div>`
+        ).join('');
+    }
+    
+    function loadWorkflow(idx) {
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        const wf = list[idx];
+        if (!wf) return;
+        clearCanvas();
+        wf.nodes.forEach(n => {
+            const def = allBlocks().find(b => b.type === n.type);
+            if (!def) return;
+            wfNodes.push({ ...n, def });
+            wfNodeCount = Math.max(wfNodeCount, parseInt(n.id.split('_')[1]) || 0);
+            renderNode(n.id);
+        });
+        wfEdges = wf.edges || [];
+        renderConnections();
+        if (wfNodes.length > 0) hideHint();
+        const nameEl = document.getElementById('wfNameInput');
+        if (nameEl) nameEl.value = wf.name;
+        saveCanvasToSession();
+    }
+    
+    function deleteWorkflowByIdx(idx) {
+        let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        list.splice(idx, 1);
+        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        renderSavedWfList();
+        updateAutomationBadge();
+    }
+    
+
+    
+    function getExecutionOrder() {
+        const inDegree = {};
+        wfNodes.forEach(n => inDegree[n.id] = 0);
+        wfEdges.forEach(e => { inDegree[e.to] = (inDegree[e.to] || 0) + 1; });
+        const queue = wfNodes.filter(n => !inDegree[n.id]).map(n => n.id);
+        const result = [];
+        while (queue.length) {
+            const cur = queue.shift();
+            result.push(cur);
+            wfEdges.filter(e => e.from === cur).forEach(e => { if (--inDegree[e.to] === 0) queue.push(e.to); });
+        }
+        return result;
+    }
+    
+    function saveCanvasToSession() {
+        sessionStorage.setItem('wf_canvas', JSON.stringify({
+            nodes: wfNodes.map(n => ({
+                id: n.id, type: n.type, cat: n.cat,
+                x: n.x, y: n.y,
+                data:   n.data   ? JSON.parse(JSON.stringify(n.data))   : {},
+                config: n.config ? JSON.parse(JSON.stringify(n.config)) : {}
+            })),
+            edges: wfEdges, count: wfNodeCount
+        }));
+    }
+    
+    function restoreCanvasFromSession() {
+        try {
+            const raw = sessionStorage.getItem('wf_canvas');
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            let nodes = parsed.nodes || [];
+            let edges = parsed.edges || [];
+            
+            // Auto-update Custom Code for Check Status to always use the latest code
+            nodes.forEach(n => {
+                if (n.config && n.config.customName === "Check Status + CLF + Redirect" && typeof STATUS_CODE !== 'undefined') {
+                    if (n.data && n.data.code !== STATUS_CODE) {
+                        n.data.code = STATUS_CODE;
+                        sessionStorage.setItem('wf_canvas', JSON.stringify(parsed));
+                    }
+                }
+            });
+            
+            // Auto-migrate active session to v23 layout
+            const isStatusCheck = nodes.some(n => n.config && n.config.customName === "Check Status + CLF + Redirect");
+            const hasTechMonitor = nodes.some(n => n.type === "tech-monitor");
+            if (isStatusCheck && !hasTechMonitor) {
+                const id_tm = "s8_mig";
+                const id_ai = "s9_mig";
+                const id_tele = "s10_mig";
+                nodes.push({id:id_tm, type:"tech-monitor", cat:"core", x: 800, y: 480, config:{customName:"Giám Sát Lỗi Kỹ Thuật"}, data:{knownErrors:"timeout, failed to fetch, 401, 403, 404, econnrefused, chua cau hinh"}});
+                nodes.push({id:id_ai, type:"ai-audit", cat:"core", x: 1060, y: 480, config:{customName:"AI Phân Tích Lỗi"}, data:{apiKey:"",prompt:"Bạn là chuyên gia hạ tầng. Hệ thống gặp lỗi kỹ thuật LẠ trong quy trình Check Trạng Thái Web. Xem log lỗi sau, giải thích nguyên nhân và cách khắc phục ngắn gọn:"}});
+                nodes.push({id:id_tele, type:"telegram", cat:"app", x: 1310, y: 480, config:{customName:"Báo Cáo Sự Cố"}, data:{token:"",chatId:"",template:"⚠️ LỖI HỆ THỐNG:\\n{{errorMsg}}\\n\\n🤖 AI Phân Tích:\\n{{ai_analysis}}"}});
+                
+                nodes.forEach(n => {
+                    if (n.type === 'input' || n.type === 'custom-code' || n.type === 'update-sheet') {
+                        edges.push({from: n.id, to: id_tm, type: "error"});
+                    }
+                });
+                edges.push({from: id_tm, to: id_ai, type: "success"});
+                edges.push({from: id_ai, to: id_tele, type: "success"});
+                
+                // Cập nhật lại session storage ngay lập tức
+                parsed.nodes = nodes;
+                parsed.edges = edges;
+                sessionStorage.setItem('wf_canvas', JSON.stringify(parsed));
+                setTimeout(() => alert("Hệ thống đã tự động nâng cấp luồng đang mở của anh lên v23 (Tự thêm 3 Node Báo Lỗi bên dưới và nối sẵn Dây Đỏ). Anh không cần phải Xóa hay làm gì thêm nữa!"), 1000);
+            }
+            
+            wfNodeCount = parsed.count || 0;
+            wfEdges = edges;
+            nodes.forEach(n => {
+                const def = allBlocks().find(b => b.type === n.type);
+                if (!def) return;
+                wfNodes.push({ ...n, def });
+                renderNode(n.id);
+            });
+            renderConnections();
+            if (wfNodes.length > 0) hideHint();
+
+            // Khôi phục currentEditingWfIndex: tìm workflow đang open trong localStorage
+            // Dựa theo customName của node đặc trưng (custom-code hoặc node đầu tiên)
+            try {
+                const wfList = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+                const sessionWfName = sessionStorage.getItem('wf_editing_name');
+                if (sessionWfName && wfList.length > 0) {
+                    const idx = wfList.findIndex(w => w.name === sessionWfName);
+                    if (idx >= 0) currentEditingWfIndex = idx;
+                } else if (wfList.length > 0 && wfNodes.length > 0) {
+                    // Fallback: match theo node IDs
+                    const sessionIds = new Set(wfNodes.map(n => n.id));
+                    const idx = wfList.findIndex(w =>
+                        w.nodes && w.nodes.some(n => sessionIds.has(n.id))
+                    );
+                    if (idx >= 0) currentEditingWfIndex = idx;
+                }
+            } catch(_) {}
+        } catch(e) { console.warn('Canvas restore failed', e); }
+    }
+    
+    function updateAutomationBadge() {
+        const stored = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        const old = document.getElementById('wfBadge');
+        if (old) old.remove();
+        if (stored.length > 0) {
+            const wrapper = document.getElementById('automationBtnWrapper');
+            if (!wrapper) return;
+            const badge = document.createElement('span');
+            badge.id = 'wfBadge';
+            badge.textContent = stored.length;
+            badge.style.cssText = 'position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:10px;font-weight:bold;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:1001;';
+            wrapper.appendChild(badge);
+        }
+    }
+    
+
+    
+    // --- AI GLOBAL KNOWLEDGE BASE ---
+    function updateAppBlueprintCache() {
+        try {
+            let blueprint = {};
+            const tabs = document.querySelectorAll('.tab-btn');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach((tab, index) => {
+                const tabName = tab.innerText.trim();
+                const contentEl = contents[index];
+                if (contentEl) {
+                    let texts = [];
+                    contentEl.querySelectorAll('label, h3, h4, button, th, td').forEach(el => texts.push(el.innerText.trim()));
+                    contentEl.querySelectorAll('input, textarea').forEach(el => texts.push(el.placeholder || el.value || ''));
+                    blueprint[tabName] = texts.filter(t => t).join(' | ').substring(0, 1000);
+                }
+            });
+            
+            // Add workflow tools
+            if (typeof ATOMIC_BLOCKS !== 'undefined') {
+                blueprint['Workflow Builder Tools'] = ATOMIC_BLOCKS.map(b => b.label).join(', ');
+            }
+            
+            localStorage.setItem('ai_app_blueprint', JSON.stringify(blueprint));
+            console.log("🧠 Đã cập nhật Sổ tay Hệ thống (Blueprint) cho AI!");
+        } catch(e) { console.warn("Lỗi cập nhật blueprint:", e); }
+    }
+    
+    // Update blueprint on load and occasionally
+    setTimeout(updateAppBlueprintCache, 2000);
+    setInterval(updateAppBlueprintCache, 60000); // Cập nhật mỗi phút để bắt thay đổi
+
+    function switchTab(id) {
+        setTimeout(() => {
+            const activeTabEl = document.querySelector('.tab-btn.active');
+            if (activeTabEl) {
+                const loc = document.getElementById('aiCurrentLocation');
+                if (loc) loc.innerHTML = '📍 Đang ở: ' + activeTabEl.innerText.trim();
+            }
+        }, 50);
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelector(`[onclick="switchTab('${id}')"]`).classList.add('active');
+        // Ghi nhớ tab đang mở
+        sessionStorage.setItem('lastTab', id);
+    }
+
+    
+    
+    function renderVpsProfilesList() {
+        const container = document.getElementById('vpsProfileCheckboxes');
+        if(!container) return;
+        const config = localStorage.getItem('vps_profiles_config') || 'gmail_1|Tài khoản 1';
+        const lines = config.split('\n').filter(l=>l.trim());
+        let h = '';
+        lines.forEach((line, i) => {
+            const parts = line.split('|');
+            const id = parts[0].trim();
+            const name = (parts[1] || id).trim();
+            h += `
+            <div style="display:flex; align-items:center; gap:15px; background:rgba(255,255,255,0.05); padding:10px; border-radius:6px; border: 1px solid rgba(255,255,255,0.1);">
+                <label style="cursor:pointer; display:flex; align-items:center; gap:5px; font-size:13px; font-weight: bold; width: 220px; flex-shrink: 0; margin-bottom:0;">
+                    <input type="checkbox" class="vps-profile-cb" value="${id}" data-name="${name}" ${i===0?'checked':''}>
+                    ${name} (${id})
+                </label>
+                <textarea id="cookie_input_${id}" placeholder="Dán mã Cookie JSON mới vào đây..." style="flex-grow: 1; height: 35px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 7px 10px; color: #fff; font-size: 11px; font-family: monospace; resize: none; overflow: hidden; white-space: nowrap;">${localStorage.getItem('cookie_json_' + id) || ''}</textarea>
+                <button class="btn btn-primary" onclick="syncCookieForId('${id}')" style="flex-shrink: 0; padding: 6px 12px; font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                    <span id="btn_sync_${id}">🔄 Đồng bộ VPS</span>
+                </button>
+            </div>
+            `;
+        });
+        container.innerHTML = h;
+    }
+    // Call it on load
+    setTimeout(renderVpsProfilesList, 500);
+
+    // --- VPS AUTOMATION LOGIC ---
+    async function startVpsProcess() {
+        const vpsIp = localStorage.getItem('vps_ip') || '';
+        const lines = document.getElementById('domainList').value.split('\n').filter(l => l.trim());
+        
+        const cbs = document.querySelectorAll('.vps-profile-cb:checked');
+        const selectedProfiles = Array.from(cbs).map(cb => ({ id: cb.value, name: cb.getAttribute('data-name') }));
+
+        if(!vpsIp) return alert("Sếp chưa điền IP VPS ở phần Cài đặt chung (icon Bánh răng góc phải)!");
+        if(selectedProfiles.length === 0) return alert("Vui lòng chọn ít nhất 1 Profile VPS!");
+        // Tự động dùng HTTPS (port 3001) nếu trang đang chạy HTTPS để tránh Mixed Content
+        const useHttps = location.protocol === 'https:';
+        const apiUrl = useHttps
+            ? 'https://' + vpsIp.replace(/https?:\/\//, '').split(':')[0] + ':3001'
+            : (vpsIp.includes('http') ? vpsIp.replace(/:300\d/,'') : 'http://' + vpsIp) + ':3002';
+        if(lines.length === 0) return alert("Vui lòng nhập ít nhất 1 domain!");
+        
+        const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';
+        document.querySelector('#gscTable thead').innerHTML = '<tr><th width="15%">Website URL</th><th width="10%">Profile VPS</th><th width="15%">1. Lấy Mã GSC</th><th width="18%">2. Auto Dán Plugin (WP)</th><th width="15%">3. Xác minh GSC</th><th width="20%">4. Nạp Sitemaps</th><th width="7%">Thao tác</th></tr>';
+        
+        let rowId = 0;
+
+        window.runSingleRow = async function(currentId, url, adminPath, user, pass, profile, apiUrl) {
+            let metaTag = '';
+            const st1 = document.getElementById('st1_'+currentId);
+            const st2 = document.getElementById('st2_'+currentId);
+            const st3 = document.getElementById('st3_'+currentId);
+            const st4 = document.getElementById('st4_'+currentId);
+            
+            // Lấy lại metaTag nếu Bước 1 đã Xong
+            if (st1.innerHTML.includes('✅ Xong')) {
+                const match = st1.innerHTML.match(/writeText\('(.*?)'\)/);
+                if (match) metaTag = match[1];
+            }
+            if (st1.innerHTML.includes('AUTO_VERIFIED')) metaTag = 'AUTO_VERIFIED';
+
+            const proxyData = { 
+                host: localStorage.getItem('sys_proxy_host') || '', 
+                port: localStorage.getItem('sys_proxy_port') || '', 
+                user: localStorage.getItem('sys_proxy_user') || '', 
+                pass: localStorage.getItem('sys_proxy_pass') || '' 
+            };
+
+            // BƯỚC 1: LẤY MÃ GSC
+            if (!st1.innerHTML.includes('✅') && !st1.innerHTML.includes('AUTO_VERIFIED')) {
+                st1.innerHTML = '⏳ Đang lấy mã...';
+                try {
+                    const body1 = { url: url, id: profile.id };
+                    if (proxyData.host) body1.proxy = proxyData;
+                    
+                    const res1 = await fetch(apiUrl + '/gsc-get-tag', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body1)
+                    });
+                    const data1 = await res1.json();
+                    if (data1.status === 'success') {
+                        metaTag = data1.metaTag;
+                        if (metaTag === 'AUTO_VERIFIED') {
+                            st1.innerHTML = '<span class="status-badge status-success">✅ AUTO_VERIFIED</span>';
+                        } else {
+                            st1.innerHTML = '<span class="status-badge status-success">✅ Xong</span><br><button style="margin-top:4px" class="btn-mini" onclick="navigator.clipboard.writeText(\''+metaTag.replace(/'/g,"\\'")+'\')">Copy Mã</button>';
+                        }
+                    } else {
+                        st1.innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi: ' + (data1.message || 'Error') + '</span>';
+                        return; // Dừng lại ở đây
+                    }
+                } catch(e) { 
+                    st1.innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối API</span>'; return;
+                }
+            }
+            
+            // BƯỚC 2: CHÈN VÀO WP
+            if (!st2.innerHTML.includes('✅')) {
+                if (metaTag === 'AUTO_VERIFIED') {
+                    st2.innerHTML = '<span class="status-badge status-success">✅ Bỏ qua (Đã xác minh)</span>';
+                } else if(user && pass) {
+                    st2.innerHTML = '⏳ Đang vào WP...';
+                    try {
+                        const body2 = { wpUrl: url, adminPath, user, pass, metaTag };
+                        if (proxyData.host) body2.proxy = proxyData;
+                        
+                        const res2 = await fetch(apiUrl + '/wp-inject-tag', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body2)
+                        });
+                        const data2 = await res2.json();
+                        if (data2.status === 'success') {
+                            st2.innerHTML = '<span class="status-badge status-success">✅ Đã chèn mã</span>';
+                        } else {
+                            st2.innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi: ' + (data2.message || 'Error') + '</span>';
+                            return;
+                        }
+                    } catch(e) { 
+                        st2.innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối WP</span>'; return;
+                    }
+                } else {
+                    st2.innerHTML = '<span style="font-size:10px; color:gray">Dừng (Không có user/pass WP)</span>';
+                    return;
+                }
+            }
+            
+            // BƯỚC 3: XÁC MINH GSC
+            if (!st3.innerHTML.includes('✅')) {
+                if (metaTag === 'AUTO_VERIFIED') {
+                    st3.innerHTML = '<span class="status-badge status-success">✅ OK</span>';
+                } else {
+                    st3.innerHTML = '⏳ Đang xác minh...';
+                    try {
+                        const body3 = { url: url, id: profile.id };
+                        if (proxyData.host) body3.proxy = proxyData;
+                        
+                        const res3 = await fetch(apiUrl + '/gsc-click-verify', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body3)
+                        });
+                        const data3 = await res3.json();
+                        if (data3.status === 'success') { 
+                            st3.innerHTML = '<span class="status-badge status-success">✅ OK</span>'; 
+                        } else { 
+                            st3.innerHTML = '<span class="status-badge" style="background:var(--danger)">❌ Xác minh xịt</span>'; return;
+                        }
+                    } catch(e) {
+                        st3.innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối</span>'; return;
+                    }
+                }
+            }
+            
+            // BƯỚC 4: NẠP SITEMAP
+            if (!st4.innerHTML.includes('✅ Đã nạp')) {
+                const sitemaps = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(s=>s);
+                if(sitemaps.length > 0) {
+                    st4.innerHTML = '⏳ Đang nạp Sitemap...';
+                    try {
+                        const body4 = { url: url, id: profile.id, sitemaps };
+                        if (proxyData.host) body4.proxy = proxyData;
+                        
+                        const res4 = await fetch(apiUrl + '/gsc-submit-sitemap', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(body4)
+                        });
+                        const data4 = await res4.json();
+                        if (data4.status === 'success') { 
+                            st4.innerHTML = '<span class="status-badge status-success">✅ Đã nạp ' + data4.results.filter(r=>r.status==='success').length + '/' + sitemaps.length + ' cái</span>'; 
+                        } else { 
+                            st4.innerHTML = '<span class="status-badge" style="background:var(--warning)">⚠️ Có lỗi nạp</span>'; 
+                        }
+                    } catch(e) {
+                        st4.innerHTML = '<span class="status-badge" style="background:var(--danger)">Lỗi kết nối</span>'; 
+                    }
+                } else {
+                    st4.innerHTML = '<span style="font-size:10px; color:gray">Bỏ qua SM</span>';
+                }
+            }
+        };
+
+        for (const profile of selectedProfiles) {
+            for (let i = 0; i < lines.length; i++) {
+                const parts = lines[i].split(/[\s\t]+/);
+                let url = parts[0]; 
+                if(!url) continue;
+                if(!url.startsWith('http')) url='https://'+url; if(!url.endsWith('/')) url+='/';
+                
+                const adminPath = parts[1] || 'wp-admin';
+                const user = parts[2] || '';
+                const pass = parts[3] || '';
+                
+                const currentId = rowId++;
+                const tr = document.createElement('tr'); 
+                
+                // Add the row to table
+                tr.innerHTML = `
+                    <td>${url}</td>
+                    <td><span style="font-size:11px; color:var(--primary); font-weight:bold;">${profile.name}</span></td>
+                    <td id="st1_${currentId}">Đang chờ...</td>
+                    <td id="st2_${currentId}">-</td>
+                    <td id="st3_${currentId}">-</td>
+                    <td id="st4_${currentId}">-</td>
+                    <td><button class="btn-mini" style="background: var(--surface); color: var(--text);" title="Thử lại (Bỏ qua bước thành công)" onclick="runSingleRow('${currentId}', '${url}', '${adminPath}', '${user}', '${pass}', {id: '${profile.id}'}, '${apiUrl}')"><i class="fas fa-sync"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+                
+                await window.runSingleRow(currentId, url, adminPath, user, pass, profile, apiUrl);
+            }
+        }
+    }
+
+    window.verifyVpsSite = async function(url, id, apiUrl, profileId) {
+        const vrEl = document.getElementById('vr_vps_'+id);
+        vrEl.innerHTML = '⏳ Đang bấm...';
+        try {
+            const res = await fetch(apiUrl + '/gsc-click-verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url, id: profileId })
+            });
+            const data = await res.json();
+            if (data.status === 'success') { 
+                vrEl.innerHTML = '<span class="status-badge status-success">✅ OK</span>'; 
+                document.getElementById('mt_vps_'+id).innerText = 'Xác minh xong'; 
+            } else { 
+                vrEl.innerHTML = '<button class="btn-mini" style="background:var(--danger); color:white; border:none;" onclick="verifyVpsSite(\''+url+'\', '+id+', \''+apiUrl+'\', \''+profileId+'\')">❌ Thử lại</button>';
+            }
+        } catch(e) {
+            vrEl.innerHTML = '<button class="btn-mini" style="background:var(--danger); color:white; border:none;" onclick="verifyVpsSite(\''+url+'\', '+id+', \''+apiUrl+'\', \''+profileId+'\')">❌ Thử lại</button>';
+        }
+    };
+
+    
+    // --- TAB 1 LOGIC ---
+    async function fetchMeta(url, id, token, email) {
+        const res = await fetch(`https://www.googleapis.com/siteVerification/v1/token`, {
+            method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ verificationMethod: 'META', site: { identifier: url, type: 'SITE' } })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            document.getElementById(`mt_${id}`).innerHTML = `<div class="code-box"><span class="code-text">${data.token.replace(/</g,'&lt;')}</span><button class="btn-mini" onclick="navigator.clipboard.writeText('${data.token.replace(/'/g,"\\'")}')">Copy</button></div>`;
+            document.getElementById(`vr_${id}`).innerHTML = `<button class="btn-mini" onclick="verifySite('${url}', ${id}, '${email}')">Xác minh</button>`;
+        }
+    }
+
+    async function verifySite(url, id, email) {
+        const acc = gscAccounts.find(a => a.email === email);
+        if(!acc || !acc.token) return;
+        const token = acc.token;
+        const vrEl = document.getElementById(`vr_${id}`);
+        vrEl.innerHTML = '⏳...';
+        try {
+            const res = await fetch(`https://www.googleapis.com/siteVerification/v1/webResource?verificationMethod=META`, {
+                method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ site: { identifier: url, type: 'SITE' } })
+            });
+            if (res.ok) { 
+                await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+                vrEl.innerHTML = '<span class="status-badge status-success">✅ OK</span>'; 
+                document.getElementById(`mt_${id}`).innerText = 'Xác minh xong'; 
+                
+                const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
+                const cell = vrEl.parentNode.querySelector('.sitemap-cell');
+                if(cell) submitSitemapsForUrl(url, cell, smNames, token);
+            } else { 
+                vrEl.innerHTML = `<button class="btn-mini" style="background:var(--danger); color:white; border:none;" onclick="verifySite('${url}', ${id}, '${email}')">❌ Lỗi - Thử lại</button>`;
+            }
+        } catch(e) {
+            vrEl.innerHTML = `<button class="btn-mini" style="background:var(--danger); color:white; border:none;" onclick="verifySite('${url}', ${id}, '${email}')">❌ Lỗi - Thử lại</button>`;
+        }
+    }
+
+    async function submitSitemapsForUrl(url, cell, smNames, token) {
+        if (!smNames || smNames.length === 0) return;
+        cell.innerHTML = '⏳...';
+        try {
+            let res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${token}` } });
+            
+            if (res.status === 403) {
+                await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+                await new Promise(r => setTimeout(r, 1500)); 
+                res = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps`, { headers: { 'Authorization': `Bearer ${token}` } });
+            }
+
+            if (!res.ok) throw new Error("Chưa xác minh hoặc lỗi API");
+            const data = await res.json();
+            const existed = (data.sitemap || []).map(s=>s.path);
+            let html = [];
+            for (let name of smNames) {
+                const full = url + name;
+                if (existed.some(p=>p.includes(name))) html.push(`<div style="color:var(--success)">✅ ${name}</div>`);
+                else {
+                    const sRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(url)}/sitemaps/${encodeURIComponent(full)}`, { method: 'PUT', headers: { 'Authorization': `Bearer ${token}` } });
+                    html.push(sRes.ok? `<div style="color:var(--primary)">🆕 ${name}</div>` : `❌ ${name}`);
+                }
+            }
+            cell.innerHTML = html.join('');
+        } catch(e) { cell.innerText='Lỗi'; }
+    }
+
+    async function checkAndSubmitSitemaps() {
+        const smNames = document.getElementById('sitemapList').value.split(',').map(s=>s.trim()).filter(Boolean);
+        const rows = document.querySelectorAll('#resultBody tr');
+        for (let row of rows) {
+            const url = row.dataset.siteUrl; 
+            const email = row.dataset.email;
+            if(!url || !email) continue;
+            const acc = gscAccounts.find(a => a.email === email);
+            if(!acc || !acc.token) continue;
+            
+            const cell = row.querySelector('.sitemap-cell');
+            submitSitemapsForUrl(url, cell, smNames, acc.token);
+        }
+    }
+
+    async function retryFailedVerifications() {
+        const buttons = document.querySelectorAll('#resultBody button');
+        let count = 0;
+        for (let btn of buttons) {
+            if (btn.innerText.includes('Lỗi - Thử lại')) {
+                btn.click();
+                count++;
+                await new Promise(r => setTimeout(r, 300)); 
+            }
+        }
+        if(count === 0) alert("Không tìm thấy mục nào bị lỗi xác minh.");
+    }
+
+        // --- TAB 8 LOGIC ---
+    async function startCheckAdmin() {
+        const dstLines = document.getElementById('dstList8').value.split('\n').filter(l => l.trim());
+        if (!dstLines.length) return alert('Nhập ít nhất 1 URL Web Đích sếp ơi!');
+        const checkAdmin = true;
+        const basicUser = localStorage.getItem('basicAuthUser') || '';
+        const basicPass = localStorage.getItem('basicAuthPass') || '';
+        const tbody = document.getElementById('checkAdminResultBody');
+        tbody.innerHTML = '';
+
+        for (let i = 0; i < dstLines.length; i++) {
+            const dp = (dstLines[i] || '').trim().split(/\s+/);
+            let dst = dp[0];
+            if (!dst.startsWith('http')) dst = 'https://' + dst;
+            if (!dst.endsWith('/')) dst += '/';
+            const adminPath = dp[1] || 'wp-admin';
+            const user = dp[2] || '';
+            const pass = dp[3] || '';
+            const dstShort = dst.replace(/^https?:\/\//,'').replace(/\/$/,'');
+
+            const tr = document.createElement('tr');
+            tr.id = `arow_${i}`;
+            tr.dataset.dst = dst;
+            tr.dataset.adminPath = adminPath;
+            tr.dataset.user = user;
+            tr.dataset.pass = pass;
+            tr.innerHTML = `
+                <td style="font-size:11px; word-break:break-all;"><a href="${dst}" target="_blank" style="color:var(--primary)">${dstShort}</a></td>
+                <td style="font-size:11px; color:#a78bfa;">/${adminPath}</td>
+                <td id="cAd8_${i}">...</td>
+                <td id="cLo8_${i}">...</td>
+                <td><button class="btn-mini" onclick="recheckAdminRow(${i})">🔄</button></td>
+            `;
+            tbody.appendChild(tr);
+
+            await checkAdminOnlyRow(i, dst, adminPath, user, pass, basicUser, basicPass);
+            await new Promise(r => setTimeout(r, 400));
+        }
+    }
+
+    async function checkAdminOnlyRow(i, dst, adminPath, user, pass, basicUser, basicPass) {
+        document.getElementById(`cAd8_${i}`).innerHTML = '⏳...';
+        document.getElementById(`cLo8_${i}`).innerHTML = '⏳...';
+        
+        const apiUrl = localStorage.getItem('wpVpsUrl') ? localStorage.getItem('wpVpsUrl').replace(/\/$/, '') + '/check-wp-admin' : '';
+        if (!apiUrl) {
+            document.getElementById(`cAd8_${i}`).innerHTML = '<span style="color:var(--danger)">❌ Lỗi</span>';
+            document.getElementById(`cLo8_${i}`).innerHTML = 'Chưa điền API VPS trong Cài đặt Hệ thống';
+            return;
+        }
+
+        const dstBase = stripLocalePath(dst);
+        
+        let targetUrl = '';
+        if (adminPath === 'wp-admin' || !adminPath) {
+            document.getElementById(`cAd8_${i}`).innerHTML = '⏳ Dò Path...';
+            for (const p of WP_ADMIN_PATHS) {
+                const u = dstBase + p;
+                const r = await fetchStatus(u);
+                if (r.code === 200 && r.html && (r.html.includes('wp-login.php') || r.html.includes('user_login') || r.html.includes('log') || r.html.match(/<input[^>]*name=["']log["']/i))) {
+                    targetUrl = u; 
+                    const tdAdmin = document.getElementById(`arow_${i}`).children[1];
+                    tdAdmin.innerHTML = `<span style="color:var(--success)">/${p}</span>`;
+                    break;
+                }
+            }
+            if (!targetUrl) {
+                document.getElementById(`cAd8_${i}`).innerHTML = '<span style="color:var(--danger)">❌ Không tìm thấy Form</span>';
+                document.getElementById(`cLo8_${i}`).innerHTML = '-';
+                return;
+            }
+        } else {
+            targetUrl = dstBase + adminPath;
+        }
+        document.getElementById(`cAd8_${i}`).innerHTML = '⏳ Gọi VPS...';
+
+
+        try {
+            const res = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    url: targetUrl,
+                    username: user,
+                    password: pass,
+                    basicUser: basicUser,
+                    basicPass: basicPass
+                })
+            });
+            const data = await res.json();
+            
+            if (data.status === 'success') {
+                document.getElementById(`cAd8_${i}`).innerHTML = `<a href="${targetUrl}" target="_blank" style="color:var(--success)">✅ OK</a>`;
+                document.getElementById(`cLo8_${i}`).innerHTML = `<span style="color:var(--success)">${data.message}</span>`;
+            } else {
+                document.getElementById(`cAd8_${i}`).innerHTML = `<a href="${targetUrl}" target="_blank" style="color:var(--warning)">⚠️ ${data.status}</a>`;
+                document.getElementById(`cLo8_${i}`).innerHTML = `<span style="color:var(--danger)">${data.message || data.error || 'Lỗi'}</span>`;
+            }
+        } catch (error) {
+            document.getElementById(`cAd8_${i}`).innerHTML = '<span style="color:var(--danger)">❌ Lỗi API</span>';
+            document.getElementById(`cLo8_${i}`).innerHTML = `Không gọi được API: ${error.message}`;
+        }
+    }
+
+    async function recheckAdminRow(i) {
+        const tr = document.getElementById(`arow_${i}`);
+        await checkAdminOnlyRow(i, tr.dataset.dst, tr.dataset.adminPath, tr.dataset.user, tr.dataset.pass, localStorage.getItem('basicAuthUser')||'', localStorage.getItem('basicAuthPass')||'');
+    }
+
+
+    // --- TAB 2 LOGIC ---
+    async function startCheck() {
+        const srcLines = document.getElementById('srcList').value.split('\n').filter(l => l.trim());
+        if (!srcLines.length) return alert('Nhập ít nhất 1 URL Web Gốc sếp ơi!');
+        const dstLines = document.getElementById('dstList').value.split('\n');
+        const checkAdmin = false;
+        const tbody = document.getElementById('checkResultBody');
+        tbody.innerHTML = '';
+
+        for (let i = 0; i < srcLines.length; i++) {
+            let src = srcLines[i].trim();
+            if (!src.startsWith('http')) src = 'https://' + src;
+            if (!src.endsWith('/')) src += '/';
+
+            const dp = (dstLines[i] || '').trim().split(/\s+/);
+            let dst = dp[0] || src;
+            if (!dst.startsWith('http')) dst = 'https://' + dst;
+            if (!dst.endsWith('/')) dst += '/';
+            const adminPath = dp[1] || 'wp-admin';
+            const user = dp[2] || '';
+            const pass = dp[3] || '';
+            // Tự động bỏ đuôi locale (vi-vn, en-us...) khi check admin
+            const dstBase = stripLocalePath(dst);
+
+            const srcShort = src.replace(/^https?:\/\//,'').replace(/\/$/,'');
+            const dstShort = dst.replace(/^https?:\/\//,'').replace(/\/$/,'');
+
+            const tr = document.createElement('tr');
+            tr.id = `crow_${i}`;
+            tr.dataset.src = src;
+            tr.dataset.dst = dst;
+            tr.dataset.adminPath = adminPath;
+            tr.dataset.user = user;
+            tr.dataset.pass = pass;
+            tr.innerHTML = `
+                <td style="font-size:11px; word-break:break-all; color:var(--text-muted)">${srcShort}</td>
+                <td style="font-size:11px; word-break:break-all;"><a href="${dst}" target="_blank" style="color:var(--primary)">${dstShort}</a></td>
+                <td id="cSt_${i}"><span style="color:var(--warning)">⏳...</span></td>
+                <td id="cCo_${i}">-</td>
+                <td id="cMa_${i}">-</td>
+                <td id="cBr_${i}">-</td>
+                <td id="cAd_${i}">${checkAdmin ? '...' : '-'}</td>
+                <td id="cLo_${i}">-</td>
+                <td><button class="btn-mini" onclick="recheckRow2(${i})">🔄</button></td>
+            `;
+            tbody.appendChild(tr);
+
+            await checkOneRow(i, src, dst, adminPath, user, pass, checkAdmin);
+            await new Promise(r => setTimeout(r, 400));
+        }
+    }
+
+    // Chuẩn hóa hostname: tự động convert IDN/Unicode sang Punycode để so sánh đúng
+    // Ví dụ: ドンペリ塾.jpn.com → xn--gdk8a8b8az033b.jpn.com
+    function normalizeHostname(url) {
+        try {
+            let u = url.trim();
+            if (!u.startsWith('http')) u = 'https://' + u;
+            return new URL(u).hostname.toLowerCase(); // browser tự Punycode hóa IDN
+        } catch(e) {
+            return url.toLowerCase().replace(/^https?:\/\//,'').replace(/[/?#].*/,'');
+        }
+    }
+
+    // Hiển thị URL: nếu là Punycode thì cũng thêm dạng gốc (decode)
+    function displayUrl(url) {
+        if (!url) return '';
+        try {
+            const u = new URL(url.startsWith('http') ? url : 'https://' + url);
+            const punyHost = u.hostname;
+            // Decode Punycode label về Unicode
+            const unicodeHost = punyHost.split('.').map(label => {
+                if (!label.startsWith('xn--')) return label;
+                try {
+                    return new URL('https://' + label + '.com').hostname.replace('.com','');
+                } catch(e) { return label; }
+            }).join('.');
+            return unicodeHost !== punyHost
+                ? `${unicodeHost} <span style="color:#64748b;font-size:10px">(${punyHost})</span>`
+                : url;
+        } catch(e) { return url; }
+    }
+
+    // Danh sách path wp-admin thử tự động
+    const WP_ADMIN_PATHS = ['web_auth','kqbd_web_auth','kbd_web_auth','login','login_seo_top1_luon','seo-key-top-1','web_auth_pota','wp_hanaseo','wp-admin','wp_jisooseo'];
+
+    // Lấy HTML + HTTP status code + redirect URL thực sự qua allorigins
+    async function fetchStatus(url) {
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 9000);
+            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {signal: ctrl.signal});
+            clearTimeout(tid);
+            if (res.ok) {
+                const data = await res.json();
+                const code = (data.status && data.status.http_code) ? data.status.http_code : 200;
+                const redirectUrl = (data.status && data.status.url) ? data.status.url : '';
+                return { html: data.contents || '', code, redirectUrl };
+            }
+        } catch(e) {}
+        // Fallback codetabs
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 8000);
+            const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, {signal: ctrl.signal});
+            clearTimeout(tid);
+            if (res.ok) return { html: await res.text(), code: 200, redirectUrl: '' };
+            return { html: '', code: res.status, redirectUrl: '' };
+        } catch(e) {}
+        return { html: null, code: 0, redirectUrl: '' };
+    }
+
+    // Tự động dò đúng path wp-admin
+    async function detectWpAdmin(dst) {
+        const dstBase = stripLocalePath(dst);
+        for (let path of WP_ADMIN_PATHS) {
+            try {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 6000);
+                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + path)}`, {signal: ctrl.signal});
+                clearTimeout(tid);
+                if (res.ok) {
+                    const h = await res.text();
+                    if (h && (h.includes('wp-login') || h.includes('user_login') || h.includes('loginform'))) return path;
+                }
+            } catch(e) {}
+        }
+        return null;
+    }
+
+    async function checkOneRow(i, src, dst, adminPath, user, pass, checkAdmin) {
+        const dstBase = stripLocalePath(dst || src);
+        const stEl = document.getElementById(`cSt_${i}`);
+        const coEl = document.getElementById(`cCo_${i}`);
+        const maEl = document.getElementById(`cMa_${i}`);
+        const brEl = document.getElementById(`cBr_${i}`);
+        const adEl = document.getElementById(`cAd_${i}`);
+        const loEl = document.getElementById(`cLo_${i}`);
+
+        stEl.innerHTML = '<span style="color:var(--warning)">⏳ Đang quét...</span>';
+
+        // Bước 1: Lấy HTML + HTTP status code thực sự
+        const { html, code, redirectUrl } = await fetchStatus(src);
+
+        if (!html && code === 0) {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Timeout</span>';
+            coEl.innerText = 'ERR'; maEl.innerText = '-'; adEl.innerText = '-';
+            return;
+        }
+
+        // Hiển thị HTTP status
+        coEl.innerText = code || '?';
+        if (code === 404) {
+            stEl.innerHTML = '<span class="status-badge status-error">🔴 404 Không tìm thấy</span>';
+            maEl.innerText = '-'; adEl.innerText = '-';
+            return;
+        } else if (code >= 500) {
+            stEl.innerHTML = `<span class="status-badge status-error">❌ Lỗi Server ${code}</span>`;
+            maEl.innerText = '-'; adEl.innerText = '-';
+            return;
+        } else if (code >= 400) {
+            stEl.innerHTML = `<span class="status-badge status-error">❌ Lỗi ${code} (Timeout/Từ chối)</span>`;
+            maEl.innerText = '-'; adEl.innerText = '-';
+            return;
+        } else if (!html || html.length < 50) {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Không đọc được</span>';
+            coEl.innerText = code || 'ERR'; maEl.innerText = '-'; adEl.innerText = '-';
+            return;
+        } else {
+            stEl.innerHTML = '<span class="status-badge status-success">✅ Live</span>';
+        }
+
+        // Bước 2: Xác định URL đích sau redirect
+        // Ƭu tiên: redirectUrl từ allorigins (URL thực sau HTTP redirect)
+        // Fallback: đọc canonical / og:url / meta-refresh từ HTML
+        let finalUrl = '';
+        const srcHostNorm = normalizeHostname(src);
+        const rdrHostNorm = redirectUrl ? normalizeHostname(redirectUrl) : '';
+        const didRedirect = redirectUrl && rdrHostNorm && rdrHostNorm !== srcHostNorm;
+
+        const dstHostNorm = normalizeHostname(dst);
+
+        if (didRedirect) {
+            // allorigins đã follow HTTP redirect — dùng luôn URL đích
+            finalUrl = redirectUrl;
+        } else {
+            // Không có redirect HTTP — đọc canonical / og:url / meta-refresh
+            const doc = new DOMParser().parseFromString(html || '', 'text/html');
+            finalUrl = doc.querySelector('link[rel="canonical"]')?.getAttribute('href') ||
+                       doc.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
+            if (!finalUrl) {
+                const content = doc.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
+                const mR = content.match(/url=([^;\s]+)/i);
+                if (mR) finalUrl = mR[1].trim().replace(/["']/g, '');
+            }
+            
+            // Fallback mạnh cho proxy codetabs (không trả về redirectUrl)
+            // Nếu web đích (bị hack) không có thẻ canonical/og:url,
+            // nhưng proxy trả về HTML CỦA ĐÍCH chứa đầy domain đích -> KHHP
+            if ((!finalUrl || normalizeHostname(finalUrl) === srcHostNorm) && dstHostNorm && html && html.includes(dstHostNorm)) {
+                finalUrl = dst;
+            }
+
+            if (!finalUrl) finalUrl = src;
+        }
+
+        const finalHostNorm = normalizeHostname(finalUrl);
+        // So khớp sau khi cả hai đã Punycode-hóa (hỗ trợ domain tiếng Nhật/Trung)
+        const isMatch = finalHostNorm === dstHostNorm
+                     || finalHostNorm.endsWith('.' + dstHostNorm)
+                     || dstHostNorm.endsWith('.' + finalHostNorm);
+
+                // Hiển thị URL đích (kèm dạng Unicode nếu là Punycode)
+        const displayFinalUrl = finalUrl !== src ? finalUrl : '';
+        maEl.innerHTML = isMatch
+            ? `<span style="color:var(--success)">✅ KHHP</span><br><span style="font-size:10px; color:var(--text-muted)">${displayUrl(finalUrl)}</span>`
+            : `<span style="color:var(--danger)">🚨 LHCH</span><br><span style="font-size:10px; color:var(--text-muted); word-break:break-all">${displayUrl(finalUrl)}</span>`;
+
+        // Bước: Check Brand Gốc ở Footer
+        if (html) {
+            brEl.innerHTML = '<span style="color:var(--warning); font-size:11px">⏳ Dò...</span>';
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            let footerText = '';
+            const footers = doc.querySelectorAll('footer, [class*="footer"], [id*="footer"], [class*="copyright"], [id*="copyright"]');
+            footers.forEach(f => footerText += f.textContent + ' ');
+            if(!footerText) {
+                const bodyText = doc.body ? doc.body.textContent : '';
+                footerText = bodyText.slice(-3001);
+            }
+            
+            let coreBrand = srcHostNorm.split('.')[0];
+            if (coreBrand === 'www') coreBrand = srcHostNorm.split('.')[1] || '';
+            const cleanCore = coreBrand.replace(/-/g, '');
+            
+            if (coreBrand && (footerText.toLowerCase().includes(coreBrand.toLowerCase()) || footerText.toLowerCase().includes(cleanCore.toLowerCase()))) {
+                brEl.innerHTML = `<span style="color:var(--success); font-size:11px; font-weight:bold;">✅ ĐÚNG (${coreBrand})</span>`;
+            } else {
+                brEl.innerHTML = `<span style="color:var(--danger); font-size:11px; font-weight:bold;">🚨 LỆCH BRAND</span>`;
+            }
+        } else {
+            brEl.innerText = '-';
+        }
+
+        // Bước 3: Check Admin + Auto-detect path WP
+        // Đọc checkbox TRỰC TIẾP lúc này — nếu sếp bỏ tích giữa chừng sẽ dừng ngay
+        const chkAdminEl = document.getElementById('chkAdmin');
+        const shouldCheckAdmin = chkAdminEl ? chkAdminEl.checked : checkAdmin;
+        if (shouldCheckAdmin) {
+            adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">⏳ Dò admin...</span>';
+            let foundPath = null;
+            let loginHtml = '';
+            // Thử path do sếp nhập trước
+            try {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 7000);
+                loginHtml = await vpsProxyRaw(dstBase + adminPath, ctrl.signal);
+                clearTimeout(tid);
+                if (loginHtml) {
+                    if (loginHtml.includes('wp-login') || loginHtml.includes('user_login') || loginHtml.includes('loginform')) {
+                        foundPath = adminPath;
+                    }
+                }
+            } catch(e) {}
+
+            // Nếu path sếp nhập sai → tự dò
+            if (!foundPath) {
+                adEl.innerHTML = '<span style="color:var(--warning); font-size:11px">🔍 Tự dò path...</span>';
+                foundPath = await detectWpAdmin(dstBase);
+            }
+
+            if (foundPath) {
+                adEl.innerHTML = `<span style="color:var(--success); font-size:12px">✅ /${foundPath}</span>`;
+                if (user) loEl.innerHTML = `<button class="btn-mini" onclick="autoLogin('${dst}','${foundPath}','${user}','${pass}')">🔑 Login</button>`;
+                else loEl.innerText = '-';
+                
+                if (user && pass) {
+                    loEl.innerHTML += '<br><span style="font-size:10px">⏳ Đang test...</span>';
+                    const loginStatus = await verifyLoginViaVps(dstBase, foundPath || adminPath, user, pass);
+                    loEl.innerHTML = loEl.innerHTML.replace('⏳ Đang test...', loginStatus);
+                }
+            } else {
+                adEl.innerHTML = '<span style="color:var(--danger); font-size:11px">❌ Không tìm thấy</span>';
+                loEl.innerText = '-';
+            }
+        }
+    }
+
+    async function recheckRow2(i) {
+        const tr = document.getElementById(`crow_${i}`);
+        if (!tr) return;
+        const chkAdminEl = document.getElementById('chkAdmin');
+        const checkAdmin = chkAdminEl ? chkAdminEl.checked : false;
+        await checkOneRow(i, tr.dataset.src, tr.dataset.dst, tr.dataset.adminPath, tr.dataset.user, tr.dataset.pass, checkAdmin);
+    }
+
+    async function startCheck301Only() {
+        const btn = document.getElementById('btnCheck301Only');
+        const srcLines = document.getElementById('srcList').value.split('\n').filter(l => l.trim());
+        if (srcLines.length === 0) return alert("Nhập ít nhất 1 URL gốc ở cột Web Gốc sếp ơi!");
+        
+        btn.innerText = "⏳ Đang quét...";
+        btn.disabled = true;
+        
+        const outputContainer = document.getElementById('check301OutputContainer');
+        const outputArea = document.getElementById('check301Output');
+        outputContainer.style.display = 'block';
+        outputArea.value = '';
+        
+        let results = [];
+
+        for (let i = 0; i < srcLines.length; i++) {
+            let o = srcLines[i].trim();
+            if(!o.startsWith('http')) o='https://'+o;
+            
+            try {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 10000);
+                
+                // Dùng codetabs proxy vì nó ổn định hơn allorigins
+                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(o)}`, { signal: ctrl.signal });
+                clearTimeout(tid);
+                
+                if (res.ok) {
+                    const html = await res.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    
+                    let finalUrl = '';
+                    // 1. Tìm canonical
+                    finalUrl = doc.querySelector('link[rel="canonical"]')?.getAttribute('href') || '';
+                    // 2. Tìm og:url
+                    if (!finalUrl) {
+                        finalUrl = doc.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
+                    }
+                    // 3. Tìm meta refresh
+                    if (!finalUrl) {
+                        const content = doc.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
+                        const m = content.match(/url=([^;\s]+)/i);
+                        if (m) finalUrl = m[1].trim().replace(/["']/g, '');
+                    }
+                    
+                    if (finalUrl) {
+                        results.push(finalUrl);
+                    } else {
+                        // Nếu không tìm thấy thẻ nào, có thể web không 301 hoặc không có meta
+                        results.push(o); 
+                    }
+                } else {
+                    results.push(`[Lỗi truy cập ${res.status}] ${o}`);
+                }
+            } catch(e) {
+                results.push(`[Lỗi Mạng/Timeout] ${o}`);
+            }
+            
+            outputArea.value = results.join('\n'); // Cập nhật realtime
+            await new Promise(r => setTimeout(r, 600)); // Nghỉ lâu hơn tí để tránh bị proxy block
+        }
+        
+        // Gửi báo cáo Telegram
+        if (results.length > 0) {
+            let teleMsg = `<b>📊 BÁO CÁO CHECK 301</b>\n\n`;
+            results.forEach((r, idx) => { teleMsg += `${idx + 1}. ${r}\n`; });
+            await sendToTelegram(teleMsg);
+        }
+
+        btn.innerText = "🔄 Chỉ Check 301 (Xuất List)";
+        btn.disabled = false;
+    }
+
+    function autoLogin(url, path, user, pass) {
+        const win = window.open('', '_blank');
+        const lUrl = url + (path === 'wp-admin' ? 'wp-login.php' : path);
+    }
+
+    async function verifyLoginViaVps(url, adminPath, user, pass) {
+        const ip = document.getElementById('sysVpsIp').value.trim();
+        if (!ip) return '<span style="color:var(--text-muted);font-size:10px;">⚠️ Cần IP VPS</span>';
+        try {
+            const ctrl = new AbortController();
+            setTimeout(() => ctrl.abort(), 12000);
+            const vpsLoginUrl = 'http://' + ip + ':3001/check-login?url=' + encodeURIComponent(url) + '&adminPath=' + encodeURIComponent(adminPath || '') + '&user=' + encodeURIComponent(user) + '&pass=' + encodeURIComponent(pass);
+            const loginProxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(vpsLoginUrl);
+            const res = await fetch(loginProxyUrl, { signal: ctrl.signal });
+            const data = await res.json();
+            if (data.success) {
+                if (data.result.includes('OK')) return '<span class="status-badge status-success" style="font-size:10px;">🔑 Login OK</span>';
+                if (data.result.includes('Sai Pass')) return '<span class="status-badge status-error" style="font-size:10px;">🚫 Sai Pass</span>';
+                return `<span style="color:var(--warning);font-size:10px;">${data.result}</span>`;
+            }
+            return '<span style="color:var(--text-muted);font-size:10px;">❓ Lỗi VPS</span>';
+        } catch(e) {
+            return '<span style="color:var(--danger);font-size:10px;">❌ Timeout</span>';
+        }
+    }
+
+    // --- TAB 3 LOGIC ---
+    async function fetchHtml(url) {
+        const proxies = [
+            u => getVpsProxyUrl(u, true) || `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+            u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
+        ];
+        for (let makeUrl of proxies) {
+            try {
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 8000);
+                const res = await fetch(makeUrl(url), { signal: ctrl.signal });
+                clearTimeout(tid);
+                // Bỏ qua 403/429 từ proxy (bị chặn) — thử proxy tiếp theo
+                if (res.ok) {
+                    const text = await res.text();
+                    if (text && text.length > 100) return text;
+                }
+            } catch(e) { /* thử proxy tiếp theo */ }
+        }
+        return null;
+    }
+
+    async function startOutboundAudit() {
+        const rawLines = document.getElementById('auditUrlList').value.split('\n').map(l => l.trim()).filter(l => l);
+        if (rawLines.length === 0) return alert("Nhập ít nhất 1 URL sếp ơi!");
+        const tbody = document.getElementById('auditResultBody');
+        tbody.innerHTML = '';
+        let linkCounter = 0;
+
+        for (let rawUrl of rawLines) {
+            let url = rawUrl; 
+            if (!url.startsWith('http')) url = 'https://' + url;
+            if (!url.endsWith('/')) url += '/';
+            const host = new URL(url).hostname.replace('www.', '');
+
+            const headerTr = document.createElement('tr');
+            headerTr.innerHTML = `<td colspan="6" style="background:rgba(59,130,246,0.15); color:var(--primary); font-weight:700; font-size:12px; padding:8px 15px;">🌐 Đang quét: ${url}</td>`;
+            tbody.appendChild(headerTr);
+
+            const html = await fetchHtml(url);
+            if (!html) {
+                headerTr.innerHTML = `<td colspan="6" style="color:var(--danger); padding:8px 15px;">❌ Không lấy được nội dung: ${url}</td>`;
+                continue;
+            }
+
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+
+            // Hàm lọc link ngoài (không cùng host) hoặc link nội bộ đặc biệt (/mlink/)
+            function isExternal(href) {
+                try {
+                    const h = new URL(href, url).href;
+                    const uObj = new URL(h);
+                    const linkHost = uObj.hostname.replace('www.', '');
+                    const isInternal = linkHost.includes(host);
+
+                    // 1. Nếu là link nội bộ nhưng đi qua /mlink/ -> Tính là Outbound (Affiliate Cloaking)
+                    if (isInternal && uObj.pathname.startsWith('/mlink/')) return true;
+
+                    // 2. Nếu là link ngoài thực sự
+                    return h.startsWith('http') && !isInternal && linkHost.length > 3;
+                } catch(e) { return false; }
+            }
+            function resolveUrl(href) {
+                try { return new URL(href, url).href; } catch(e) { return ''; }
+            }
+
+            const foundLinks = new Set();
+
+            // 1. Thẻ <a href> thông thường
+            doc.querySelectorAll('a[href]').forEach(a => {
+                const h = resolveUrl(a.getAttribute('href'));
+                if (h && isExternal(h)) foundLinks.add(h);
+            });
+
+            // 2. onclick="location.href='...'" hoặc window.location
+            doc.querySelectorAll('[onclick]').forEach(el => {
+                const onclick = el.getAttribute('onclick') || '';
+                const matches = onclick.match(/(?:location\.href|window\.location)\s*=\s*['"]([^'"]+)['"]/g) || [];
+                matches.forEach(m => {
+                    const u = m.match(/['"]([^'"]+)['"]/)?.[1];
+                    if (u) { const h = resolveUrl(u); if (h && isExternal(h)) foundLinks.add(h); }
+                });
+                // Bắt cả dạng open('url')
+                const opens = onclick.match(/(?:window\.open|open)\(\s*['"]([^'"]+)['"]/g) || [];
+                opens.forEach(m => {
+                    const u = m.match(/['"]([^'"]+)['"]/)?.[1];
+                    if (u) { const h = resolveUrl(u); if (h && isExternal(h)) foundLinks.add(h); }
+                });
+            });
+
+            // 3. data-href, data-url, data-link, data-redirect trên bất kỳ thẻ nào
+            doc.querySelectorAll('[data-href],[data-url],[data-link],[data-redirect],[data-target]').forEach(el => {
+                ['data-href','data-url','data-link','data-redirect','data-target'].forEach(attr => {
+                    const v = el.getAttribute(attr);
+                    if (v) { const h = resolveUrl(v); if (h && isExternal(h)) foundLinks.add(h); }
+                });
+            });
+
+            doc.querySelectorAll('script:not([src])').forEach(s => {
+                const txt = s.textContent || '';
+                // Bắt URL trong chuỗi JS
+                const urlMatches = txt.match(/['"`](https?:\/\/[^\s'"`<>]{8,})[`'"]/g) || [];
+                urlMatches.forEach(m => {
+                    const u = m.replace(/^['"`]|['"`]$/g, '');
+                    if (isExternal(u)) foundLinks.add(u);
+                });
+            });
+
+            // 5. <noscript> fallback links
+            doc.querySelectorAll('noscript a[href]').forEach(a => {
+                const h = resolveUrl(a.getAttribute('href'));
+                if (h && isExternal(h)) foundLinks.add(h);
+            });
+
+            const links = [...foundLinks];
+
+            if (links.length === 0) {
+                const emptyTr = document.createElement('tr');
+                emptyTr.innerHTML = `<td colspan="6" style="color:var(--text-muted); font-size:12px; padding-left:25px;">Không tìm thấy outbound link nào.</td>`;
+                tbody.appendChild(emptyTr);
+                continue;
+            }
+
+            const rowPromises = [];
+            for (let link of links) {
+                const i = linkCounter++;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-size:11px; color:var(--text-muted);">${host}</td>
+                    <td style="font-size:11px; word-break:break-all;"><a href="${link}" target="_blank" style="color:var(--primary)">${link}</a></td>
+                    <td id="audRdr_${i}" style="font-size:11px; word-break:break-all;"><span style="color:var(--text-muted)">...</span></td>
+                    <td style="font-size:11px;">${new URL(link).hostname}</td>
+                    <td id="audSt_${i}"><span style="color:var(--warning)">⏳ Chờ...</span></td>
+                    <td id="audCo_${i}">-</td>
+                    <td><button class="btn-mini" onclick="checkOneOutbound('${link}', ${i})">🔄</button></td>
+                `;
+                tbody.appendChild(tr);
+                // Thu thập promises — chạy song song
+                rowPromises.push(checkOneOutbound(link, i));
+            }
+            // Chờ tất cả link của site này check xong trước khi chuyển site tiếp theo
+            await Promise.all(rowPromises);
+            await new Promise(r => setTimeout(r, 300));
+        }
+
+        // Tất cả đã xong — bây giờ mới gửi Telegram
+        const teleMsg = `<b>🔗 BÁO CÁO OUTBOUND AUDIT</b>\n\n` +
+                        `✅ Đã quét xong: <b>${rawLines.length}</b> website.\n` +
+                        `🔗 Tổng link trỏ ra tìm thấy: <b>${linkCounter}</b> link.\n` +
+                        `⏰ Thời gian: ${new Date().toLocaleString()}\n\n` +
+                        `<i>Sếp vào web xem chi tiết từng link sống/chết nhé!</i>`;
+        await sendToTelegram(teleMsg);
+    }
+
+    async function checkOneOutbound(link, i) {
+        const stEl = document.getElementById(`audSt_${i}`);
+        const coEl = document.getElementById(`audCo_${i}`);
+        const rdrEl = document.getElementById(`audRdr_${i}`);
+        stEl.innerHTML = '<span style="color:var(--warning)">⏳ Quét...</span>';
+
+        // Bước 1: Check sống/chết
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 8000);
+            const check = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`, { signal: ctrl.signal });
+            clearTimeout(tid);
+            stEl.innerHTML = check.ok ? '<span class="status-badge status-success">✅ SỐNG</span>' : '<span class="status-badge status-error">❌ LỖI</span>';
+            coEl.innerText = check.status;
+            
+            if (check.ok) {
+                const html = await check.text();
+                const doc2 = new DOMParser().parseFromString(html, 'text/html');
+                let finalUrl = doc2.querySelector('link[rel="canonical"]')?.getAttribute('href') || 
+                               doc2.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
+                
+                if (!finalUrl) {
+                    const content = doc2.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
+                    const m = content.match(/url=([^;\s]+)/i);
+                    if (m) finalUrl = m[1].trim().replace(/["']/g, '');
+                }
+
+                if (finalUrl) {
+                    try {
+                        const fHost = new URL(finalUrl).hostname.replace('www.', '');
+                        const oHost = new URL(link).hostname.replace('www.', '');
+                        if (fHost !== oHost) {
+                            rdrEl.innerHTML = `<a href="${finalUrl}" target="_blank" style="color:var(--warning); font-size:10px; word-break:break-all;">➡️ ${finalUrl}</a>`;
+                        } else {
+                            rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không redirect</span>';
+                        }
+                    } catch(e) { rdrEl.innerText = '-'; }
+                } else {
+                    rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">-</span>';
+                }
+            }
+        } catch(e) {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Timeout</span>';
+            coEl.innerText = 'ERR';
+        }
+    }
+
+    // --- MLINK CHECK ---
+    async function startMlinkCheck() {
+        const rawLines = document.getElementById('auditUrlList').value.split('\n').map(l => l.trim()).filter(l => l);
+        if (rawLines.length === 0) return alert('Nhập ít nhất 1 URL sếp ơi!');
+
+        const container = document.getElementById('mlinkResultContainer');
+        const tbody = document.getElementById('mlinkResultBody');
+        container.style.display = 'block';
+        tbody.innerHTML = '';
+        document.getElementById('mlinkOkCount').innerText = '0';
+        document.getElementById('mlinkErrCount').innerText = '0';
+
+        for (let rawUrl of rawLines) {
+            let url = rawUrl;
+            if (!url.startsWith('http')) url = 'https://' + url;
+            if (!url.endsWith('/')) url += '/';
+            const rowId = 'ml_' + btoa(rawUrl).replace(/[^a-z0-9]/gi,'').slice(0,12);
+            
+            const tr = document.createElement('tr');
+            tr.id = `row_${rowId}`;
+            tr.innerHTML = `
+                <td style="word-break:break-all;"><a href="${url}" target="_blank" style="color:var(--primary);">${url}</a></td>
+                <td id="st_${rowId}"><span style="color:var(--text-muted)">Đang quét...</span></td>
+                <td id="links_${rowId}" style="font-size:11px;">...</td>
+                <td><button class="btn-mini" onclick="recheckOneMlink('${url}', '${rowId}')">🔄 Check lại</button></td>
+            `;
+            tbody.appendChild(tr);
+
+            await checkOneMlink(url, rowId);
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        // Sau khi xong hết thì gửi Tele báo cáo tổng
+        updateMlinkSummaryAndTele();
+    }
+
+    async function checkOneMlink(url, rowId) {
+        const stEl = document.getElementById(`st_${rowId}`);
+        const linksEl = document.getElementById(`links_${rowId}`);
+        stEl.innerHTML = '<span style="color:var(--warning)">⏳ Đang quét...</span>';
+        
+        const host = new URL(url).hostname.replace('www.', '');
+        const html = await fetchHtml(url);
+        
+        if (!html) {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Lỗi truy cập</span>';
+            linksEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">Proxy không thể kết nối tới Website.</span>';
+            return false;
+        }
+
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const mlinkUrls = new Set();
+
+        doc.querySelectorAll('a[href]').forEach(a => {
+            try {
+                const h = new URL(a.getAttribute('href'), url).href;
+                const uObj = new URL(h);
+                if (uObj.hostname.replace('www.','').includes(host) && uObj.pathname.startsWith('/mlink/')) mlinkUrls.add(h);
+            } catch(e) {}
+        });
+
+        doc.querySelectorAll('[data-href],[data-url],[data-link],[onclick]').forEach(el => {
+            ['data-href','data-url','data-link'].forEach(attr => {
+                const v = el.getAttribute(attr);
+                if (v) { try { const h = new URL(v, url).href; const u2 = new URL(h); if (u2.hostname.replace('www.','').includes(host) && u2.pathname.startsWith('/mlink/')) mlinkUrls.add(h); } catch(e){} }
+            });
+            const oc = el.getAttribute('onclick') || '';
+            const ms = oc.match(/['"](\/?mlink\/[^'"]+)['"]/g) || [];
+            ms.forEach(m => { const v = m.replace(/^['"]|['"]$/g, ''); try { mlinkUrls.add(new URL(v, url).href); } catch(e){} });
+        });
+
+        const uniqueMlinks = [...mlinkUrls];
+        if (uniqueMlinks.length > 0) {
+            stEl.innerHTML = `<span class="status-badge status-success">✅ OK (${uniqueMlinks.length})</span>`;
+            linksEl.innerHTML = uniqueMlinks.map(l => `<a href="${l}" target="_blank" style="color:#a78bfa; display:block; margin-bottom:2px; word-break:break-all;">${l}</a>`).join('');
+            return true;
+        } else {
+            stEl.innerHTML = '<span class="status-badge status-error">❌ Thiếu mlink</span>';
+            linksEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không tìm thấy link cloaking /mlink/ nào trong mã nguồn.</span>';
+            return false;
+        }
+    }
+
+    async function recheckOneMlink(url, rowId) {
+        await checkOneMlink(url, rowId);
+        updateMlinkSummaryAndTele(true);
+    }
+
+    function updateMlinkSummaryAndTele(isUpdateOnly = false) {
+        const rows = document.querySelectorAll('#mlinkResultBody tr');
+        let ok = 0, err = 0;
+        let teleLines = [];
+
+        rows.forEach(tr => {
+            const stText = tr.querySelector('td:nth-child(2)').innerText;
+            const url = tr.querySelector('td:nth-child(1) a').innerText;
+            if (stText.includes('OK')) { ok++; teleLines.push(`✅ ${url}`); }
+            else if (stText.includes('Thiếu') || stText.includes('Lỗi')) { err++; teleLines.push(`❌ ${url}`); }
+        });
+
+        document.getElementById('mlinkOkCount').innerText = ok;
+        document.getElementById('mlinkErrCount').innerText = err;
+
+        if (!isUpdateOnly) {
+            let teleMsg = `<b>🔗 BÁO CÁO CHECK /mlink/ CLOAKING</b>\n\n✅ Có: <b>${ok}</b> | ❌ Thiếu: <b>${err}</b>\n\n` + teleLines.join('\n');
+            sendToTelegram(teleMsg);
+        }
+    }
+
+    // --- TAB 4 LOGIC ---
+    async function startCheckBot() {
+        const btn = document.getElementById('btnCheckBot');
+        const lines = document.getElementById('checkBotList').value.split('\n').filter(l => l.trim());
+        if(lines.length === 0) return alert("Nhập danh sách website sếp ơi!");
+        
+        btn.innerText = "⏳ Đang quét...";
+        btn.disabled = true;
+        
+        const outContainer = document.getElementById('checkBotOutputContainer');
+        const outArea = document.getElementById('checkBotOutput');
+        outContainer.style.display = 'block';
+        outArea.value = '';
+        
+        let results = [];
+        let errorCount = 0;
+        let blockedCount = 0;
+        let openCount = 0;
+
+        for (let rawUrl of lines) {
+            let url = rawUrl.trim();
+            if (!url.startsWith('http')) url = 'https://' + url;
+            try {
+                let parsed = new URL(url);
+                url = parsed.origin; // Chỉ check trang chủ
+            } catch(e) {}
+            
+            let statusText = "🟢 MỞ BOT (Tốt)"; 
+            let isBlocked = false;
+            
+            try {
+                // 1. Check robots.txt
+                const robotRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url + '/robots.txt')}`);
+                if (robotRes.ok) {
+                    const txt = await robotRes.text();
+                    if (/(disallow:\s*\/\s*$)|(disallow:\s*\/$)/im.test(txt)) {
+                        statusText = "🔴 ĐÓNG BOT (chặn trong robots.txt)";
+                        isBlocked = true;
+                    }
+                }
+                
+                // 2. Check Meta Tag
+                if (!isBlocked) {
+                    const htmlRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+                    if (htmlRes.ok) {
+                        const html = await htmlRes.text();
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const metaRobots = doc.querySelector('meta[name="robots"], meta[name="googlebot"]');
+                        if (metaRobots && (metaRobots.getAttribute('content') || '').toLowerCase().includes('noindex')) {
+                            statusText = "🔴 ĐÓNG BOT (chặn bởi meta noindex)";
+                            isBlocked = true;
+                        }
+                    } else {
+                        statusText = `🟡 Không vào được web (HTTP ${htmlRes.status})`;
+                        errorCount++;
+                        isBlocked = null;
+                    }
+                }
+            } catch(e) {
+                statusText = "❌ Lỗi mạng/Timeout";
+                errorCount++;
+                isBlocked = null;
+            }
+            
+            if (isBlocked === true) blockedCount++;
+            else if (isBlocked === false) openCount++;
+
+            results.push(`[${statusText}] ${url}`);
+            outArea.value = results.join('\n');
+            await new Promise(r => setTimeout(r, 600));
+        }
+        
+        btn.innerText = "🤖 Bắt đầu Check Mở Bot";
+        btn.disabled = false;
+        
+        let teleMsg = `<b>🤖 BÁO CÁO CHECK MỞ BOT</b>\n`;
+        teleMsg += `Tổng: ${lines.length} | 🟢 Mở: ${openCount} | 🔴 Đóng: ${blockedCount} | ❌ Lỗi: ${errorCount}\n\n`;
+        results.forEach(r => { teleMsg += `${r}\n`; });
+        await sendToTelegram(teleMsg);
+    }
+        async function startCheckHomepage() {
+            const rawUrls = document.getElementById('homepageUrlInput').value.split('\n').map(u => u.trim()).filter(u => u);
+            if(rawUrls.length === 0) return alert('Nhập danh sách URL!');
+            const btn = document.getElementById('btnCheckHomepage');
+            btn.disabled = true; btn.innerText = 'Đang quét...';
+            document.getElementById('homepageTable').style.display = 'table';
+            const tbody = document.getElementById('homepageBody'); tbody.innerHTML = '';
+            document.getElementById('homepageOutputContainer').style.display = 'none';
+            let report = []; let pC = 0, sC = 0, eC = 0;
+            for(let i=0; i<rawUrls.length; i++) {
+                let url = rawUrls[i]; if (!url.startsWith('http')) url = 'https://' + url;
+                let tr = document.createElement('tr');
+                tr.innerHTML = '<td><a href="' + url + '" target="_blank" style="color:var(--primary);text-decoration:none">' + url + '</a></td><td id="hp_status_' + i + '"><span class="badge badge-warning">Đang check...</span></td><td id="hp_code_' + i + '">-</td>';
+                tbody.appendChild(tr);
+                let type = 'Lỗi';
+                try {
+                    let html = ''; let statusText = 'Lỗi truy cập'; let httpCode = '-';
+                    try {
+                        const ctrl = new AbortController();
+                        const tid = setTimeout(() => ctrl.abort(), 8000);
+                        const res1 = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url), {signal: ctrl.signal});
+                        clearTimeout(tid);
+                        if (res1.ok) {
+                            const data = await res1.json().catch(()=>({}));
+                            html = data.contents || '';
+                            httpCode = data.status?.http_code || 200;
+                        } else { throw new Error('CORS'); }
+                    } catch(e1) {
+                        try {
+                            const ctrl2 = new AbortController();
+                            const tid2 = setTimeout(() => ctrl2.abort(), 8000);
+                            const res2 = await fetch('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url), {signal: ctrl2.signal});
+                            clearTimeout(tid2);
+                            if (res2.ok) {
+                                html = await res2.text();
+                                httpCode = 200;
+                            } else { httpCode = res2.status; }
+                        } catch(e2) { statusText = 'Lỗi mạng'; }
+                    }
+
+                    if (html) {
+                        document.getElementById('hp_code_'+i).innerText = httpCode;
+                        const doc = new DOMParser().parseFromString(html, 'text/html');
+                        const bc = doc.body ? doc.body.className : '';
+                        const isWP = html.includes('wp-content') || html.includes('wp-includes');
+                        
+                        if (bc.match(/\b(blog|home-blog|posts-page)\b/)) {
+                            type = 'Bài viết mới nhất (Posts)';
+                            document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-info">Bài viết mới nhất</span>';
+                            pC++;
+                        } else if (bc.match(/\b(page|page-template|page-template-default|home-page|page-id-\d+)\b/)) {
+                            type = 'Trang tĩnh (Static)';
+                            document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
+                            sC++;
+                        } else {
+                            if (html.includes('class="entry-content"') && !html.includes('class="blog"')) {
+                                type = 'Trang tĩnh (Static)';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
+                                sC++;
+                            } else if (html.match(/class="[^"]*type-post[^"]*"/)) {
+                                type = 'Bài viết mới nhất (Posts)';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-info">Bài viết mới nhất</span>';
+                                pC++;
+                            } else if (html.match(/class="[^"]*type-page[^"]*"/)) {
+                                type = 'Trang tĩnh (Static)';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-success">Trang tĩnh</span>';
+                                sC++;
+                            } else {
+                                type = 'Không xác định';
+                                document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge" style="background:#64748b;color:white">Không xác định</span>';
+                            }
+                        }
+                    } else { 
+                        document.getElementById('hp_status_'+i).innerHTML = `<span class="status-badge status-error">${statusText}</span>`; 
+                        document.getElementById('hp_code_'+i).innerText = httpCode;
+                        eC++; 
+                    }
+                } catch(e) { document.getElementById('hp_status_'+i).innerHTML = '<span class="status-badge status-error">Lỗi hệ thống</span>'; eC++; }
+                report.push('[' + type + '] ' + url);
+                await new Promise(r => setTimeout(r, 800));
+            }
+            btn.innerText = '🚀 Bắt đầu Quét'; btn.disabled = false;
+            document.getElementById('homepageOutputContainer').style.display = 'block';
+            document.getElementById('homepageOutput').value = report.join('\n');
+            let m = '<b>🏠 BÁO CÁO HOMEPAGE STATUS</b>\n';
+            m += 'Tổng: ' + rawUrls.length + ' | 📝 Posts: ' + pC + ' | 📄 Static: ' + sC + ' | ❌ Lỗi: ' + eC + '\n\n' + report.join('\n');
+            await sendToTelegram(m);
+        }
+        let currentGscMode = 'week';
+        
+        function setGscMode(mode) {
+            currentGscMode = mode;
+            document.getElementById('btnModeDay').style.cssText = 'font-size:12px; padding:6px 15px;';
+            document.getElementById('btnModeWeek').style.cssText = 'font-size:12px; padding:6px 15px;';
+            document.getElementById('btnModeMonth').style.cssText = 'font-size:12px; padding:6px 15px;';
+            
+            const activeCss = 'font-size:12px; padding:6px 15px; background:var(--primary); color:white; border-color:var(--primary);';
+            if(mode === 'day') document.getElementById('btnModeDay').style.cssText = activeCss;
+            if(mode === 'week') document.getElementById('btnModeWeek').style.cssText = activeCss;
+            if(mode === 'month') document.getElementById('btnModeMonth').style.cssText = activeCss;
+        }
+
+        function formatDateGSC(d) {
+            let month = '' + (d.getMonth() + 1), day = '' + d.getDate(), year = d.getFullYear();
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+            return [year, month, day].join('-');
+        }
+
+        async function fetchGscMetrics(siteUrl, token, startDate, endDate) {
+            const body = { startDate: startDate, endDate: endDate };
+            try {
+                const res = await fetch(`https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (!res.ok) { if(res.status===403) return {error: 403}; return null; }
+                const data = await res.json();
+                if (data.rows && data.rows.length > 0) {
+                    return data.rows[0]; // Without dimensions, it returns 1 row with total sums
+                }
+                return { clicks: 0, impressions: 0, ctr: 0, position: 0 };
+            } catch(e) { return null; }
+        }
+
+        async function startGscInsights() {
+            if (typeof gscAccounts === 'undefined' || gscAccounts.length === 0) {
+                return alert('Vui lòng qua Bước 1 thêm tài khoản Google trước!');
+            }
+            
+            let siteMap = new Map();
+            for (let acc of gscAccounts) {
+                if (!activeAccountEmails.includes(acc.email)) continue;
+                if (!acc.token || Date.now() > acc.expiresAt) continue;
+                
+                if (!acc.sites || acc.sites.length === 0) {
+                    await fetchAccountSites(acc);
+                }
+
+                if (acc.sites && acc.sites.length > 0) {
+                    acc.sites.forEach(s => {
+                        if (!siteMap.has(s.siteUrl)) {
+                            siteMap.set(s.siteUrl, { url: s.siteUrl, allTokens: [] });
+                        }
+                        siteMap.get(s.siteUrl).allTokens.push({ token: acc.token, email: acc.email });
+                    });
+                }
+            }
+            
+            let allSites = Array.from(siteMap.values());
+            const domainListStr = document.getElementById('gscInsightsUrls').value.trim();
+            const filterDomains = domainListStr ? domainListStr.split('\n').map(d => d.trim().toLowerCase()).filter(d => d) : [];
+            
+            if (filterDomains.length > 0) {
+                allSites = allSites.filter(s => {
+                    const cleanUrl = s.url.replace('https://', '').replace('sc-domain:', '').replace(/\/$/, '').toLowerCase();
+                    return filterDomains.some(fd => cleanUrl.includes(fd) || fd.includes(cleanUrl));
+                });
+            }
+
+            if (allSites.length === 0) {
+                document.getElementById('insightsLoading').style.display = 'none';
+                document.getElementById('btnRunInsights').disabled = false;
+                return alert('Không tìm thấy website nào khớp với danh sách check. Vui lòng kiểm tra lại Tab 1 hoặc bật Search Console API!');
+            }
+
+            document.getElementById('insightsTable').style.display = 'table';
+            const tbody = document.getElementById('insightsBody');
+            tbody.innerHTML = '';
+            document.getElementById('insightsLoading').style.display = 'block';
+            document.getElementById('btnRunInsights').disabled = true;
+
+            // ... (dates calculation remains same) ...
+            let today = new Date();
+            let latestDate = new Date(today.getTime() - (3 * 24 * 60 * 60 * 1000));
+            let dayCount = currentGscMode === 'day' ? 1 : (currentGscMode === 'week' ? 7 : 30);
+            
+            let aEnd = new Date(latestDate);
+            let aStart = new Date(latestDate.getTime() - ((dayCount - 1) * 24 * 60 * 60 * 1000));
+            let bEnd = new Date(aStart.getTime() - (1 * 24 * 60 * 60 * 1000));
+            let bStart = new Date(bEnd.getTime() - ((dayCount - 1) * 24 * 60 * 60 * 1000));
+
+            let strAStart = formatDateGSC(aStart); let strAEnd = formatDateGSC(aEnd);
+            let strBStart = formatDateGSC(bStart); let strBEnd = formatDateGSC(bEnd);
+
+            for (let i = 0; i < allSites.length; i++) {
+                let site = allSites[i];
+                let firstEmail = site.allTokens[0].email;
+                let tr = document.createElement('tr');
+                tr.innerHTML = `<td style="font-size:12px;">${site.url.replace('https://', '').replace('sc-domain:', '')} <br><span id="ins_e_${i}" style="font-size:10px; color:var(--text-muted);">${firstEmail}</span></td>
+                    <td id="ins_c_${i}">⏳</td><td id="ins_i_${i}">⏳</td><td id="ins_p_${i}">⏳</td><td id="ins_s_${i}">⏳</td>`;
+                tbody.appendChild(tr);
+
+                let dataA = null; let dataB = null; let usedEmail = firstEmail;
+                let foundData = false;
+                
+                for (let tk of site.allTokens) {
+                    dataA = await fetchGscMetrics(site.url, tk.token, strAStart, strAEnd);
+                    // Nếu lỗi 403 (không có quyền) hoặc lỗi kết nối, thử tài khoản tiếp theo
+                    if (!dataA || dataA.error === 403 || dataA.error === 401) continue; 
+                    
+                    dataB = await fetchGscMetrics(site.url, tk.token, strBStart, strBEnd);
+                    if (!dataB || dataB.error === 403 || dataB.error === 401) continue;
+
+                    usedEmail = tk.email;
+                    foundData = true;
+                    break;
+                }
+                document.getElementById(`ins_e_${i}`).innerText = usedEmail;
+
+                if (foundData && dataA && dataB && !dataA.error && !dataB.error) {
+                    let clicksA = dataA.clicks || 0; let clicksB = dataB.clicks || 0;
+                    let impA = dataA.impressions || 0; let impB = dataB.impressions || 0;
+                    let posA = dataA.position || 0; let posB = dataB.position || 0;
+
+                    let clickDelta = clicksA - clicksB;
+                    let clickPct = clicksB === 0 ? (clicksA > 0 ? 100 : 0) : ((clickDelta / clicksB) * 100);
+                    let clickColor = clickDelta > 0 ? 'var(--success)' : (clickDelta < 0 ? 'var(--danger)' : 'var(--text-muted)');
+                    let clickArrow = clickDelta > 0 ? '↑' : (clickDelta < 0 ? '↓' : '-');
+
+                    let cDisplay = currentGscMode === 'day' ? clickDelta : clickPct.toFixed(1) + '%';
+                    
+                    document.getElementById(`ins_c_${i}`).innerHTML = `${clicksA} <br><span style="color:${clickColor}; font-size:11px; font-weight:bold;">${clickArrow} ${Math.abs(cDisplay)}${currentGscMode==='day'?'':'%'}</span>`;
+                    
+                    let impDelta = impA - impB;
+                    let impPct = impB === 0 ? (impA > 0 ? 100 : 0) : ((impDelta / impB) * 100);
+                    let impColor = impDelta > 0 ? 'var(--success)' : (impDelta < 0 ? 'var(--danger)' : 'var(--text-muted)');
+                    document.getElementById(`ins_i_${i}`).innerHTML = `${impA.toLocaleString()} <br><span style="color:${impColor}; font-size:11px;">${impDelta > 0 ? '↑' : (impDelta < 0 ? '↓' : '')} ${Math.abs(impPct).toFixed(1)}%</span>`;
+
+                    let posDelta = posB - posA; // Lower position is better
+                    let posColor = posDelta > 0 ? 'var(--success)' : (posDelta < 0 ? 'var(--danger)' : 'var(--text-muted)');
+                    document.getElementById(`ins_p_${i}`).innerHTML = `${posA > 0 ? posA.toFixed(1) : '-'} <br><span style="color:${posColor}; font-size:11px;">${posDelta > 0 ? '↑' : (posDelta < 0 ? '↓' : '')} ${Math.abs(posDelta).toFixed(1)}</span>`;
+
+                    let statusBadge = '<span class="badge badge-warning">Đi ngang</span>';
+                    if (clickPct >= 5) statusBadge = '<span class="badge badge-success">Đang Lên</span>';
+                    if (clickPct <= -5) statusBadge = '<span class="badge badge-danger">Sụt Giảm</span>';
+                    document.getElementById(`ins_s_${i}`).innerHTML = statusBadge;
+                } else {
+                    document.getElementById(`ins_c_${i}`).innerHTML = '<span style="color:var(--danger)">Lỗi/No Data</span>';
+                    document.getElementById(`ins_i_${i}`).innerText = '-';
+                    document.getElementById(`ins_p_${i}`).innerText = '-';
+                    document.getElementById(`ins_s_${i}`).innerText = '-';
+                }
+                await new Promise(r => setTimeout(r, 200)); // Rate limit
+            }
+
+            document.getElementById('insightsLoading').style.display = 'none';
+            document.getElementById('btnRunInsights').disabled = false;
+        }
+        async function startSystemOverview() {
+            const rawLines = document.getElementById('overviewUrlInput').value.split('\n').filter(l => l.trim());
+            if (rawLines.length === 0) return alert('Sếp chưa nạp dữ liệu! Hãy bấm "Nạp Data từ Sheet" hoặc dán danh sách vào trước nhé.');
+            
+            const tbody = document.getElementById('overviewBody');
+            tbody.innerHTML = '';
+            document.getElementById('overviewLoading').style.display = 'block';
+            document.getElementById('btnRunOverview').disabled = true;
+
+            // Reset Stats
+            let total = rawLines.length, live = 0, dead = 0, wrong301 = 0, noGsc = 0;
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statLive').innerText = '0';
+            document.getElementById('statDead').innerText = '0';
+            document.getElementById('statWrong301').innerText = '0';
+            document.getElementById('statNoGsc').innerText = '0';
+
+            let masterSiteMap = new Map();
+            for (let acc of gscAccounts) {
+                if (!activeAccountEmails.includes(acc.email)) continue;
+                if (!acc.token || Date.now() > acc.expiresAt) continue;
+                if (!acc.sites || acc.sites.length === 0) await fetchAccountSites(acc);
+                if (acc.sites) {
+                    acc.sites.forEach(s => {
+                        const clean = s.siteUrl.replace('https://', '').replace('sc-domain:', '').replace(/\/$/, '').toLowerCase();
+                        if (!masterSiteMap.has(clean)) masterSiteMap.set(clean, []);
+                        masterSiteMap.get(clean).push({ email: acc.email, token: acc.token, originalUrl: s.siteUrl });
+                    });
+                }
+            }
+
+            let latestDate = new Date(new Date().getTime() - (3 * 24 * 60 * 60 * 1000));
+            let strAEnd = formatDateGSC(latestDate);
+            let strAStart = formatDateGSC(new Date(latestDate.getTime() - (6 * 24 * 60 * 60 * 1000)));
+
+            const failedSites = [];
+
+            for (let i = 0; i < rawLines.length; i++) {
+                const parts = rawLines[i].trim().split(/\s+/);
+                let src = parts[0]; if(!src.startsWith('http')) src = 'https://' + src;
+                let dst = parts[1] || src; if(!dst.startsWith('http')) dst = 'https://' + dst;
+                const adminPath = parts[2] || 'wp-admin';
+                const user = parts[3] || '';
+                const pass = parts[4] || '';
+
+                const srcClean = src.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+                const dstClean = dst.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+
+                const tr = document.createElement('tr');
+                tr.id = `ov_row_${i}`;
+                tr.dataset.src = src; tr.dataset.dst = dst; tr.dataset.adminPath = adminPath; tr.dataset.user = user; tr.dataset.pass = pass;
+                tr.innerHTML = `
+                    <td style="font-size:12px;"><b>${srcClean}</b></td>
+                    <td id="ov_gsc_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_http_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_301_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_brand_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_admin_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td id="ov_ins_${i}"><span style="color:var(--text-muted)">⏳...</span></td>
+                    <td><button class="btn-mini" onclick="recheckOverviewRow(${i})">🔄</button></td>
+                `;
+                tbody.appendChild(tr);
+
+                await checkOverviewRow(i, src, dst, adminPath, user, pass, strAStart, strAEnd, masterSiteMap);
+                await new Promise(r => setTimeout(r, 300));
+            }
+
+            document.getElementById('overviewLoading').style.display = 'none';
+            document.getElementById('btnRunOverview').disabled = false;
+
+            let teleMsg = `<b>📊 BÁO CÁO GIÁM SÁT HỆ THỐNG</b>\n\n` +
+                          `✅ Tổng: <b>${total}</b> | Live: <b>${document.getElementById('statLive').innerText}</b> | Chết: <b>${document.getElementById('statDead').innerText}</b>\n` +
+                          `⚠️ Sai 301: <b>${document.getElementById('statWrong301').innerText}</b> | Thiếu GSC: <b>${document.getElementById('statNoGsc').innerText}</b>\n\n`;
+            
+            if (failedSites.length > 0) {
+                teleMsg += `<b>🚨 CÁC WEB CẦN KIỂM TRA NGAY:</b>\n` + failedSites.slice(0, 15).join('\n');
+                if (failedSites.length > 15) teleMsg += `\n... và ${failedSites.length - 15} web khác.`;
+            } else {
+                teleMsg += `🎉 Chúc mừng sếp! Mọi thứ đều đang vận hành hoàn hảo.`;
+            }
+            await sendToTelegram(teleMsg);
+        }
+
+        async function recheckOverviewRow(i) {
+            const tr = document.getElementById(`ov_row_${i}`);
+            if (!tr) return;
+            
+            let masterSiteMap = new Map();
+            for (let acc of gscAccounts) {
+                if (!activeAccountEmails.includes(acc.email) || !acc.token || Date.now() > acc.expiresAt) continue;
+                if (acc.sites) {
+                    acc.sites.forEach(s => {
+                        const clean = s.siteUrl.replace('https://', '').replace('sc-domain:', '').replace(/\/$/, '').toLowerCase();
+                        if (!masterSiteMap.has(clean)) masterSiteMap.set(clean, []);
+                        masterSiteMap.get(clean).push({ email: acc.email, token: acc.token, originalUrl: s.siteUrl });
+                    });
+                }
+            }
+
+            let latestDate = new Date(new Date().getTime() - (3 * 24 * 60 * 60 * 1000));
+            let strAEnd = formatDateGSC(latestDate);
+            let strAStart = formatDateGSC(new Date(latestDate.getTime() - (6 * 24 * 60 * 60 * 1000)));
+
+            document.getElementById(`ov_http_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+            document.getElementById(`ov_301_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+            document.getElementById(`ov_brand_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+            document.getElementById(`ov_admin_${i}`).innerHTML = '<span style="color:var(--text-muted)">⏳...</span>';
+
+            await checkOverviewRow(i, tr.dataset.src, tr.dataset.dst, tr.dataset.adminPath, tr.dataset.user, tr.dataset.pass, strAStart, strAEnd, masterSiteMap);
+        }
+
+        async function checkOverviewRow(i, src, dst, adminPath, user, pass, strAStart, strAEnd, masterSiteMap) {
+            const srcClean = src.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+            const dstClean = dst.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+
+            const owners = masterSiteMap.get(srcClean) || [];
+            const gscEl = document.getElementById(`ov_gsc_${i}`);
+            if (owners.length > 0) {
+                gscEl.innerHTML = owners.map(o => `<div style="font-size:10px; color:var(--primary)">${o.email}</div>`).join('');
+            } else {
+                gscEl.innerHTML = '<span class="status-badge" style="background:#4b5563">🔴 Chưa có</span>';
+            }
+
+            // --- HTTP & Content Check ---
+            const { html, code, redirectUrl } = await fetchStatus(src);
+            const httpEl = document.getElementById(`ov_http_${i}`);
+            const rdrEl = document.getElementById(`ov_301_${i}`);
+            
+            let label = ''; let labelClass = 'status-error';
+            if (code === 0) label = 'Không phản hồi';
+            else if (code === 1016) label = 'Lỗi 1016 (CF)';
+            else if (code === 404) label = 'Lỗi 404';
+            else if (code === 403) label = 'Lỗi 403';
+            else if (code >= 500) label = 'Lỗi Server (' + code + ')';
+            else if (html && (html.includes('Error establishing a database connection') || html.includes('Internal Server Error'))) label = 'Lỗi WP/DB';
+            else if (html && html.length < 200 && !redirectUrl) label = 'Trắng trang';
+            else if (code === 200 || code === 301 || code === 302) {
+                label = 'Tốt'; labelClass = 'status-success';
+            } else {
+                label = 'Lỗi ' + code;
+            }
+
+            httpEl.innerHTML = `<span class="status-badge ${labelClass}">${label}</span>`;
+
+            // --- 301 & Brand Check ---
+            const finalHost = redirectUrl ? normalizeHostname(redirectUrl) : (html ? normalizeHostname(src) : '');
+            const isMatch = finalHost === normalizeHostname(dst) || finalHost.includes(normalizeHostname(dst));
+            const brandEl = document.getElementById(`ov_brand_${i}`);
+            
+            if (srcClean !== dstClean) {
+                if (isMatch) rdrEl.innerHTML = '<span style="color:var(--success); font-size:11px;">✅ KHHP (301 OK)</span>';
+                else {
+                    rdrEl.innerHTML = `<span style="color:var(--danger); font-size:11px;">🚨 Sai domain gốc</span><br><span style="font-size:9px; color:var(--text-muted)">-> ${finalHost || '???'}</span>`;
+                }
+            } else {
+                rdrEl.innerText = '-';
+            }
+
+            // Check Brand Gốc (Footer)
+            if (html) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                let footerText = '';
+                const footers = doc.querySelectorAll('footer, [class*="footer"], [id*="footer"], [class*="copyright"], [id*="copyright"]');
+                footers.forEach(f => footerText += f.textContent + ' ');
+                if(!footerText) footerText = doc.body ? doc.body.textContent.slice(-2000) : '';
+                
+                let coreBrand = srcClean.split('.')[0].replace(/-/g, '');
+                if (coreBrand === 'www') coreBrand = srcClean.split('.')[1].replace(/-/g, '');
+                
+                const srcNumMatch = coreBrand.match(/\\d+$/);
+                const srcNum = srcNumMatch ? srcNumMatch[0] : '';
+                const srcAlpha = coreBrand.replace(/\\d+$/, '');
+                
+                let brandMatch = false;
+
+                if (footerText.toLowerCase().includes(coreBrand.toLowerCase())) {
+                    brandMatch = true;
+                } else if (srcAlpha.length >= 3) {
+                    const regex = new RegExp(srcAlpha + '(\\\\d*)', 'gi');
+                    let match;
+                    while ((match = regex.exec(footerText)) !== null) {
+                        const foundNum = match[1];
+                        if (foundNum === '' || foundNum === srcNum) {
+                            brandMatch = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (brandMatch) {
+                    brandEl.innerHTML = `<span style="color:var(--success); font-size:11px; font-weight:bold;">✅ ĐÚNG</span>`;
+                } else {
+                    brandEl.innerHTML = `<span style="color:var(--danger); font-size:11px; font-weight:bold;">🚨 LỆCH</span>`;
+                }
+            } else {
+                brandEl.innerText = '-';
+            }
+
+            if (user && pass) {
+                const adEl = document.getElementById(`ov_admin_${i}`);
+                adEl.innerHTML = '<span style="color:var(--warning); font-size:11px;">⏳ Đang check Pass...</span>';
+                const dstAdminBase = stripLocalePath(dst || src);
+                const status = await verifyLoginViaVps(dstAdminBase, adminPath, user, pass);
+                adEl.innerHTML = status;
+            } else if (user) {
+                const adEl = document.getElementById(`ov_admin_${i}`);
+                let h = '';
+                const dstAdminBase = stripLocalePath(dst || src);
+                try { h = await vpsProxyRaw(dstAdminBase + adminPath); } catch(e) {}
+                if (h) {
+                    if (h.includes('wp-login') || h.includes('user_login') || h.includes('user_pass')) adEl.innerHTML = '<span class="status-badge status-success" style="font-size:10px;">✅ Admin Live</span>';
+                    else adEl.innerHTML = '<span style="color:var(--warning); font-size:10px;">⚠️ Đổi Path?</span>';
+                } else adEl.innerHTML = '<span style="color:var(--danger); font-size:10px;">❌ Lỗi WP</span>';
+            }
+
+            if (owners.length > 0) {
+                const insEl = document.getElementById(`ov_ins_${i}`);
+                const data = await fetchGscMetrics(owners[0].originalUrl, owners[0].token, strAStart, strAEnd);
+                if (data && !data.error) insEl.innerHTML = `<span style="color:var(--primary); font-weight:bold;">${data.clicks}</span> <span style="font-size:9px; color:var(--text-muted)">clicks</span>`;
+                else insEl.innerText = '-';
+            }
+        }
+    
+    
+    // --- WORKFLOW EXECUTION ENGINE (n8n-style: per-node outputs + error routing + merge) ---
+    async function runCurrentWorkflow() {
+        if (typeof currentEditingNodeId !== 'undefined' && currentEditingNodeId) saveNodeSettings();
+        if (wfNodes.length === 0) { alert('Canvas đang trống!'); return; }
+        const orderedIds = getExecutionOrder();
+        if (orderedIds.length === 0) { alert('Quy trình chưa được kết nối đúng cách!'); return; }
+        const btn = document.querySelector('button[onclick="runCurrentWorkflow()"]');
+        const oldText = btn.innerHTML;
+        btn.innerHTML = '<span class="spin">⏳</span> Đang chạy...';
+        btn.disabled = true;
+        window._wfCancelRequested = false;
+
+        // Hiện nút DỪNG ngay trên toolbar
+        let stopBtn = document.getElementById('wfToolbarStopBtn');
+        if (!stopBtn) {
+            stopBtn = document.createElement('button');
+            stopBtn.id = 'wfToolbarStopBtn';
+            stopBtn.className = 'wf-tool-btn danger';
+            stopBtn.innerHTML = '⛔ Dừng lại';
+            stopBtn.onclick = function() {
+                window._wfCancelRequested = true;
+                this.textContent = '⏳ Đang dừng...';
+                this.disabled = true;
+            };
+            btn.parentNode.insertBefore(stopBtn, btn.nextSibling);
+        }
+        stopBtn.style.display = 'inline-block';
+        stopBtn.textContent = '⛔ Dừng lại';
+        stopBtn.disabled = false;
+
+        // Hiện nút Live Logs và xoá log cũ
+        const liveLogBtn = document.getElementById('btnToggleLiveLog');
+        if (liveLogBtn) liveLogBtn.style.display = 'block';
+        const liveLogContent = document.getElementById('liveLogContent');
+        if (liveLogContent) liveLogContent.innerHTML = '';
+
+        try {
+            window.wfExecutionLogs = [];
+            window._isStrangeError = false;
+            window._strangeErrorLog = '';
+            const _wfName = document.getElementById('wfNameInput')?.value?.trim() || 'Workflow';
+            if (window.wfAppendLiveLog) window.wfAppendLiveLog('▶️ Bắt đầu: ' + _wfName);
+            // Per-node storage (n8n pattern)
+            const nodeOutputs = {}; // nodeId -> Array
+            const nodeErrors  = {}; // nodeId -> string (if failed)
+            for (const nodeId of orderedIds) {
+                // ✅ Check cancel trước mỗi node
+                if (window._wfCancelRequested) {
+                    if (window.wfAppendLiveLog) window.wfAppendLiveLog('⛔ Đã dừng theo yêu cầu.');
+                    break;
+                }
+                const node = wfNodes.find(n => n.id === nodeId);
+                if (!node) continue;
+                const nodeEl = document.getElementById(nodeId);
+                const inEdges = wfEdges.filter(e => e.to === nodeId);
+                // --- Determine input data ---
+                let inputData = [];
+                if (node.type.includes('trigger')) {
+                    inputData = [{}];
+                } else if (node.type === 'merge') {
+                    // Collect from ALL success-connected predecessors (regardless of their success/fail)
+                    // This ensures merge always fires after all branches have been ATTEMPTED
+                    const successPreds = inEdges.filter(e => (e.type || 'success') === 'success');
+                    successPreds.forEach(e => {
+                        if (nodeOutputs[e.from] && nodeOutputs[e.from].length > 0) {
+                            inputData = inputData.concat(nodeOutputs[e.from]);
+                        }
+                    });
+                    if (inputData.length === 0) inputData = [{}]; // at least one item so merge fires
+                } else {
+                    const errEdges = inEdges.filter(e => e.type === 'error' && nodeErrors[e.from]);
+                    const okEdges  = inEdges.filter(e => (e.type||'success') === 'success' && !nodeErrors[e.from] && nodeOutputs[e.from]);
+                    if (errEdges.length > 0) {
+                        inputData = [{ _error: nodeErrors[errEdges[0].from], _fromNode: errEdges[0].from }];
+                    } else if (okEdges.length > 0) {
+                        // Last success predecessor (sequential assumption for non-merge)
+                        inputData = nodeOutputs[okEdges[okEdges.length - 1].from] || [];
+                    } else if (inEdges.length > 0) {
+                        // No valid path reaches this node - skip
+                        console.log(`[WFL] SKIP ${node.type} (no valid input path)`);
+                        nodeOutputs[nodeId] = []; continue;
+                    }
+                }
+                // --- Execute ---
+                console.log(`[WFL] RUN ${node.type} | input: ${inputData.length}`);
+                if (nodeEl) { nodeEl.classList.add('running'); nodeEl.classList.remove('node-error'); }
+                const startTime = Date.now();
+                let isSuccess = true, errorMessage = '', outputData = inputData;
+                try {
+                    if (node.type === 'input') {
+                        outputData = await execInputNode(node);
+                    } else if (node.type === 'http-status') {
+                        outputData = await execHttpStatusNode(node, inputData);
+                    } else if (node.type === 'custom-code') {
+                        outputData = await execCustomCodeNode(node, inputData);
+                    } else if (node.type === 'n8n-webhook') {
+                        await execN8nWebhookNode(node, inputData); outputData = inputData;
+                    } else if (node.type === 'n8n-webhook') {
+            paramsHtml = `
+                <div class="set-group">
+                    <label class="set-label">n8n Webhook URL:</label>
+                    <input type="text" id="setN8nUrl" class="set-input" value="${data.webhookUrl || ''}" placeholder="https://vps-ip:5678/webhook/...">
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Payload Method:</label>
+                    <select id="setN8nMethod" class="set-select">
+                        <option value="POST" ${data.method === 'POST' ? 'selected' : ''}>POST</option>
+                        <option value="GET" ${data.method === 'GET' ? 'selected' : ''}>GET</option>
+                    </select>
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Data Gửi Đi (Tùy chọn, mặc định lấy Input):</label>
+                    <textarea id="setN8nCustomData" class="set-textarea" placeholder='{"keyword": "{{input.keyword}}"}' style="height:60px;">${data.customData || ''}</textarea>
+                </div>
+            `;
+        } else if (node.type === 'n8n-webhook') {
+            node.data.webhookUrl = document.getElementById('setN8nUrl')?.value;
+            node.data.method = document.getElementById('setN8nMethod')?.value;
+            node.data.customData = document.getElementById('setN8nCustomData')?.value;
+        } else if (node.type === 'telegram') {
+                        await execTelegramNode(node, inputData); outputData = inputData;
+                    } else if (node.type === 'tech-monitor') {
+                        outputData = await execTechMonitorNode(node, inputData);
+                    } else if (node.type === 'ai-audit') {
+                        outputData = await execAiAuditNode(node, inputData);
+                    } else if (node.type === 'update-sheet') {
+                        outputData = await execUpdateSheetNode(node, inputData);
+                    } else if (node.type === 'merge') {
+                        outputData = inputData; // passthrough concatenated data
+                    }
+                } catch (err) {
+                    isSuccess = false; errorMessage = err.message;
+                    console.error(`[WFL] ${node.type} Error:`, err);
+                }
+                nodeOutputs[nodeId] = outputData || [];
+                if (!isSuccess) nodeErrors[nodeId] = errorMessage;
+                window.wfExecutionLogs.push({
+                    nodeId: node.id, nodeType: node.type,
+                    status: isSuccess ? 'success' : 'fail',
+                    error: errorMessage,
+                    duration: Date.now() - startTime,
+                    outputCount: Array.isArray(outputData) ? outputData.length : 0
+                });
+                if (nodeEl) {
+                    nodeEl.classList.remove('running');
+                    if (!isSuccess) nodeEl.classList.add('node-error');
+                }
+                await new Promise(r => setTimeout(r, 400));
+            }
+            // Clear error highlights after run
+            setTimeout(() => document.querySelectorAll('.wf-node.node-error').forEach(n => n.classList.remove('node-error')), 5000);
+            if (window.wfAppendLiveLog) window.wfAppendLiveLog('✅ Quy trình đã hoàn thành thành công!');
+            alert('✅ Quy trình đã hoàn thành!');
+        } catch (err) {
+            console.error('[WFL] Fatal error:', err);
+            alert('❌ Lỗi quy trình: ' + err.message);
+        } finally {
+            btn.innerHTML = oldText; btn.disabled = false;
+            // Ẩn nút Dừng
+            const stopBtnFinal = document.getElementById('wfToolbarStopBtn');
+            if (stopBtnFinal) stopBtnFinal.style.display = 'none';
+            window._wfCancelRequested = false;
+            // Ẩn toast sau 3s
+            setTimeout(() => {
+                const t = document.getElementById('wfProgressToast');
+                if (t) t.classList.remove('active');
+            }, 3001);
+        }
+    }
+
+    async function execInputNode(node) {
+        const data = node.data || {};
+        let raw = '';
+        
+        if (data.mode === 'sheet' && data.sheetUrl) {
+            // Call existing sheet import logic
+            const sheetIdMatch = data.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (!sheetIdMatch) throw new Error('Link Google Sheet không hợp lệ');
+            const sheetId = sheetIdMatch[1];
+            var rawRange = data.sheetRange || data.range || 'A2:Z500';
+            var range = /^\d+-\d+$/.test(rawRange.trim()) ? 'A' + rawRange.split('-')[0] + ':Z' + rawRange.split('-')[1] : rawRange;
+            const token = await getGoogleToken();
+        if (!token) throw new Error('Chưa kết nối Google! Cần Service Account hoặc OAuth.');
+        
+        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(range)}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+            const json = await res.json();
+            if (!json.values) {
+                console.warn('Google Sheet trả về rỗng (không có mảng values). Có thể sheet đang trống trơn.');
+                return []; // Trả về mảng rỗng để các node sau tự xử lý (ví dụ: bóp cò Cảnh báo cột B rỗng)
+            }
+            
+            // Trả về dữ liệu thô kèm theo mapping để dễ dùng trong nút JS (cột A, B, C, D...)
+            return json.values.map((row, idx) => {
+                const obj = { _rowIdx: idx };
+                row.forEach((val, i) => {
+                    var startCol = 0; var sc2 = range.match(/^([A-Z]+)/i); if(sc2){for(var ci=0;ci<sc2[1].length;ci++)startCol=startCol*26+(sc2[1].toUpperCase().charCodeAt(ci)-64);startCol--;}
+                const colName = String.fromCharCode(65 + startCol + i);
+                    obj[colName] = (val || '').trim();
+                });
+                
+                // Keep backward compatibility
+                obj.url = obj.A || '';
+                obj.adminPath = obj.B || '';
+                obj.user = obj.C || '';
+                obj.pass = obj.D || '';
+                
+                return obj;
+            }).filter(r => { var keys = Object.keys(r).filter(function(k){return k !== '_rowIdx' && k !== 'url' && k !== 'adminPath' && k !== 'user' && k !== 'pass';}); return keys.some(function(k){ return r[k] !== ''; }); });
+        } else {
+            // Manual mode
+            raw = data.manualRaw || '';
+            const lines = raw.split('\n').filter(l => l.trim());
+            return lines.map((line, idx) => {
+            const parts = line.split('|').map(p => p.trim());
+            const obj = { _rowIdx: idx };
+            parts.forEach((val, i) => {
+                var startCol = 0; var sc2 = range.match(/^([A-Z]+)/i); if(sc2){for(var ci=0;ci<sc2[1].length;ci++)startCol=startCol*26+(sc2[1].toUpperCase().charCodeAt(ci)-64);startCol--;}
+                const colName = String.fromCharCode(65 + startCol + i);
+                obj[colName] = val;
+            });
+            // Keep backward compatibility
+            obj.url = obj.A || '';
+            obj.adminPath = obj.B || '';
+            obj.user = obj.C || '';
+            obj.pass = obj.D || '';
+            return obj;
+        }).filter(r => r.A || r.url);
+        }
+    }
+
+    async function execHttpStatusNode(node, inputData) {
+        if (!inputData || inputData.length === 0) return [];
+        const settings = node.data || {};
+        const timeout = settings.timeout || 10000;
+        
+        const results = [];
+        let cur = 0;
+        for (const item of inputData) {
+            cur++;
+            if (window.wfUpdateProgress) window.wfUpdateProgress(node.id, cur, inputData.length, 'Đang check ' + item.url);
+            
+            let status = 'Checking...';
+            let errorMsg = '';
+            try {
+                const controller = new AbortController();
+                const id = setTimeout(() => controller.abort(), timeout);
+                
+                // Using a CORS proxy to check status from client side
+                const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(item.url);
+                const res = await fetch(proxyUrl, { signal: controller.signal });
+                clearTimeout(id);
+                
+                if (res.ok) {
+                    const json = await res.json();
+                    const httpCode = json.status?.http_code || 200;
+                    const content = json.contents || '';
+                    
+                    if (httpCode >= 400) status = `Lỗi ${httpCode}`;
+                    else if (settings.checkWhitePage !== false && content.trim().length < 50) status = 'Trắng trang';
+                    else status = '200 OK';
+                } else {
+                    status = `Lỗi ${res.status}`;
+                }
+            } catch (err) {
+                status = err.name === 'AbortError' ? 'Time out' : 'Lỗi kết nối';
+                errorMsg = err.message;
+            }
+            results.push({ ...item, status, error: errorMsg });
+        }
+        return results;
+    }
+
+    
+
+    async function execTechMonitorNode(node, inputData) {
+        const data = node.data || {};
+        const knownErrorsList = (data.knownErrors || 'timeout, failed to fetch, 401, 403, 404').split(',').map(e => e.trim().toLowerCase());
+        
+        let report = [];
+        let hasStrangeError = false;
+
+        // Check wfExecutionLogs for any failures
+        const logs = window.wfExecutionLogs || [];
+
+        // Phát hiện: toàn bộ các node trước đều cho ra 0 dữ liệu (luồng rỗng toàn bộ)
+        const allZeroOutput = logs.length > 0 && logs.every(function(l) { return l.outputCount === 0 || l.outputCount === undefined; });
+        if (allZeroOutput) {
+            report.push('⚠️ [HỆ THỐNG] Toàn bộ luồng dữ liệu bị RỔNG. Không có URL nào được xử lý!');
+        }
+
+        for (const log of logs) {
+            if (log.status === 'fail' && log.error) {
+                const errLower = log.error.toLowerCase();
+                let isKnown = false;
+                for (const known of knownErrorsList) {
+                    if (errLower.includes(known)) {
+                        isKnown = true;
+                        report.push(`⚠️ [${log.nodeType}] Lỗi quen thuộc: ${log.error} (Có thể do mạng/VPS hoặc Auth).`);
+                        break;
+                    }
+                }
+                if (!isKnown) {
+                    hasStrangeError = true;
+                    window._isStrangeError = true;
+                    window._strangeErrorLog += `\nLỗi lạ tại Node [${log.nodeType}]: ${log.error}`;
+                    report.push(`🛑 [${log.nodeType}] LỔI LẠ: ${log.error}. Đã chuyển AI phân tích.`);
+                }
+            } else if (log.status === 'success' && log.outputCount === 0 && log.nodeType === 'input') {
+                report.push(`⚠️ [${log.nodeType}] Dữ liệu đầu vào bị trống! Khả năng cấu hình sai hoặc Sheet rỗng.`);
+            }
+        }
+
+        if (report.length > 0) {
+            // Attach report to the first item for Telegram to pick up
+            if (!inputData || inputData.length === 0) {
+                inputData = [ { _techReport: report.join('\n') } ];
+            } else {
+                inputData[0]._techReport = report.join('\n');
+            }
+        }
+
+        return inputData;
+    }
+
+    async function execAiAuditNode(node, inputData) {
+        if (!window._isStrangeError) {
+            console.log('AI Audit Bỏ qua: Không phát hiện lỗi kỹ thuật lạ cần AI phân tích.');
+            return inputData;
+        }
+
+        const data = node.data || {};
+        const apiKey = data.apiKey || localStorage.getItem('wf_gemini_key') || '';
+        if (!apiKey) {
+            console.warn('AI Audit Node: Missing API Key');
+            return inputData;
+        }
+
+        const promptTemplate = data.prompt || 'Bạn là chuyên gia giám sát hệ thống. Hãy xem log lỗi sau và giải thích nguyên nhân cũng như cách khắc phục ngắn gọn:';
+        const finalPrompt = promptTemplate + '\n\nLOG LỖI KỸ THUẬT:\n' + window._strangeErrorLog;
+        
+        try {
+            const reqBody = {
+                contents: [{ role: "user", parts: [{ text: finalPrompt }] }]
+            };
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reqBody)
+            });
+            
+            if (res.ok) {
+                const json = await res.json();
+                const auditResult = json.candidates?.[0]?.content?.parts?.[0]?.text || 'AI không có nhận xét.';
+                // Add audit result to each item as a global property
+                if (inputData.length === 0) inputData.push({});
+                inputData[0]._audit = auditResult;
+                console.log('%c--- AI AUDIT RESULT ---', 'color:#ec4899; font-weight:bold;', '\n', auditResult);
+            }
+        } catch (err) {
+            console.error('AI Audit Error:', err);
+        }
+        return inputData;
+    }
+
+    
+    async function execAiVisionSearchNode(node, inputData) {
+        if (!inputData || inputData.length === 0) return [];
+        const data = node.data || {};
+        const apiKey = data.apiKey;
+        if (!apiKey) {
+            console.warn('AI Vision Node: Missing API Key');
+            return inputData.map(item => ({...item, error: 'Thiếu API Key'}));
+        }
+
+        const promptTemplate = data.prompt || '';
+        const results = [];
+        
+        for (const item of inputData) {
+            const keyword = item.url || item.keyword || 'SEO'; // assuming input has keyword in url field for now
+            const finalPrompt = promptTemplate.replace(/{{keyword}}/g, keyword);
+            let aiResult = '';
+            let errorMsg = '';
+            
+            try {
+                // Here we simulate the Gemini Search & Vision call.
+                // In reality, Gemini API requires 'googleSearchRetrieval' tool.
+                const reqBody = {
+                    contents: [{ role: "user", parts: [{ text: finalPrompt }] }],
+                    tools: [{ googleSearch: {} }] // Enable Google Search grounding
+                };
+                
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(reqBody)
+                });
+                
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.candidates && json.candidates[0].content) {
+                        aiResult = json.candidates[0].content.parts[0].text;
+                    } else {
+                        aiResult = 'Không nhận được kết quả từ AI';
+                    }
+                } else {
+                    const err = await res.json();
+                    errorMsg = err.error?.message || `Lỗi API: ${res.status}`;
+                }
+            } catch (err) {
+                errorMsg = err.message;
+            }
+            
+            results.push({ ...item, aiStyleAnalysis: aiResult, error: errorMsg });
+            
+            // Artificial delay to prevent rate limits
+            await new Promise(r => setTimeout(r, 2000));
+        }
+        return results;
+    }
+
+    
+    async function execCustomCodeNode(node, inputData) {
+        if (!inputData) return [];
+        const data = node.data || {};
+        let codeStr = data.code || 'return items;';
+        
+        // Auto-wrap single-item code from AI assistant
+    if (codeStr.includes('item.') && !codeStr.includes('items.map') && !codeStr.includes('for (')) {
+        codeStr = `
+            const results = [];
+            for (let item of items) {
+                const processItem = async (item) => {
+                    ${codeStr}
+                };
+                results.push(await processItem(item));
+            }
+            return results;
+        `;
+    }
+    
+    // --- AUTO CLEANUP: Remove accidental HTML/Markdown tags ---`;
+        codeStr = codeStr.replace(/<pre[^>]*>/gi, '').replace(/<\/pre>/gi, '');
+        codeStr = codeStr.replace(/<code[^>]*>/gi, '').replace(/<\/code>/gi, '');
+        codeStr = codeStr.replace(/```javascript/gi, '').replace(/```/g, '');
+        codeStr = codeStr.trim();
+        // ---------------------------------------------------------
+        
+        try {
+            // Create a function from the user code string.
+            // Wrap in an async function so they can use await if needed.
+            // Bơm thêm hàm updateProgress vào để node báo cáo tiến độ
+            const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+            const customFunc = new AsyncFunction('items', 'updateProgress', codeStr);
+            
+            // Execute the code with a deep clone of inputData to avoid reference bleeding unless intended
+            const clonedInput = JSON.parse(JSON.stringify(inputData));
+            const result = await customFunc(clonedInput, (cur, tot, msg) => {
+                if (window.wfUpdateProgress) window.wfUpdateProgress(node.id, cur, tot, msg);
+            });
+            
+            if (!Array.isArray(result)) {
+                console.warn('Custom Code Node did not return an array. Returning original input.');
+                return inputData;
+            }
+            return result;
+        } catch (err) {
+            console.error('Custom Code Node Error:', err);
+            // Re-throw the error so the workflow engine routes it to the ERROR edge (Red Wire)
+            throw err;
+        }
+    }
+
+    async function execUpdateSheetNode(node, inputData) {
+        console.log('[execUpdateSheetNode] Bắt đầu. Tham số inputData:', inputData);
+        if (!inputData || inputData.length === 0) {
+             console.log('[execUpdateSheetNode] inputData rỗng, bỏ qua ghi sheet.');
+             return inputData;
+        }
+        // Nếu chỉ có monitoring meta (không có URL thật), bỏ qua ghi sheet
+        const hasRealData = inputData.some(function(item) { return item.url || item.A; });
+        if (!hasRealData) {
+            console.log('[execUpdateSheetNode] Chỉ có monitoring data, không có URL thật → bỏ qua ghi sheet.');
+            return inputData;
+        }
+        const data = node.data || {};
+        if (!data.sheetUrl) throw new Error('Chưa cấu hình Link Sheet trong nút Cập nhật Sheet. Vui lòng nhấp đúp vào nút để nhập link!');
+        
+        const sheetIdMatch = data.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if (!sheetIdMatch) throw new Error('Link Sheet không hợp lệ');
+        const sheetId = sheetIdMatch[1];
+        
+        console.log('[execUpdateSheetNode] Đang lấy Google Token...');
+        const token = await getGoogleToken();
+        if (!token) throw new Error('Chưa kết nối Google! Cần Service Account hoặc OAuth.');
+        console.log('[execUpdateSheetNode] Đã lấy được Token:', token.substring(0, 15) + '...');
+
+        // Parse colMap to determine which fields to write
+        const colMapStr = data.colMap || 'keyword,domain,rank_pc,rank_mb,total_rank';
+        const cols = colMapStr.split(',').map(c => c.trim()).filter(c => c);
+        
+        const values = inputData.map(item => {
+            return cols.map(col => {
+                if (item[col] !== undefined && item[col] !== null) return item[col];
+                return ''; // default empty
+            });
+        });
+        
+        // Calculate range dynamically based on data.range (e.g. 'A2' or 'Sheet1!A2')
+        let startCell = data.range || 'A2';
+        const match = startCell.match(/([a-zA-Z]+)(\d+)/);
+        let finalRange = startCell;
+        
+        if (match) {
+            const startColStr = match[1].toUpperCase();
+            const startRow = parseInt(match[2], 10);
+            
+            // Convert startColStr to number (A=0, B=1, Z=25, AA=26...)
+            let startColNum = 0;
+            for (let i = 0; i < startColStr.length; i++) {
+                startColNum = startColNum * 26 + (startColStr.charCodeAt(i) - 64);
+            }
+            startColNum -= 1; // 0-indexed
+            
+            // Calculate end col
+            let endColNum = startColNum + cols.length - 1;
+            let endColStr = '';
+            let temp = endColNum;
+            while (temp >= 0) {
+                endColStr = String.fromCharCode((temp % 26) + 65) + endColStr;
+                temp = Math.floor(temp / 26) - 1;
+            }
+            
+            const endRow = startRow + values.length - 1;
+            const prefix = startCell.substring(0, match.index);
+            finalRange = `${prefix}${startColStr}${startRow}:${endColStr}${endRow}`;
+        } else {
+            // Fallback if parsing fails
+            finalRange = `${startCell}:Z${1 + values.length}`;
+        }
+
+        console.log('[execUpdateSheetNode] Dữ liệu sẽ ghi (values):', values);
+        console.log('[execUpdateSheetNode] Range:', finalRange);
+        console.log('[execUpdateSheetNode] Cấu hình từ node:', data);
+        
+        const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${encodeURIComponent(finalRange)}?valueInputOption=USER_ENTERED`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ values })
+        });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            console.error('[execUpdateSheetNode] Lỗi từ API Google:', err);
+            throw new Error('Lỗi ghi Sheet: ' + (err.error?.message || res.statusText));
+        }
+        const resJson = await res.json();
+        console.log('[execUpdateSheetNode] Ghi Sheet thành công. Phản hồi:', resJson);
+        
+        return inputData;
+    }
+
+
+    async function execN8nWebhookNode(node, inputData) {
+        logRun(`[${node.label}] Đang gửi dữ liệu tới n8n...`);
+        const url = node.data?.webhookUrl;
+        if (!url) {
+            logRun(`[${node.label}] ❌ Bỏ qua do thiếu Webhook URL.`, 'error');
+            return;
+        }
+        try {
+            const method = node.data?.method || 'POST';
+            let payload = inputData;
+            
+            if (node.data?.customData) {
+                // Thay thế {{biến}} nếu có custom data
+                let cd = node.data.customData;
+                if (typeof inputData === 'string') cd = cd.replace(/{{input}}/g, inputData);
+                else if (typeof inputData === 'object' && inputData !== null) {
+                    for (const k in inputData) cd = cd.replace(new RegExp(`{{input.${k}}}`, 'g'), inputData[k]);
+                }
+                try { payload = JSON.parse(cd); } catch(e) { payload = cd; }
+            }
+            
+            const opts = { method: method };
+            if (method === 'POST') {
+                opts.headers = { 'Content-Type': 'application/json' };
+                opts.body = typeof payload === 'string' ? JSON.stringify({text: payload}) : JSON.stringify(payload);
+            }
+            
+            const res = await fetch(url, opts);
+            if (res.ok) {
+                logRun(`[${node.label}] ✅ Đã gửi thành công tới n8n!`, 'success');
+            } else {
+                logRun(`[${node.label}] ❌ n8n trả về lỗi ${res.status}`, 'error');
+            }
+        } catch(e) {
+            logRun(`[${node.label}] ❌ Lỗi kết nối n8n: ${e.message}`, 'error');
+        }
+    }
+
+    async function execTelegramNode(node, inputData) {
+        const data = node.data || {};
+        const template = data.template || 'Website {{url}} status: {{status}}';
+        
+        // Priority: Node settings > Global settings
+        const token = data.token || localStorage.getItem('telegram_bot_token') || localStorage.getItem('tele_token');
+        const chatId = data.chatId || localStorage.getItem('tele_chat_id');
+        
+        if (!token || !chatId) {
+            console.warn('Telegram Node: Missing Token or ChatID');
+            return;
+        }
+
+        // Extract monitoring reports from first item
+        const firstItem = (inputData && inputData.length > 0) ? inputData[0] : {};
+        const techReport = firstItem._techReport || '';
+        const auditReport = firstItem._audit || '';
+
+        // If no real data AND no monitoring reports => nothing to send
+        if ((!inputData || inputData.length === 0) && !techReport && !auditReport) return;
+
+        const uniqueMessages = [];
+        if (inputData && inputData.length > 0) {
+            inputData.forEach((item) => {
+                let rowMsg = template.replace(/\{{1,2}([\w_]+)\}{1,2}/g, (match, key) => {
+                    return item[key] !== undefined ? item[key] : match;
+                });
+                if (!uniqueMessages.includes(rowMsg)) {
+                    uniqueMessages.push(rowMsg);
+                }
+            });
+        }
+
+        let message = '';
+        if (uniqueMessages.length === 1 && (uniqueMessages[0].includes('BÁO CÁO') || template.includes('baocao') || template.includes('_msg'))) {
+            message = uniqueMessages[0];
+        } else {
+            message = '<b>📊 BÁO CÁO WORKFLOW</b>\n\n';
+            if (techReport) {
+                message += '<b>🛠️ KỸ THUẬT:</b>\n' + techReport + '\n\n';
+            }
+            if (auditReport) {
+                message += '<b>🕵️ AI AUDIT:</b>\n' + auditReport + '\n\n';
+            }
+            if (uniqueMessages.length > 0) {
+                uniqueMessages.forEach((msg, i) => {
+                    message += (uniqueMessages.length > 1 ? (i+1) + '. ' : '') + msg + '\n';
+                });
+            } else if (!techReport && !auditReport) {
+                message += 'Check xong website.';
+            }
+        }
+        
+        // Custom send — GET+URLSearchParams tránh CORS preflight từ browser
+        try {
+            // Telegram HTML parse_mode không hỗ trợ một số ký tự — cắt nếu quá dài
+            const safeMsg = message.length > 4096 ? message.substring(0, 4090) + '...' : message;
+            const params = new URLSearchParams({
+                chat_id: chatId, text: safeMsg, parse_mode: 'HTML', disable_web_page_preview: '1'
+            });
+            const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage?${params.toString()}`);
+            if (!res.ok) {
+                const errData = await res.json().catch(()=>({}));
+                console.warn('Telegram API error:', errData.description || res.status);
+            }
+        } catch(e) {
+            console.error('Telegram Node Error:', e);
+        }
+    }
+
+
+    // --- WORKFLOW FLOW OVERRIDES ---
+    let currentEditingWfIndex = -1;
+
+    function openAutomationPanel() {
+        document.getElementById('automationPanel').classList.add('open');
+        document.getElementById('autoOverlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        sessionStorage.setItem('panelOpen', '1');
+        
+        // Show library by default
+        document.getElementById('wfLibraryView').classList.add('active');
+        document.getElementById('wfBuilderView').classList.remove('active');
+        toggleToolbarVisibility(false);
+        
+        if (!window._wfInited) {
+            window._wfInited = true;
+            initWorkflowBuilder();
+        }
+        renderWfLibrary();
+    }
+
+    function toggleToolbarVisibility(isBuilder) {
+        const btns = ['wfBtnBack', 'wfBtnClear', 'wfBtnTest', 'wfBtnSave'];
+        btns.forEach(id => {
+            const b = document.getElementById(id);
+            if(b) b.style.display = isBuilder ? 'inline-block' : 'none';
+        });
+    }
+
+    function renderWfLibrary() {
+        const grid = document.getElementById('wfLibGrid');
+        if (!grid) return;
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        if (list.length === 0) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color:#64748b; background:rgba(255,255,255,0.02); border-radius:12px; border:2px dashed rgba(255,255,255,0.05); font-size:14px;">Chưa có quy trình nào. Hãy bấm <b>Tạo Quy Trình Mới</b> ở góc trên!</div>';
+            return;
+        }
+        grid.innerHTML = list.map((wf, idx) => `
+            <div class="wf-lib-card" onclick="editWorkflow(${idx})">
+                <div class="wf-lib-card-title">${wf.name}</div>
+                <div class="wf-lib-card-meta">
+                    ${wf.nodes ? wf.nodes.length : 0} Nodes • Đã lưu: ${new Date(wf.savedAt || Date.now()).toLocaleDateString('vi-VN')}
+                </div>
+                <div class="wf-lib-card-actions" onclick="event.stopPropagation()">
+                    <button class="wf-lib-card-btn wf-lib-btn-edit" onclick="editWorkflow(${idx})">🛠️ Sửa Nội Thất</button>
+                    <button class="wf-lib-card-btn wf-lib-btn-run" onclick="runWorkflowLib(${idx})">▶️ Chạy</button>
+                    <button class="wf-lib-card-btn wf-lib-btn-del" onclick="deleteWorkflowLib(${idx})" title="Xóa">🗑️</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function openWfCreateModal() {
+        document.getElementById('wfCreateModal').style.display = 'flex';
+        document.getElementById('newWfName').value = '';
+        setTimeout(() => document.getElementById('newWfName').focus(), 100);
+    }
+    
+    function closeWfCreateModal() {
+        document.getElementById('wfCreateModal').style.display = 'none';
+    }
+
+    // Capture enter key
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('newWfName')?.addEventListener('keyup', (e) => {
+            if(e.key === 'Enter') submitCreateWf();
+        });
+    });
+
+    function submitCreateWf() {
+        const name = document.getElementById('newWfName').value.trim() || 'Quy trình chưa đặt tên';
+        closeWfCreateModal();
+        clearCanvasRaw();
+        if(document.getElementById('wfNameInput')) document.getElementById('wfNameInput').value = name;
+        currentEditingWfIndex = -1; // Create new mode
+        
+        // Add default Manual Trigger
+        setTimeout(() => {
+            addNode('trigger-manual', 'atomic', 50, 150);
+        }, 100);
+        
+        showBuilder();
+    }
+
+    function editWorkflow(idx) {
+        currentEditingWfIndex = idx;
+        loadWorkflowRaw(idx);
+        // Lưu tên để sau F5 có thể khôi phục currentEditingWfIndex
+        const wfList = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        if (wfList[idx]) sessionStorage.setItem('wf_editing_name', wfList[idx].name);
+        showBuilder();
+    }
+
+    function showBuilder() {
+        document.getElementById('wfLibraryView').classList.remove('active');
+        document.getElementById('wfBuilderView').classList.add('active');
+        toggleToolbarVisibility(true);
+    }
+
+    function backToLibrary() {
+        document.getElementById('wfLibraryView').classList.add('active');
+        document.getElementById('wfBuilderView').classList.remove('active');
+        toggleToolbarVisibility(false);
+        renderWfLibrary();
+    }
+
+    function clearCanvasRaw() {
+        wfNodes = []; wfEdges = []; wfNodeCount = 0; connectingFrom = null;
+        if (tempLine) { tempLine.remove(); tempLine = null; }
+        document.querySelectorAll('#wfCanvas .wf-node').forEach(el => el.remove());
+        const svg = document.getElementById('wfSvg');
+        if (svg) svg.innerHTML = '';
+        showHint();
+    }
+
+    function saveCurrentWorkflow() {
+    if (currentEditingNodeId) saveNodeSettings(); // AUTO SAVE BEFORE SAVING WORKFLOW
+        const nameEl = document.getElementById('wfNameInput');
+        const name = (nameEl ? nameEl.value.trim() : '') || 'Quy trình chưa đặt tên';
+        
+        const wf = { id: Date.now(), name, nodes: wfNodes.map(n=>({id:n.id,type:n.type,cat:n.cat,x:n.x,y:n.y,data:n.data,config:n.config})), edges: wfEdges, savedAt: new Date().toISOString() };
+        let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        
+        if (currentEditingWfIndex >= 0 && currentEditingWfIndex < list.length) {
+            wf.id = list[currentEditingWfIndex].id;
+            // Preserve version to prevent seedStatusWorkflow from downgrading/overwriting
+            if (list[currentEditingWfIndex]._ver) wf._ver = list[currentEditingWfIndex]._ver;
+            list[currentEditingWfIndex] = wf;
+        } else {
+            list.unshift(wf);
+            currentEditingWfIndex = 0;
+        }
+        
+        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        syncWorkflowsToFirebase(list); // SYNC TO CLOUD
+        updateAutomationBadge();
+        
+        const btn = document.getElementById('wfBtnSave');
+        if(btn) {
+            const old = btn.innerHTML;
+            btn.innerHTML = '✅ Đã Lưu!';
+            setTimeout(() => { btn.innerHTML = old; }, 800);
+        }
+    }
+
+    function loadWorkflowRaw(idx) {
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        const wf = list[idx];
+        if (!wf) return;
+        clearCanvasRaw();
+        wf.nodes.forEach(n => {
+            const def = allBlocks().find(b => b.type === n.type);
+            if (!def) return;
+            wfNodes.push({ ...n, def });
+            wfNodeCount = Math.max(wfNodeCount, parseInt(n.id.split('_')[1]) || 0);
+            renderNode(n.id);
+        });
+        wfEdges = wf.edges || [];
+        renderConnections();
+        if (wfNodes.length > 0) hideHint();
+        const nameEl = document.getElementById('wfNameInput');
+        if (nameEl) nameEl.value = wf.name;
+    }
+
+    function deleteWorkflowLib(idx) {
+        if (!confirm('Bạn có chắc chắn muốn xóa quy trình này?')) return;
+        let list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        // Track deleted workflow names to prevent re-appearing from Firebase
+        const deleted = JSON.parse(localStorage.getItem('wf_user_deleted') || '[]');
+        if (list[idx]) deleted.push(list[idx].name);
+        localStorage.setItem('wf_user_deleted', JSON.stringify(deleted));
+        // Sync danh sách đã xóa lên Firebase để các máy khác cũng biết
+        fbDb.ref('workflows/deleted_names').set(deleted).catch(e => console.error('Lỗi sync deleted:', e));
+        list.splice(idx, 1);
+        localStorage.setItem('wf_builder_list', JSON.stringify(list));
+        syncWorkflowsToFirebase(list); // SYNC TO CLOUD
+        renderWfLibrary();
+        updateAutomationBadge();
+    }
+
+    function runWorkflowLib(idx) {
+        const list = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        const wf = list[idx];
+        if (!wf) return;
+        if (!wf.nodes || wf.nodes.length === 0) { alert('Quy trình này trống!'); return; }
+        alert('🚀 Đang chạy ngầm Quy trình: ' + wf.name + '\n\n(Logic chạy thực tế sẽ nối vào các API tương ứng ở VPS)');
+    }
+
+
+    let currentEditingNodeId = null;
+
+    // Modify renderNode to add double click
+    const originalRenderNode = renderNode;
+    renderNode = function(nodeId) {
+        originalRenderNode(nodeId);
+        const el = document.getElementById(nodeId);
+        if(el) {
+            el.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                openNodeSettings(nodeId);
+            });
+            // Add a small hint or visual cue that it's clickable
+            el.title = "Double-click để cài đặt";
+        }
+    };
+
+    function openNodeSettings(nodeId) {
+        if (currentEditingNodeId && currentEditingNodeId !== nodeId) saveNodeSettings(); // AUTO SAVE PREVIOUS
+        const node = wfNodes.find(n => n.id === nodeId);
+        if (!node) return;
+        currentEditingNodeId = nodeId;
+        
+        document.getElementById('wfSettingsSidebar').classList.add('open');
+        document.getElementById('wfSetLabel').textContent = node.def.label;
+        document.getElementById('wfSetIcon').textContent = node.def.icon;
+        
+        // Ensure data object exists when opening settings
+        if (!node.data) node.data = {};
+        renderSettingsBody(node);
+    }
+
+    function closeNodeSettings() {
+        if (currentEditingNodeId) saveNodeSettings(); // AUTO SAVE
+        document.getElementById('wfSettingsSidebar').classList.remove('open');
+        currentEditingNodeId = null;
+    }
+
+    function renderSettingsBody(node) {
+        const body = document.getElementById('wfSetBody');
+        body.innerHTML = '';
+        const data = node.data || {};
+        const config = node.config || {}; // Separate object for generic settings
+        
+        let paramsHtml = '';
+        
+        if (node.type === 'trigger-cron') {
+            paramsHtml = `
+                <div class="set-group" style="background:rgba(245,158,11,0.1); padding:15px; border-radius:8px; border:1px solid rgba(245,158,11,0.2);">
+                    <div style="font-size:12px; color:#fcd34d; margin-bottom:10px;">Quy trình sẽ tự động chạy theo lịch trình bạn thiết lập ở đây.</div>
+                    
+                    <label class="set-label">Khoảng thời gian kích hoạt</label>
+                    <select id="setCronInterval" class="set-input" style="margin-bottom:15px;">
+                        <option value="minutes" ${data.interval==='minutes'?'selected':''}>Phút (Minutes)</option>
+                        <option value="hours" ${data.interval==='hours'?'selected':''}>Giờ (Hours)</option>
+                        <option value="days" ${data.interval==='days'?'selected':''}>Ngày (Days)</option>
+                        <option value="weeks" ${data.interval==='weeks'?'selected':''}>Tuần (Weeks)</option>
+                    </select>
+
+                    <label class="set-label">Giá trị (VD: mỗi 1 ngày)</label>
+                    <input type="number" id="setCronValue" class="set-input" value="${data.value || 1}" style="margin-bottom:15px;" min="1">
+                    
+                    <label class="set-label">Thời gian cụ thể (Giờ:Phút)</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="number" id="setCronHour" class="set-input" value="${data.hour || 0}" min="0" max="23" placeholder="Giờ (0-23)">
+                        <input type="number" id="setCronMinute" class="set-input" value="${data.minute || 0}" min="0" max="59" placeholder="Phút (0-59)">
+                    </div>
+                </div>
+            `;
+        } else if (node.type === 'trigger-manual') {
+            paramsHtml = '<div style="text-align:center; padding:30px 0; color:#94a3b8; font-size:13px;">Nhấn nút <b>▶️ Test Run</b> hoặc <b>Chạy</b> ở Library để kích hoạt.</div>';
+        } else if (node.type === 'input') {
+            const mode = data.mode || 'manual';
+            paramsHtml = `
+                <div class="set-tabs" style="margin-bottom:15px;">
+                    <div class="set-tab ${mode === 'manual' ? 'active' : ''}" onclick="switchInputMode('manual')">⌨️ Nhập tay</div>
+                    <div class="set-tab ${mode === 'sheet' ? 'active' : ''}" onclick="switchInputMode('sheet')">📊 Google Sheets</div>
+                </div>
+                <div id="inputModeManual" style="display: ${mode === 'manual' ? 'block' : 'none'}">
+                    <div class="set-group">
+                        <label class="set-label">Danh sách Website:</label>
+                        <textarea id="setManualData" class="set-input" style="height: 250px; font-family: monospace; font-size: 11px;" placeholder="url | admin_path | user | pass\nvd:\nhttps://site.com | /wp-admin | admin | pass123">${data.manualRaw || ''}</textarea>
+                    </div>
+                </div>
+                <div id="inputModeSheet" style="display: ${mode === 'sheet' ? 'block' : 'none'}">
+                    <div class="set-group">
+                        <label class="set-label">URL Google Sheet:</label>
+                        <input type="text" id="setSheetUrl" class="set-input" placeholder="https://docs.google.com/spreadsheets/d/..." value="${data.sheetUrl || ''}">
+                    </div>
+                    <div class="set-group">
+                        <label class="set-label">Vùng dữ liệu (vd: A2:D100):</label>
+                        <input type="text" id="setSheetRange" class="set-input" placeholder="A2:E200" value="${data.sheetRange || 'A2:E200'}">
+                    </div>
+                </div>
+            `;
+        } else if (node.type === 'http-status') {
+            paramsHtml = `
+                <div class="set-group">
+                    <label class="set-label">Thời gian chờ (Timeout):</label>
+                    <input type="number" id="setStatusTimeout" class="set-input" value="${data.timeout || 10000}" placeholder="ms (vd: 10000 = 10 giây)">
+                </div>
+                <div class="set-group">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#e2e8f0; cursor:pointer;">
+                        <input type="checkbox" id="setCheckWhitePage" ${data.checkWhitePage !== false ? 'checked' : ''}> Check lỗi Trắng trang
+                    </label>
+                </div>
+            `;
+        } else if (node.type === 'telegram') {
+            paramsHtml = `
+                <div class="set-group">
+                    <label class="set-label">Bot Token (Để trống nếu dùng Bot tổng):</label>
+                    <input type="text" id="setTeleToken" class="set-input" value="${data.token || ''}" placeholder="123456:ABC-DEF...">
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Chat ID (Để trống nếu dùng Chat ID tổng):</label>
+                    <input type="text" id="setTeleChatId" class="set-input" value="${data.chatId || ''}" placeholder="vd: -100123456789">
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Mẫu báo cáo (Template):</label>
+                    <textarea id="setTeleTemplate" class="set-input" style="height: 120px;" placeholder="Ví dụ: \n⚠️ Website {{url}} đang gặp lỗi {{status}}!">${data.template || ''}</textarea>
+                    <div style="font-size:10px; color:#64748b; margin-top:5px;">Dùng {{url}}, {{status}}, {{error}} để làm biến số.</div>
+                </div>
+            `;
+        } else if (node.type === 'ai-vision-search') {
+            paramsHtml = `
+                <div class="set-group">
+                    <label class="set-label">Gemini API Key:</label>
+                    <input type="password" id="setVisionApiKey" class="set-input" value="${data.apiKey || ''}" placeholder="AIzaSy...">
+                    <div style="font-size:10px; color:#64748b; margin-top:5px;">Cần Key của Gemini 1.5 Pro để hỗ trợ Vision & Search.</div>
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Lệnh Nghiên Cứu (Prompt):</label>
+                    <textarea id="setVisionPrompt" class="set-input" style="height: 120px;" placeholder="Lên Google tìm ảnh về {{keyword}}. Phân tích màu sắc, phong cách, và bố cục phổ biến nhất.">${data.prompt || 'Lên Google tìm ảnh về {{keyword}}. Phân tích màu sắc, phong cách, và bố cục phổ biến nhất của các đối thủ TOP đầu. Viết ra 1 prompt tiếng Anh thật chi tiết để hướng dẫn AI khác vẽ một bức ảnh đẹp hơn, cùng phong cách.'}</textarea>
+                    <div style="font-size:10px; color:#64748b; margin-top:5px;">Dùng {{keyword}} để làm biến số lấy từ input.</div>
+                </div>
+            `;
+        } else if (node.type === 'tech-monitor') {
+            paramsHtml = `
+                <div class="set-group">
+                    <label class="set-label">Danh sách lỗi quen thuộc (Cách nhau bằng dấu phẩy):</label>
+                    <textarea id="setKnownErrors" class="set-input" style="height: 100px;" placeholder="timeout, failed to fetch, 401, 403, 404, not found">${data.knownErrors || 'timeout, failed to fetch, 401, 403, 404'}</textarea>
+                    <div style="font-size:10px; color:#64748b; margin-top:5px;">Các lỗi nằm trong danh sách này sẽ được báo cáo ngay lập tức mà không cần gọi AI phân tích.</div>
+                </div>
+            `;
+        } else if (node.type === 'ai-audit') {
+            paramsHtml = `
+                <div class="set-group">
+                    <label class="set-label">Gemini API Key (Bỏ trống nếu dùng mặc định):</label>
+                    <input type="password" id="setAuditApiKey" class="set-input" value="${data.apiKey || ''}" placeholder="AIzaSy...">
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Câu lệnh kiểm soát (Audit Prompt):</label>
+                    <textarea id="setAuditPrompt" class="set-input" style="height: 120px;" placeholder="Bạn là chuyên gia. Hãy xem log lỗi lạ và giải thích nguyên nhân ngắn gọn.">${data.prompt || 'Bạn là chuyên gia giám sát hạ tầng. Hệ thống vừa gặp một lỗi kỹ thuật LẠ chưa được định nghĩa. Hãy xem log lỗi sau, giải thích nguyên nhân và đề xuất cách khắc phục ngắn gọn, dễ hiểu nhất cho Sếp.'}</textarea>
+                </div>
+            `;
+        } else if (node.type === 'custom-code') {
+            paramsHtml = `
+                <div class="set-group">
+                    <label class="set-label">Mã Javascript Tùy Chỉnh:</label>
+                    <textarea id="setCustomCode" class="set-input" style="height: 250px; font-family: monospace; font-size: 12px; background: #0f172a; color: #38bdf8;" spellcheck="false">${data.code || '// Mảng dữ liệu đầu vào là biến: items\n// Bạn phải return mảng items sau khi xử lý.\n\nreturn items.map(item => {\n    // Viết code xử lý ở đây...\n    // Ví dụ: item.newField = "Hello " + item.url;\n    return item;\n});'}</textarea>
+                    <div style="font-size:10px; color:#64748b; margin-top:5px;">Code chạy độc lập trên trình duyệt. Hãy cẩn thận khi dùng vòng lặp vô hạn.</div>
+                </div>
+            `;
+        } else if (node.type === 'update-sheet') {
+            paramsHtml = `
+            <div class="set-group">
+                <label class="set-label">Link Google Sheet (ghi kết quả):</label>
+                <input type="text" id="setUpdateSheetUrl" class="set-input" placeholder="https://docs.google.com/spreadsheets/d/..." value="${data.sheetUrl || ''}">
+            </div>
+            <div class="set-group">
+                <label class="set-label">Range bắt đầu ghi (vd: A2):</label>
+                <input type="text" id="setUpdateSheetRange" class="set-input" placeholder="A2" value="${data.range || 'A2'}">
+            </div>
+            <div class="set-group">
+                <label class="set-label">Các cột cần ghi (theo thứ tự, cách nhau dấu phẩy):</label>
+                <input type="text" id="setUpdateSheetCols" class="set-input" placeholder="keyword,domain,rank_pc,rank_mb,total_rank" value="${data.colMap || 'keyword,domain,rank_pc,rank_mb,total_rank'}">
+                <div style="font-size:10px;color:#64748b;margin-top:4px;">Phải khớp với tên key trong dữ liệu đầu ra của node trước.</div>
+            </div>
+            `;
+        } else if (node.type === 'ai-content') {
+            paramsHtml = `
+            <div class="set-group">
+                    <label class="set-label">Model AI:</label>
+                    <select id="setAiModel" class="set-input">
+                        <option value="gpt-4o" ${data.model==='gpt-4o'?'selected':''}>GPT-4o (Khuyên dùng)</option>
+                        <option value="gpt-3.5-turbo" ${data.model==='gpt-3.5-turbo'?'selected':''}>GPT-3.5 Turbo</option>
+                        <option value="claude-3-sonnet" ${data.model==='claude-3-sonnet'?'selected':''}>Claude 3 Sonnet</option>
+                    </select>
+                </div>
+                <div class="set-group">
+                    <label class="set-label">Prompt (Câu lệnh):</label>
+                    <textarea id="setAiPrompt" class="set-input" style="height: 150px;">${data.prompt || 'Viết một bài giới thiệu ngắn về website này...'}</textarea>
+                </div>
+             `;
+        } else {
+            paramsHtml = '<div style="text-align:center; padding:40px 0; color:#64748b;">Node này hiện chưa có thông số tùy chỉnh.</div>';
+        }
+
+        // Generic settings HTML (Cài đặt chung cho mọi Node)
+        const settingsHtml = `
+            <div class="set-group" style="padding-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.05); margin-bottom:15px;">
+                <label class="set-label" style="color:#e2e8f0; margin-bottom:6px; display:block;">Đổi Tên Node (Tên hiển thị)</label>
+                <input type="text" id="setNodeCustomName" class="set-input" placeholder="VD: ${node.def.label} 1" value="${config.customName || ''}">
+            </div>
+            
+            <div class="set-group" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:15px;">
+                <div>
+                    <div class="set-label" style="margin:0; color:#e2e8f0;">Luôn xuất dữ liệu</div>
+                    <div style="font-size:10px; color:#64748b;">Xuất data ngay cả khi không có kết quả</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="cfgAlwaysOutput" ${config.alwaysOutput ? 'checked' : ''}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            
+            <div class="set-group" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:15px; padding-top:15px;">
+                <div>
+                    <div class="set-label" style="margin:0; color:#e2e8f0;">Thực thi một lần</div>
+                    <div style="font-size:10px; color:#64748b;">Chỉ chạy 1 lần dù input có nhiều mục</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="cfgExecuteOnce" ${config.executeOnce ? 'checked' : ''}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            
+            <div class="set-group" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:15px; padding-top:15px;">
+                <div>
+                    <div class="set-label" style="margin:0; color:#e2e8f0;">Thử lại nếu thất bại</div>
+                    <div style="font-size:10px; color:#64748b;">Tự động chạy lại khi bị lỗi (Retry)</div>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="cfgRetry" ${config.retry ? 'checked' : ''} onchange="document.getElementById('retryOptions').style.display = this.checked ? 'block' : 'none'">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            
+            <div id="retryOptions" style="display: ${config.retry ? 'block' : 'none'}; background:rgba(0,0,0,0.2); padding:10px; border-radius:6px; margin-bottom:15px;">
+                <label class="set-label">Số lần thử tối đa</label>
+                <input type="number" id="cfgRetryCount" class="set-input" value="${config.retryCount || 3}" style="margin-bottom:10px;" min="1" max="10">
+            </div>
+
+            <div class="set-group" style="padding-top:10px;">
+                <label class="set-label" style="color:#ef4444;">Khi xảy ra lỗi (On Error)</label>
+                <select id="cfgOnError" class="set-input" style="border-color:rgba(239,68,68,0.3);">
+                    <option value="stop" ${config.onError==='stop'?'selected':''}>🛑 Dừng quy trình làm việc (Stop Workflow)</option>
+                    <option value="continue" ${config.onError==='continue'?'selected':''}>➡️ Tiếp tục (Bỏ qua lỗi)</option>
+                    <option value="continue-error" ${config.onError==='continue-error'?'selected':''}>🔀 Tiếp tục (Đẩy lỗi ra nhánh phụ)</option>
+                </select>
+            </div>
+        `;
+
+        body.innerHTML = `
+            <div class="main-tabs" style="display:flex; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:20px;">
+                <div class="m-tab active" onclick="switchMainTab('params')" style="flex:1; text-align:center; padding:10px; cursor:pointer; font-size:13px; font-weight:600; color:#a78bfa; border-bottom:2px solid #a78bfa;">Thông số</div>
+                <div class="m-tab" onclick="switchMainTab('settings')" style="flex:1; text-align:center; padding:10px; cursor:pointer; font-size:13px; font-weight:600; color:#94a3b8; border-bottom:2px solid transparent;">Cài đặt</div>
+            </div>
+            <div id="tabContentParams" style="display:block;">${paramsHtml}</div>
+            <div id="tabContentSettings" style="display:none;">${settingsHtml}</div>
+        `;
+    }
+
+    function switchMainTab(tab) {
+        const tabs = document.querySelectorAll('.m-tab');
+        tabs.forEach(t => { t.style.color = '#94a3b8'; t.style.borderBottomColor = 'transparent'; t.classList.remove('active'); });
+        
+        const activeTab = event.target;
+        activeTab.style.color = '#a78bfa';
+        activeTab.style.borderBottomColor = '#a78bfa';
+        activeTab.classList.add('active');
+        
+        document.getElementById('tabContentParams').style.display = tab === 'params' ? 'block' : 'none';
+        document.getElementById('tabContentSettings').style.display = tab === 'settings' ? 'block' : 'none';
+    }
+
+    function switchInputMode(mode) {
+        document.querySelectorAll('#tabContentParams .set-tab').forEach(t => t.classList.remove('active'));
+        if (event && event.target) event.target.classList.add('active');
+        const m = document.getElementById('inputModeManual');
+        const s = document.getElementById('inputModeSheet');
+        if(m) m.style.display = mode === 'manual' ? 'block' : 'none';
+        if(s) s.style.display = mode === 'sheet' ? 'block' : 'none';
+        if (currentEditingNodeId) {
+            const node = wfNodes.find(n => n.id === currentEditingNodeId);
+            if(node) {
+                if(!node.data) node.data = {};
+                node.data.mode = mode;
+            }
+        }
+    }
+
+    function saveNodeSettings() {
+        if (!currentEditingNodeId) return;
+        const node = wfNodes.find(n => n.id === currentEditingNodeId);
+        if (!node) return;
+        
+        if (!node.data) node.data = {};
+        if (!node.config) node.config = {};
+        
+        // Save generic config (Settings tab)
+        const customNameInput = document.getElementById('setNodeCustomName');
+        if (customNameInput) {
+            node.config.customName = customNameInput.value.trim();
+        }
+        node.config.alwaysOutput = document.getElementById('cfgAlwaysOutput')?.checked;
+        node.config.executeOnce = document.getElementById('cfgExecuteOnce')?.checked;
+        node.config.retry = document.getElementById('cfgRetry')?.checked;
+        node.config.retryCount = parseInt(document.getElementById('cfgRetryCount')?.value || 3);
+        node.config.onError = document.getElementById('cfgOnError')?.value || 'stop';
+
+        // Save node specific params (Params tab)
+        if (node.type === 'trigger-cron') {
+            node.data.interval = document.getElementById('setCronInterval')?.value || 'days';
+            node.data.value = parseInt(document.getElementById('setCronValue')?.value || 1);
+            node.data.hour = parseInt(document.getElementById('setCronHour')?.value || 0);
+            node.data.minute = parseInt(document.getElementById('setCronMinute')?.value || 0);
+        } else if (node.type === 'input') {
+            // Save mode from which tab is visible
+            const manualDiv = document.getElementById('inputModeManual');
+            node.data.mode = (manualDiv && manualDiv.style.display !== 'none') ? 'manual' : 'sheet';
+            node.data.manualRaw = document.getElementById('setManualData')?.value;
+            node.data.sheetUrl = document.getElementById('setSheetUrl')?.value;
+            node.data.sheetRange = document.getElementById('setSheetRange')?.value;
+        } else if (node.type === 'http-status') {
+            node.data.timeout = parseInt(document.getElementById('setStatusTimeout')?.value || 10000);
+            node.data.checkWhitePage = document.getElementById('setCheckWhitePage')?.checked;
+        } else if (node.type === 'telegram') {
+            node.data.token = document.getElementById('setTeleToken')?.value;
+            node.data.chatId = document.getElementById('setTeleChatId')?.value;
+            node.data.template = document.getElementById('setTeleTemplate')?.value;
+        } else if (node.type === 'ai-vision-search') {
+            node.data.apiKey = document.getElementById('setVisionApiKey')?.value;
+            node.data.prompt = document.getElementById('setVisionPrompt')?.value;
+        } else if (node.type === 'custom-code') {
+            node.data.code = document.getElementById('setCustomCode')?.value;
+        } else if (node.type === 'update-sheet') {
+            node.data.sheetUrl = document.getElementById('setUpdateSheetUrl')?.value;
+            node.data.range   = document.getElementById('setUpdateSheetRange')?.value;
+            node.data.colMap  = document.getElementById('setUpdateSheetCols')?.value;
+        } else if (node.type === 'tech-monitor') {
+            node.data.knownErrors = document.getElementById('setKnownErrors')?.value;
+        } else if (node.type === 'ai-audit') {
+            node.data.apiKey = document.getElementById('setAuditApiKey')?.value;
+            node.data.prompt = document.getElementById('setAuditPrompt')?.value;
+        } else if (node.type === 'ai-content') {
+            node.data.model = document.getElementById('setAiModel')?.value;
+            node.data.prompt = document.getElementById('setAiPrompt')?.value;
+        }
+        
+        
+        // Update Title on canvas immediately
+        const nodeEl = document.getElementById(node.id);
+        if (nodeEl) {
+            const titleEl = nodeEl.querySelector('.wf-node-title');
+            if (titleEl) {
+                titleEl.textContent = node.config.customName || node.def.label;
+            }
+        }
+        
+        saveCanvasToSession();
+        
+        // Lưu vĩnh viễn vào localStorage + Firebase ngay lập tức
+        if (typeof saveCurrentWorkflow === 'function' && currentEditingWfIndex >= 0) {
+            const wfList = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+            if (wfList[currentEditingWfIndex]) {
+                wfList[currentEditingWfIndex].nodes = wfNodes.map(n => ({
+                    id: n.id, type: n.type, cat: n.cat || n.category,
+                    x: n.x, y: n.y, data: n.data, config: n.config
+                }));
+                wfList[currentEditingWfIndex].savedAt = new Date().toISOString();
+                localStorage.setItem('wf_builder_list', JSON.stringify(wfList));
+                if (typeof syncWorkflowsToFirebase === 'function') {
+                    syncWorkflowsToFirebase(wfList);
+                }
+            }
+        }
+        
+        // Visual feedback
+        const btn = document.querySelector('.btn-save-settings');
+        if (btn) {
+            const oldText = btn.textContent;
+            btn.textContent = "✅ Đã Lưu!";
+            btn.style.background = "#10b981";
+            setTimeout(() => {
+                btn.textContent = oldText;
+                btn.style.background = "";
+                // KHÔNG ĐÓNG MODAL ĐỂ SẾP CÒN EDIT TIẾP
+            }, 600);
+        } else {
+            // KHÔNG ĐÓNG MODAL
+        }
+    }
+    
+    // Switch css for toggle switches
+    const switchCss = `
+    .switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; }
+    .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #94a3b8; transition: .4s; }
+    input:checked + .slider { background-color: #7c3aed; }
+    input:checked + .slider:before { transform: translateX(14px); background-color: white; }
+    .slider.round { border-radius: 20px; }
+    .slider.round:before { border-radius: 50%; }
+    `;
+    if (!document.getElementById('switchCss')) {
+        const style = document.createElement('style');
+        style.id = 'switchCss';
+        style.innerHTML = switchCss;
+        document.head.appendChild(style);
+    }
+
+
+    // ===== BLOCK FACTORY =====
+    let _bfEditingIdx = null;
+
+    function openBlockFactory(idx) {
+        _bfEditingIdx = idx;
+        const overlay = document.getElementById('blockFactoryOverlay');
+        overlay.style.display = 'flex';
+        
+        if (idx !== null && idx !== undefined) {
+            const blocks = getUserBlocks();
+            const b = blocks[idx];
+            if (b) {
+                document.getElementById('bfName').value = b.label || '';
+                document.getElementById('bfIcon').value = b.icon || '⚙️';
+                document.getElementById('bfColor').value = b.color || '#ec4899';
+                document.getElementById('bfDesc').value = b.desc || '';
+                document.getElementById('bfCode').value = b.code || '';
+            }
+        } else {
+            document.getElementById('bfName').value = '';
+            document.getElementById('bfIcon').value = '⚙️';
+            document.getElementById('bfColor').value = '#ec4899';
+            document.getElementById('bfDesc').value = '';
+            document.getElementById('bfCode').value = '// Dữ liệu đầu vào là mảng: items\n// Bạn phải return mảng items sau khi xử lý.\n\nreturn items.map(item => {\n    // Xử lý dữ liệu ở đây...\n    return item;\n});';
+        }
+    }
+
+    function closeBlockFactory() {
+        document.getElementById('blockFactoryOverlay').style.display = 'none';
+        _bfEditingIdx = null;
+    }
+
+    function saveBlockFactory() {
+        const name = document.getElementById('bfName').value.trim();
+        const code = document.getElementById('bfCode').value.trim();
+        if (!name) { alert('Vui lòng nhập tên viên gạch!'); return; }
+        if (!code) { alert('Vui lòng nhập mã xử lý!'); return; }
+        
+        const blocks = getUserBlocks();
+        const block = {
+            type: _bfEditingIdx !== null ? blocks[_bfEditingIdx].type : 'user_' + Date.now(),
+            category: 'user',
+            icon: document.getElementById('bfIcon').value.trim() || '⚙️',
+            label: name,
+            color: document.getElementById('bfColor').value || '#ec4899',
+            desc: document.getElementById('bfDesc').value.trim() || 'Viên gạch tùy chỉnh',
+            code: code
+        };
+        
+        if (_bfEditingIdx !== null && blocks[_bfEditingIdx]) {
+            blocks[_bfEditingIdx] = block;
+        } else {
+            blocks.push(block);
+        }
+        
+        saveUserBlocks(blocks);
+        renderPalette();
+        closeBlockFactory();
+        
+        // Toast notification
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed; bottom:30px; right:30px; background:linear-gradient(135deg,#ec4899,#a855f7); color:white; padding:14px 22px; border-radius:12px; font-size:14px; font-weight:600; z-index:99999; box-shadow:0 8px 32px rgba(236,72,153,0.4);';
+        toast.textContent = '✅ Đã lưu viên gạch: ' + name;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3001);
+    }
+
+    function deleteUserBlock(idx) {
+        const blocks = getUserBlocks();
+        const name = blocks[idx]?.label || 'viên gạch này';
+        if (!confirm('Bạn có chắc muốn xóa "' + name + '"?')) return;
+        blocks.splice(idx, 1);
+        saveUserBlocks(blocks);
+        renderPalette();
+    }
+
+
+    window.showAiReply = function(text) {
+        const modal = document.getElementById('aiReplyModal');
+        const content = document.getElementById('aiReplyContent');
+        if (!modal || !content) return;
+        
+        content.innerHTML = text;
+        modal.style.display = 'block';
+        
+        // Auto scroll to bottom
+        content.scrollTop = content.scrollHeight;
+    };
+
+    
+    function toggleManagerChat(show) {
+        const sidebar = document.getElementById('managerChatSidebar');
+        if (sidebar) {
+            sidebar.style.right = show ? '0px' : '-450px';
+            document.body.style.transition = 'padding-right 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            document.body.style.paddingRight = show ? '450px' : '0px';
+        }
+        if (show) {
+            document.getElementById('managerChatBubble').style.animation = 'none';
+            setTimeout(() => document.getElementById('managerChatInput').focus(), 300);
+        }
+    }
+
+    
+    let chatHistory = [];
+
+    function loadChatHistory() {
+        try {
+            const saved = localStorage.getItem('manager_chat_history');
+            const container = document.getElementById('managerChatMessages');
+            if (saved && container) {
+                const parsed = JSON.parse(saved);
+                if (parsed && parsed.length > 0) {
+                    chatHistory = parsed;
+                    container.innerHTML = ''; // Clear default message
+                    chatHistory.forEach(msg => {
+                        addChatMessage(msg.role, msg.text, false);
+                    });
+                }
+            }
+        } catch(e) { console.error("Error loading chat history:", e); }
+    }
+
+    function saveChatHistory() {
+
+        localStorage.setItem('global_chat_history', JSON.stringify(chatHistory));
+    }
+
+    async function sendToManager() {
+        const input = document.getElementById('managerChatInput');
+        const text = input.value.trim();
+        if (!text) return;
+        
+        input.value = '';
+        addChatMessage('user', text, true);
+        
+        const apiKey = localStorage.getItem('gemini_api_key');
+        if (!apiKey) {
+            addChatMessage('ai', '⚠️ Sếp ơi, sếp chưa cấu hình API Key trong phần ⚙️ Cài Đặt Hệ Thống!');
+            return;
+        }
+
+        addChatMessage('ai', '⏳ Đang suy nghĩ...', false);
+        const loadingDiv = document.getElementById('managerChatMessages').lastChild;
+        
+        try {
+            
+            // 1. Gather Context
+            let activeTabName = getActiveLocationName();
+            
+            // Lấy sổ tay hệ thống
+            let appBlueprint = "";
+            try {
+                const blueprintObj = JSON.parse(localStorage.getItem('ai_app_blueprint') || '{}');
+                appBlueprint = Object.entries(blueprintObj).map(([k, v]) => `+ Tab/Khu vực [${k}]: ${v}`).join('\n');
+            } catch(e) {}
+            
+            const skills = localStorage.getItem('ai_skills') || '';
+            let appState = `Thông tin ứng dụng: "GSC Bulk & SEO Automation Pro - Hệ thống quản lý PBN".\n\n`;
+            appState += `[SỔ TAY GHI CHÚ TOÀN BỘ TÍNH NĂNG CỦA TOOL]\n${appBlueprint}\n\n`;
+            appState += `Người dùng đang mở chức năng/vị trí hiện tại là: [${activeTabName}].\n`;
+            appState += `(Lưu ý: Hệ thống trang bị tính năng "Location Tracker" (Định vị AI), giúp bạn luôn biết Sếp đang đứng ở tab/tính năng nào để tư vấn chính xác. Hãy xác nhận bạn biết vị trí này).\n`;
+            appState += `(Hãy sử dụng Sổ tay ghi chú phía trên để trả lời mọi câu hỏi về tính năng thay vì phải hỏi lại).\n`;
+            
+            // Workflow context
+            if (activeTabName.includes('Workflow Builder (Canvas)')) {
+                const nodesCount = typeof wfNodes !== 'undefined' ? wfNodes.length : 0;
+                let wfContext = "";
+                if (nodesCount > 0) {
+                    const nodesInfo = wfNodes.map(n => `- Node ${n.def.label} (ID: ${n.id})`).join('\n');
+                    wfContext = `\n[CHI TIẾT WORKFLOW TRÊN CANVAS]\nSếp đang có ${nodesCount} nodes trên bản vẽ:\n${nodesInfo}\n`;
+                } else {
+                    wfContext = "\nBản vẽ đang trống.\n";
+                }
+                appState += wfContext;
+            } else if (activeTabName.includes('Workflow Library')) {
+                appState += "\nSếp đang ở sảnh ngoài quản lý danh sách các quy trình.\n";
+            }
+            
+            // Check Engine
+            const engine = localStorage.getItem('sys_ai_engine') || 'gemini';
+            
+            // 2. Build Prompt Payload
+            const sysPrompt = `Bạn là một trợ lý AI nhúng trong ứng dụng tự động hóa SEO. Luôn xưng hô "Sếp - Em" thân thiện.
+Kỹ năng cá nhân của bạn (do user huấn luyện):
+${skills}
+
+${appState}`;
+
+            // Tối ưu hóa: Chỉ gửi 10 tin nhắn gần nhất để tiết kiệm Token và tránh lỗi 429
+            const MAX_HISTORY = 10;
+            const recentHistory = chatHistory.slice(-MAX_HISTORY);
+            
+            let contents = recentHistory.map(msg => ({
+                role: msg.role === 'ai' ? 'model' : 'user',
+                parts: [{ text: msg.text }]
+            }));
+            
+            // Đảm bảo tin nhắn đầu tiên luôn là user (Yêu cầu bắt buộc của Gemini)
+            if (contents.length > 0 && contents[0].role === 'model') {
+                contents.unshift({ role: 'user', parts: [{ text: 'Bắt đầu cuộc hội thoại.' }] });
+            }
+
+            // Payload structure using systemInstruction for Gemini 1.5
+            const apiPayload = {
+                systemInstruction: { parts: [{ text: sysPrompt }] },
+                contents: contents
+            };
+
+            // 3. Call API
+            let replyText = "";
+            if (engine === 'ollama') {
+                const oUrl = localStorage.getItem('sys_ollama_url') || 'http://127.0.0.1:11434';
+                const oModel = localStorage.getItem('sys_ollama_model') || 'llama3';
+                
+                // Convert contents to Ollama format
+                const ollamaMsgs = [{role: 'system', content: sysPrompt}];
+                chatHistory.forEach(msg => ollamaMsgs.push({role: msg.role === 'ai' ? 'assistant' : 'user', content: msg.text}));
+                ollamaMsgs.push({role: 'user', content: text});
+                
+                const res = await fetch(oUrl + '/api/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ model: oModel, messages: ollamaMsgs, stream: false })
+                });
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+                replyText = data.message.content;
+            } else {
+                // GEMINI LOGIC
+                // Tối ưu hóa: Lưu Cache Models vào LocalStorage để không tốn Request
+                let cachedModels = localStorage.getItem('sys_gemini_models');
+                if (cachedModels) {
+                    window._availableModels = JSON.parse(cachedModels);
+                } else {
+                    try {
+                        const mRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                        const mData = await mRes.json();
+                        if (mData.models) {
+                            window._availableModels = mData.models.filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')).map(m => m.name.split('/')[1]);
+                            localStorage.setItem('sys_gemini_models', JSON.stringify(window._availableModels));
+                        }
+                    } catch(e) { console.error("ListModels failed", e); }
+                }
+
+                const attemptFetch = async (preferredModel) => {
+                    let actualModel = "gemini-pro"; 
+                    if (window._availableModels && window._availableModels.length > 0) {
+                        const match = window._availableModels.find(m => m.includes(preferredModel));
+                        if (match) { actualModel = match; } 
+                        else { actualModel = window._availableModels.find(m => m.includes('gemini')) || window._availableModels[0]; }
+                    } else if (preferredModel.includes('flash')) { actualModel = 'gemini-1.5-flash-latest'; } 
+                    else { actualModel = 'gemini-1.5-pro-latest'; }
+                    
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${actualModel}:generateContent?key=${apiKey}`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(apiPayload)
+                    });
+                    
+                    const data = await res.json();
+                    
+                    // Bắt lỗi 429 và định dạng lại cho thân thiện
+                    if (res.status === 429) {
+                        const match = data.error?.message?.match(/Please retry in ([0-9.]+)s/);
+                        if (match) {
+                            throw new Error(`Quá tải rồi sếp! Google bắt sếp "nghỉ tay" ${Math.round(match[1])} giây. Lát sếp hỏi lại nhé!`);
+                        }
+                        throw new Error("Hết lượt hỏi miễn phí trong phút này! Sếp đợi khoảng 1 phút rồi thử lại nhé.");
+                    }
+                    
+                    if (data.error) throw new Error(data.error.message);
+                    return data.candidates[0].content.parts[0].text;
+                };
+
+                try {
+                    replyText = await attemptFetch('1.5-pro');
+                } catch (errPro) {
+                    if (errPro.message.includes('Quá tải') || errPro.message.includes('Hết lượt')) throw errPro; // Bỏ qua fallback nếu lỗi 429
+                    console.warn("Pro model failed, trying flash...", errPro);
+                    try {
+                        replyText = await attemptFetch('1.5-flash');
+                    } catch (errFlash) {
+                        if (errFlash.message.includes('Quá tải') || errFlash.message.includes('Hết lượt')) throw errFlash;
+                        console.warn("Flash model failed, trying basic gemini-pro...", errFlash);
+                        try {
+                            replyText = await attemptFetch('gemini-pro');
+                        } catch (errBasic) {
+                            if (errBasic.message.includes('Quá tải') || errBasic.message.includes('Hết lượt')) throw errBasic;
+                            throw new Error("Tất cả các model đều đang bị lỗi hoặc từ chối kết nối: " + errBasic.message);
+                        }
+                    }
+                }
+            }
+            // Remove loading div and add real reply
+            loadingDiv.remove();
+            addChatMessage('ai', replyText, true);
+
+        } catch (err) {
+            loadingDiv.remove();
+            addChatMessage('ai', '⚠️ Có lỗi rồi sếp ạ: ' + err.message, false);
+        }
+    }
+
+    function addChatMessage(role, text, save = false) {
+        const container = document.getElementById('managerChatMessages');
+        const div = document.createElement('div');
+        const isAi = role === 'ai';
+        
+        div.style.cssText = `
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            ${isAi ? 'align-self: flex-start; background: rgba(139,92,246,0.1); color: #e2e8f0; border-bottom-left-radius: 4px; border: 1px solid rgba(139,92,246,0.2);' 
+                  : 'align-self: flex-end; background: #8b5cf6; color: white; border-bottom-right-radius: 4px;'}
+        `;
+        div.textContent = text;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+
+        if (save && text !== '⏳ Đang suy nghĩ...') {
+            chatHistory.push({ role, text });
+            saveChatHistory();
+        }
+    }
+
+    function clearChatHistory() {
+        if(confirm('Xóa toàn bộ lịch sử trò chuyện?')) {
+            chatHistory = [];
+            saveChatHistory();
+            const container = document.getElementById('managerChatMessages');
+            container.innerHTML = '<div style="background:rgba(255,255,255,0.05); color:#94a3b8; padding:12px; border-radius:12px; font-size:13px; line-height:1.5; border:1px dashed rgba(255,255,255,0.1);">Chào sếp! Em là Trợ lý AI toàn năng. Sếp cần em giúp gì hôm nay?</div>';
+        }
+    }
+
+
+    // Override the showAiReply to also show in Chat Sidebar
+    const originalShowAiReply = window.showAiReply;
+    window.showAiReply = function(text) {
+        if (originalShowAiReply) originalShowAiReply(text);
+        addChatMessage('ai', text);
+        const sidebar = document.getElementById('managerChatSidebar');
+        if (sidebar.style.display === 'none') {
+             // If closed, notify user
+             const bubble = document.getElementById('managerChatBubble');
+             if (bubble) bubble.style.animation = 'pulse 0.5s infinite';
+             setTimeout(() => { if(bubble) bubble.style.animation = 'pulse 2s infinite'; }, 2000);
+        }
+    };
+
+    // Hook into canvas changes to show/hide bubble
+    const oldSaveCanvas = window.saveCanvasToSession;
+    window.saveCanvasToSession = function() {
+        if(oldSaveCanvas) oldSaveCanvas();
+        
+    };
+    
+    // Initial check
+     loadChatHistory();
+     setTimeout(() => {
+         const savedJson = localStorage.getItem('vps_google_json');
+         if (savedJson && document.getElementById('sysVpsGoogleJson')) {
+             document.getElementById('sysVpsGoogleJson').value = savedJson;
+         }
+     }, 500);
+
+    
+    function switchSettingTab(tab) {
+        document.getElementById('setContent_apis').style.display = tab === 'apis' ? 'block' : 'none';
+        document.getElementById('setContent_skills').style.display = tab === 'skills' ? 'block' : 'none';
+        
+        document.getElementById('setTab_apis').style.background = tab === 'apis' ? 'rgba(139,92,246,0.15)' : 'transparent';
+        document.getElementById('setTab_apis').style.borderRight = tab === 'apis' ? '3px solid #8b5cf6' : 'none';
+        document.getElementById('setTab_apis').style.color = tab === 'apis' ? '#e2e8f0' : '#94a3b8';
+        
+        document.getElementById('setTab_skills').style.background = tab === 'skills' ? 'rgba(139,92,246,0.15)' : 'transparent';
+        document.getElementById('setTab_skills').style.borderRight = tab === 'skills' ? '3px solid #8b5cf6' : 'none';
+        document.getElementById('setTab_skills').style.color = tab === 'skills' ? '#e2e8f0' : '#94a3b8';
+    }
+
+
+    function toggleAcc(id) {
+        const grp = document.getElementById(id);
+        if (!grp) return;
+        const body = grp.querySelector('.acc-body');
+        const isOpen = grp.classList.contains('open');
+        grp.classList.toggle('open', !isOpen);
+        body.style.display = isOpen ? 'none' : 'block';
+    }
+
+    function toggleGlobalSettings(show) {
+
+        const overlay = document.getElementById('globalSettingsOverlay');
+        if (!overlay) return;
+        overlay.style.display = show ? 'flex' : 'none';
+        overlay.style.pointerEvents = show ? 'auto' : 'none';
+        if (show) {
+            document.getElementById('sysWpVpsUrl').value = localStorage.getItem('wpVpsUrl') || '';
+            document.getElementById('sysWpBasicUser').value = localStorage.getItem('basicAuthUser') || '';
+            document.getElementById('sysWpBasicPass').value = localStorage.getItem('basicAuthPass') || '';
+            // AI Engine
+            const engine = localStorage.getItem('sys_ai_engine') || 'gemini';
+            document.getElementById('sysAiEngine').value = engine;
+            document.getElementById('sysGeminiKey').value = localStorage.getItem('gemini_api_key') || '';
+            document.getElementById('cfgGemini').style.display = engine === 'gemini' ? 'block' : 'none';
+            if (document.getElementById('sysOllamaUrl')) document.getElementById('sysOllamaUrl').value = localStorage.getItem('sys_ollama_url') || 'http://127.0.0.1:11434';
+            if (document.getElementById('sysOllamaModel')) document.getElementById('sysOllamaModel').value = localStorage.getItem('sys_ollama_model') || 'llama3';
+            document.getElementById('cfgOllama').style.display = engine === 'ollama' ? 'block' : 'none';
+            // Serper
+            if (document.getElementById('sysSerperKey')) document.getElementById('sysSerperKey').value = localStorage.getItem('sys_serper_key') || '';
+            // Telegram
+            document.getElementById('sysTeleToken').value = localStorage.getItem('telegram_bot_token') || '';
+            document.getElementById('sysTeleChatId').value = localStorage.getItem('tele_chat_id') || '';
+            // VPS Automation
+            const wfSettings = JSON.parse(localStorage.getItem('wf_system_settings') || '{}');
+            document.getElementById('sysVpsUrl').value = wfSettings.vpsUrl || '';
+            document.getElementById('sysVpsToken').value = wfSettings.vpsToken || '';
+            // Google
+            document.getElementById('sysGoogleClientId').value = localStorage.getItem('google_client_id') || '';
+            document.getElementById('sysGlobalSheetUrl').value = localStorage.getItem('global_sheet_url') || '';
+            // VPS Agent
+            document.getElementById('sysVpsIp').value = localStorage.getItem('vps_ip') || '';
+            if(document.getElementById('sysVpsProfilesConfig')) document.getElementById('sysVpsProfilesConfig').value = localStorage.getItem('vps_profiles_config') || 'gmail_1|Tài khoản 1';
+            document.getElementById('sysVpsGoogleJson').value = localStorage.getItem('vps_google_json') || '';
+            // Proxy
+            if (document.getElementById('sysProxyHost')) document.getElementById('sysProxyHost').value = localStorage.getItem('sys_proxy_host') || '';
+            if (document.getElementById('sysProxyPort')) document.getElementById('sysProxyPort').value = localStorage.getItem('sys_proxy_port') || '';
+            if (document.getElementById('sysProxyUser')) document.getElementById('sysProxyUser').value = localStorage.getItem('sys_proxy_user') || '';
+            if (document.getElementById('sysProxyPass')) document.getElementById('sysProxyPass').value = localStorage.getItem('sys_proxy_pass') || '';
+            // AI Skills
+            document.getElementById('sysAiSkills').value = localStorage.getItem('ai_skills') || '';
+        }
+    }
+
+    function saveSystemSettings() {
+        localStorage.setItem('wpVpsUrl', document.getElementById('sysWpVpsUrl').value);
+        localStorage.setItem('basicAuthUser', document.getElementById('sysWpBasicUser').value);
+        localStorage.setItem('basicAuthPass', document.getElementById('sysWpBasicPass').value);
+        // AI
+        localStorage.setItem('sys_ai_engine', document.getElementById('sysAiEngine').value);
+        localStorage.setItem('gemini_api_key', document.getElementById('sysGeminiKey').value.trim());
+        if (document.getElementById('sysOllamaUrl')) localStorage.setItem('sys_ollama_url', document.getElementById('sysOllamaUrl').value.trim());
+        if (document.getElementById('sysOllamaModel')) localStorage.setItem('sys_ollama_model', document.getElementById('sysOllamaModel').value.trim());
+        // Serper
+        if (document.getElementById('sysSerperKey')) localStorage.setItem('sys_serper_key', document.getElementById('sysSerperKey').value.trim());
+        // Telegram
+        localStorage.setItem('telegram_bot_token', document.getElementById('sysTeleToken').value.trim());
+        localStorage.setItem('tele_chat_id', document.getElementById('sysTeleChatId').value.trim());
+        // VPS Automation
+        const vpsUrl = document.getElementById('sysVpsUrl').value.trim().replace(/\/$/, '');
+        const vpsToken = document.getElementById('sysVpsToken').value.trim();
+        localStorage.setItem('wf_system_settings', JSON.stringify({ vpsUrl, vpsToken }));
+        // Google
+        const clientId = document.getElementById('sysGoogleClientId').value.trim();
+        localStorage.setItem('google_client_id', clientId);
+        if (typeof GOOGLE_CLIENT_ID !== 'undefined') GOOGLE_CLIENT_ID = clientId;
+        localStorage.setItem('global_sheet_url', document.getElementById('sysGlobalSheetUrl').value.trim());
+        // VPS Agent
+        localStorage.setItem('vps_ip', document.getElementById('sysVpsIp').value.trim());
+        localStorage.setItem('vps_profiles_config', document.getElementById('sysVpsProfilesConfig').value.trim());
+        if(typeof renderVpsProfilesList === 'function') renderVpsProfilesList();
+        localStorage.setItem('vps_google_json', document.getElementById('sysVpsGoogleJson').value.trim());
+        // Proxy
+        if (document.getElementById('sysProxyHost')) localStorage.setItem('sys_proxy_host', document.getElementById('sysProxyHost').value.trim());
+        if (document.getElementById('sysProxyPort')) localStorage.setItem('sys_proxy_port', document.getElementById('sysProxyPort').value.trim());
+        if (document.getElementById('sysProxyUser')) localStorage.setItem('sys_proxy_user', document.getElementById('sysProxyUser').value.trim());
+        if (document.getElementById('sysProxyPass')) localStorage.setItem('sys_proxy_pass', document.getElementById('sysProxyPass').value.trim());
+        // AI Skills
+        localStorage.setItem('ai_skills', document.getElementById('sysAiSkills').value.trim());
+        toggleGlobalSettings(false);
+        // Sync lên Firebase
+        syncSettingsToFirebase();
+        // Toast thay vì alert
+        const toast = document.createElement('div');
+        toast.innerText = '✅ Đã lưu & đồng bộ thiết lập hệ thống!';
+        toast.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#10b981;color:white;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:slideUp 0.3s ease;';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
+    }
+
+    // --- NÂNG CẤP: LIVE TERMINAL & PROGRESS BADGE ---
+    window.wfAppendLiveLog = function(text) {
+        const content = document.getElementById('liveLogContent');
+        if (!content) return;
+        const line = document.createElement('div');
+        const time = new Date().toLocaleTimeString('vi-VN', {hour12:false});
+        line.innerText = `[${time}] ${text}`;
+        content.appendChild(line);
+        content.scrollTop = content.scrollHeight;
+        
+        // Giới hạn 500 dòng để không nặng máy
+        while (content.children.length > 500) {
+            content.removeChild(content.firstChild);
+        }
+    };
+
+    window.wfUpdateProgress = function(nodeId, current, total, msg) {
+        const nodeEl = document.querySelector(`.wf-node[data-id="${nodeId}"]`);
+        if (!nodeEl) return;
+        let badge = nodeEl.querySelector('.wf-progress-badge');
+        if (!badge) {
+            badge = document.createElement('div');
+            badge.className = 'wf-progress-badge';
+            badge.style.position = 'absolute';
+            badge.style.top = '-25px';
+            badge.style.left = '50%';
+            badge.style.transform = 'translateX(-50%)';
+            badge.style.background = '#8b5cf6';
+            badge.style.color = '#fff';
+            badge.style.padding = '2px 8px';
+            badge.style.borderRadius = '12px';
+            badge.style.fontSize = '11px';
+            badge.style.fontWeight = 'bold';
+            badge.style.whiteSpace = 'nowrap';
+            badge.style.zIndex = '100';
+            badge.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+            nodeEl.appendChild(badge);
+        }
+        
+        // Create progress bar at the bottom of the node
+        let barContainer = nodeEl.querySelector('.wf-progress-bar-container');
+        if (!barContainer) {
+            barContainer = document.createElement('div');
+            barContainer.className = 'wf-progress-bar-container';
+            barContainer.style.position = 'absolute';
+            barContainer.style.bottom = '0';
+            barContainer.style.left = '0';
+            barContainer.style.width = '100%';
+            barContainer.style.height = '4px';
+            barContainer.style.background = 'rgba(255,255,255,0.1)';
+            barContainer.style.borderRadius = '0 0 8px 8px';
+            barContainer.style.overflow = 'hidden';
+            
+            let bar = document.createElement('div');
+            bar.className = 'wf-progress-bar-fill';
+            bar.style.height = '100%';
+            bar.style.width = '0%';
+            bar.style.background = '#00e5ff';
+            bar.style.transition = 'width 0.2s';
+            barContainer.appendChild(bar);
+            nodeEl.appendChild(barContainer);
+        }
+        
+        const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+        badge.innerText = `⏳ ${current}/${total} ${msg ? '- ' + msg : ''}`;
+        
+        const bar = barContainer.querySelector('.wf-progress-bar-fill');
+        if (bar) bar.style.width = `${pct}%`;
+        
+        // Update live terminal
+        if (window.wfAppendLiveLog) {
+            const nodeObj = window.wfNodes ? window.wfNodes.find(n => n.id === nodeId) : null;
+            const nodeName = nodeObj ? (nodeObj.data?.customName || nodeObj.type) : nodeId;
+            window.wfAppendLiveLog(`[${nodeName}] ${current}/${total}: ${msg || 'Đang xử lý...'}`);
+        }
+        
+        // Auto remove when complete
+        if (current >= total && total > 0) {
+            setTimeout(() => {
+                if (badge.parentNode) badge.parentNode.removeChild(badge);
+                if (barContainer.parentNode) barContainer.parentNode.removeChild(barContainer);
+            }, 3001);
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Thêm UI Live Log vào body
+        const div = document.createElement('div');
+        div.innerHTML = `
+            <button id="btnToggleLiveLog" style="position:fixed;bottom:20px;left:250px;background:#334155;color:#fff;border:none;border-radius:20px;padding:8px 16px;cursor:pointer;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);font-family:monospace;display:none;transition:0.2s;">👁️ Live Logs</button>
+            <div id="liveLogPanel" style="position:fixed;bottom:60px;left:250px;right:auto;width:420px;height:280px;background:#0f172a;color:#10b981;border-radius:12px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.5);display:none;flex-direction:column;font-family:monospace;font-size:12px;border:1px solid #334155;transition:0.3s;">
+                <div style="padding:10px;background:#1e293b;border-radius:12px 12px 0 0;font-weight:bold;color:#f8fafc;display:flex;justify-content:space-between;align-items:center;">
+                    <span>Terminal Execution Logs</span>
+                    <span id="closeLiveLog" style="cursor:pointer;color:#94a3b8;font-size:14px;padding:0 5px;">✖</span>
+                </div>
+                <div id="liveLogContent" style="flex:1;overflow-y:auto;padding:10px;white-space:pre-wrap;line-height:1.5;"></div>
+            </div>
+        `;
+        document.body.appendChild(div);
+        
+        document.getElementById('btnToggleLiveLog').addEventListener('click', () => {
+            const panel = document.getElementById('liveLogPanel');
+            panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+        });
+        document.getElementById('closeLiveLog').addEventListener('click', () => {
+            document.getElementById('liveLogPanel').style.display = 'none';
+        });
+        
+        // Hover effect cho nút
+        const btn = document.getElementById('btnToggleLiveLog');
+        btn.onmouseover = () => btn.style.background = '#475569';
+        btn.onmouseout = () => btn.style.background = '#334155';
+    });
+// ===== WORKFLOW LIVE PROGRESS TRACKING (Override) =====
+window._wfProgressStartTime = null;
+window._wfRunningNodeId = null;
+window._wfCancelRequested = false;
+
+window.wfUpdateProgress = function(nodeId, current, total, message) {
+    if (!nodeId || !total) return;
+    const pct = Math.min(100, Math.round((current / total) * 100));
+
+    // --- ETA ---
+    if (window._wfRunningNodeId !== nodeId) {
+        window._wfRunningNodeId = nodeId;
+        window._wfProgressStartTime = Date.now();
+    }
+    if (!window._wfProgressStartTime) window._wfProgressStartTime = Date.now();
+    const elapsed = (Date.now() - window._wfProgressStartTime) / 1000;
+    const rate = current / Math.max(elapsed, 0.001);
+    const remaining = (total - current) / rate;
+    const etaStr = (!isFinite(remaining) || remaining < 0) ? '...'
+        : remaining > 60 ? '~' + Math.floor(remaining/60) + 'p' + Math.floor(remaining%60) + 's'
+        : '~' + Math.ceil(remaining) + 's';
+
+    // 1. Mini progress bar bên trong node trên canvas
+    const nodeEl = document.getElementById(nodeId);
+    if (nodeEl) {
+        let prog = nodeEl.querySelector('.wf-node-progress');
+        if (!prog) {
+            prog = document.createElement('div');
+            prog.className = 'wf-node-progress';
+            prog.innerHTML = '<div class="wf-node-progress-bar"><div class="wf-node-progress-fill" style="width:0%"></div></div><div class="wf-node-progress-label"></div>';
+            nodeEl.appendChild(prog);
+        }
+        prog.querySelector('.wf-node-progress-fill').style.width = pct + '%';
+        prog.querySelector('.wf-node-progress-label').textContent = current + '/' + total + ' · ' + pct + '% · ETA ' + etaStr;
+    }
+
+    // 2. Live Terminal Log (dùng lại liveLogContent panel sẵn có)
+    var shortMsg = message && message.length > 70 ? message.substring(0, 67) + '...' : (message || '');
+    if (window.wfAppendLiveLog) {
+        window.wfAppendLiveLog('[' + current + '/' + total + '] ' + shortMsg);
+    }
+    // Hiển thị panel nếu đang ẩn
+    var liveLogPanel = document.getElementById('liveLogPanel');
+    var btnToggle = document.getElementById('btnToggleLiveLog');
+    if (liveLogPanel && liveLogPanel.style.display === 'none') {
+        if (btnToggle) btnToggle.style.display = 'block';
+        // Tự mở panel khi bắt đầu chạy
+        if (current === 1) {
+            liveLogPanel.style.display = 'flex';
+        }
+    }
+
+    // 3. Global Toast
+    var toast = document.getElementById('wfProgressToast');
+    if (toast) {
+        toast.classList.add('active');
+        var toastBar = document.getElementById('wfToastBar');
+        var toastLabel = document.getElementById('wfToastLabel');
+        var toastCount = document.getElementById('wfToastCount');
+        var toastEta = document.getElementById('wfToastEta');
+        if (toastBar) toastBar.style.width = pct + '%';
+        if (toastLabel) toastLabel.textContent = shortMsg;
+        if (toastCount) toastCount.textContent = current + '/' + total;
+        if (toastEta) toastEta.textContent = etaStr;
+    }
+};
+
+window.wfClearProgress = function(nodeId) {
+    window._wfProgressStartTime = null;
+    var nodeEl = document.getElementById(nodeId);
+    if (nodeEl) {
+        nodeEl.classList.remove('running');
+        var prog = nodeEl.querySelector('.wf-node-progress');
+        if (prog) setTimeout(function(){ prog && prog.remove(); }, 3001);
+    }
+    var toast = document.getElementById('wfProgressToast');
+    if (toast) toast.classList.remove('active');
+    var cancelBtn = document.getElementById('wfCancelBtn');
+    if (cancelBtn) { cancelBtn.textContent = '⛔ Dừng lại'; cancelBtn.disabled = false; }
+    window._wfCancelRequested = false;
+};
+
+        const bUser = document.getElementById('basicAuthUser');
+        const bPass = document.getElementById('basicAuthPass');
+        if (bUser) {
+            bUser.value = localStorage.getItem('basicAuthUser') || '';
+            bUser.addEventListener('input', () => localStorage.setItem('basicAuthUser', bUser.value));
+        }
+        if (bPass) {
+            bPass.value = localStorage.getItem('basicAuthPass') || '';
+            bPass.addEventListener('input', () => localStorage.setItem('basicAuthPass', bPass.value));
+        }
+    // Auto inject Demo Workflow for n8n once
+    setTimeout(() => {
+        if (!localStorage.getItem('n8n_demo_injected_v1')) {
+            let lib = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+            var n8nWf = {
+                id: Date.now() + 1000,
+                name: "Demo: Bắn Từ Khóa sang n8n",
+                version: 1.0,
+                nodes: [
+                    { id: "n1", type: "input", x: 100, y: 150, data: { value: "Đau mỏi vai gáy\nThuốc trị thoái hóa cột sống" }, label: "1. Nhập Từ Khóa", inputIds: [], outputIds: ["n2"] },
+                    { id: "n2", type: "n8n-webhook", x: 450, y: 150, data: { webhookUrl: "https://<ip-vps>:5678/webhook/tao-bai-viet", method: "POST", customData: "{\"keywords\": \"{{input}}\"}" }, label: "2. Bắn sang n8n", inputIds: ["n1"], outputIds: [] }
+                ],
+                connections: [
+                    { id: "c1", from: "n1", to: "n2" }
+                ],
+                updatedAt: Date.now()
+            };
+            lib.unshift(n8nWf);
+            localStorage.setItem('wf_builder_list', JSON.stringify(lib));
+            localStorage.setItem('n8n_demo_injected_v1', '1');
+            if (typeof syncWorkflowsToFirebase === 'function') syncWorkflowsToFirebase(lib);
+            if (typeof renderWorkflowLibrary === 'function') renderWorkflowLibrary();
+            console.log('✅ Injected Demo n8n Workflow!');
+        }
+    }, 2000);
+    // Load saved Serper key on page load
+    window.addEventListener('load', function() {
+        const savedKey = localStorage.getItem('sys_serper_key') || '';
+        if (document.getElementById('rankSerperKey')) {
+            document.getElementById('rankSerperKey').value = savedKey;
+        }
+    });
+
+    function rankSaveKey() {
+        const key = document.getElementById('rankSerperKey').value.trim();
+        if (!key) return alert('Vui lòng nhập API Key trước!');
+        localStorage.setItem('sys_serper_key', key);
+        alert('✅ Đã lưu Serper API Key!');
+    }
+
+    async function rankTestSerperKey() {
+        const key = document.getElementById('rankSerperKey').value.trim() || localStorage.getItem('sys_serper_key') || '';
+        if (!key) return alert('Chưa có Serper API Key! Hãy nhập key trước.');
+        try {
+            const res = await fetch('https://google.serper.dev/search', {
+                method: 'POST',
+                headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ q: 'test', gl: 'vn', hl: 'vi', num: 1 })
+            });
+            if (res.ok) {
+                alert('✅ Serper API Key hợp lệ! Sẵn sàng check rank.');
+            } else {
+                const err = await res.json();
+                alert('❌ Key lỗi: ' + (err.message || res.status));
+            }
+        } catch(e) {
+            alert('❌ Lỗi kết nối: ' + e.message);
+        }
+    }
+
+    let rankRunning = false;
+    let rankData = [];
+
+    async function checkRankSingle(keyword, domain, device) {
+        const key = localStorage.getItem('sys_serper_key') || '';
+        const gl = document.getElementById('rankCountry')?.value || 'vn';
+        const hl = document.getElementById('rankLang')?.value || 'vi';
+        const body = { q: keyword, gl: gl, hl: hl, num: 100 };
+        if (device === 'mobile') body.device = 'mobile';
+        const res = await fetch('https://google.serper.dev/search', {
+            method: 'POST',
+            headers: { 'X-API-KEY': key, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!data.organic) return 0;
+        const d = domain.replace(/^https?:\/\//, '').replace(/\/$/, '').toLowerCase();
+        const found = data.organic.find(r => r.link && r.link.toLowerCase().indexOf(d) >= 0);
+        return found ? found.position : 0;
+    }
+
+    function rankBadge(rank) {
+        if (rank === 'N/A' || !rank || rank === 0) {
+            return `<span style="background:rgba(239,68,68,0.15); color:#f87171; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:700;">N/A</span>`;
+        }
+        const r = parseInt(rank);
+        let bg, color;
+        if (r <= 3)  { bg = 'rgba(16,185,129,0.2)'; color = '#34d399'; }
+        else if (r <= 10)  { bg = 'rgba(16,185,129,0.1)'; color = '#10b981'; }
+        else if (r <= 30)  { bg = 'rgba(245,158,11,0.15)'; color = '#fbbf24'; }
+        else if (r <= 100) { bg = 'rgba(99,102,241,0.15)'; color = '#818cf8'; }
+        else               { bg = 'rgba(239,68,68,0.15)'; color = '#f87171'; }
+        return `<span style="background:${bg}; color:${color}; padding:3px 8px; border-radius:4px; font-size:12px; font-weight:700;">#${r}</span>`;
+    }
+
+    async function startCheckRank() {
+        const serperKey = localStorage.getItem('sys_serper_key') || document.getElementById('rankSerperKey').value.trim();
+        if (!serperKey) return alert('Chưa có Serper API Key! Hãy nhập và lưu key trước.');
+
+        const keywords = document.getElementById('rankKeywords').value.trim().split('\n').map(k => k.trim()).filter(Boolean);
+        const domainsRaw = document.getElementById('rankDomains').value.trim().split('\n').map(d => d.trim()).filter(Boolean);
+
+        if (!keywords.length) return alert('Vui lòng nhập ít nhất 1 từ khóa!');
+        if (!domainsRaw.length) return alert('Vui lòng nhập ít nhất 1 domain!');
+
+        // If only 1 domain → apply to all keywords
+        const domains = domainsRaw.length === 1
+            ? keywords.map(() => domainsRaw[0])
+            : domainsRaw;
+
+        rankRunning = true;
+        rankData = [];
+        document.getElementById('btnStartRank').disabled = true;
+        document.getElementById('btnStartRank').textContent = '⏳ Đang chạy...';
+        document.getElementById('rankProgress').style.display = 'flex';
+        document.getElementById('rankResultBody').innerHTML = '';
+        document.getElementById('rankSummary').style.display = 'none';
+
+        for (let i = 0; i < keywords.length; i++) {
+            if (!rankRunning) break;
+            const kw = keywords[i];
+            const site = domains[i] || domains[0] || '';
+            document.getElementById('rankProgressText').textContent = `(${i+1}/${keywords.length}) Đang check: ${kw} → ${site}`;
+
+            let rank_pc = 'N/A', rank_mb = 'N/A', total_rank = 'N/A';
+            try {
+                const [pc, mb] = await Promise.all([
+                    checkRankSingle(kw, site, 'desktop'),
+                    checkRankSingle(kw, site, 'mobile')
+                ]);
+                rank_pc  = pc > 0 ? pc : 'N/A';
+                rank_mb  = mb > 0 ? mb : 'N/A';
+                const vals = [pc, mb].filter(v => v > 0);
+                total_rank = vals.length ? Math.min(...vals) : 'N/A';
+            } catch(e) {
+                rank_pc = rank_mb = total_rank = 'Lỗi';
+            }
+
+            const row = { kw, site, rank_pc, rank_mb, total_rank };
+            rankData.push(row);
+
+            // Render row live
+            const topOnly = document.getElementById('rankTopOnly').checked;
+            if (!topOnly || (typeof total_rank === 'number' && total_rank <= 100)) {
+                const tbody = document.getElementById('rankResultBody');
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+                tr.innerHTML = `
+                    <td style="padding:10px; color:var(--text-muted);">${i+1}</td>
+                    <td style="padding:10px; font-weight:500;">${kw}</td>
+                    <td style="padding:10px; color:#94a3b8; font-size:12px;">${site}</td>
+                    <td style="padding:10px; text-align:center;">${rankBadge(rank_pc)}</td>
+                    <td style="padding:10px; text-align:center;">${rankBadge(rank_mb)}</td>
+                    <td style="padding:10px; text-align:center;">${rankBadge(total_rank)}</td>
+                    <td style="padding:10px; text-align:center;">
+                        <button onclick="window.open('https://www.google.com/search?q=${encodeURIComponent(kw)}&gl=vn','_blank')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:3px 6px;border-radius:4px;cursor:pointer;font-size:10px;">🔍</button>
+                    </td>`;
+                tbody.appendChild(tr);
+            }
+
+            // Small delay to avoid rate limit
+            if (i < keywords.length - 1) await new Promise(r => setTimeout(r, 500));
+        }
+
+        // Update summary
+        const top10  = rankData.filter(r => typeof r.total_rank === 'number' && r.total_rank >= 1 && r.total_rank <= 10).length;
+        const top30  = rankData.filter(r => typeof r.total_rank === 'number' && r.total_rank > 10 && r.total_rank <= 30).length;
+        const top100 = rankData.filter(r => typeof r.total_rank === 'number' && r.total_rank > 30 && r.total_rank <= 100).length;
+        const na     = rankData.filter(r => r.total_rank === 'N/A').length;
+
+        document.getElementById('rankSumTop10').textContent = top10;
+        document.getElementById('rankSumTop30').textContent = top30;
+        document.getElementById('rankSumTop100').textContent = top100;
+        document.getElementById('rankSumNA').textContent = na;
+        document.getElementById('rankSumTotal').textContent = rankData.length;
+        document.getElementById('rankSummary').style.display = 'block';
+
+        document.getElementById('rankProgress').style.display = 'none';
+        document.getElementById('btnStartRank').disabled = false;
+        document.getElementById('btnStartRank').textContent = '🚀 Bắt Đầu Check Rank';
+        rankRunning = false;
+    }
+
+    function exportRankCSV() {
+        if (!rankData.length) return alert('Chưa có dữ liệu để xuất!');
+        let csv = 'Từ Khóa,Domain,Rank PC,Rank Mobile,Rank Tốt Nhất\n';
+        rankData.forEach(r => {
+            csv += `"${r.kw}","${r.site}","${r.rank_pc}","${r.rank_mb}","${r.total_rank}"\n`;
+        });
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `rank_check_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+    }
+    let wsAbortController = null;
+    let wsResultData = [];
+    let wsStats = { ok: 0, cf: 0, err: 0, to: 0 };
+
+    // Đọc thẳng từ cấu hình chung (wf_system_settings + sys_proxy_*)
+    function wsGetGlobalSettings() {
+        const sys = JSON.parse(localStorage.getItem('wf_system_settings') || '{}');
+        return {
+            vpsUrl:    (sys.vpsUrl    || '').replace(/\/$/, ''),
+            vpsToken:  sys.vpsToken   || '',
+            proxyHost: localStorage.getItem('sys_proxy_host') || '',
+            proxyPort: localStorage.getItem('sys_proxy_port') || '',
+            proxyUser: localStorage.getItem('sys_proxy_user') || '',
+            proxyPass: localStorage.getItem('sys_proxy_pass') || ''
+        };
+    }
+    // Mở panel cài đặt hệ thống
+    function openSettingsPanel() {
+        const btn = document.getElementById('settingsBtn') || document.querySelector('[data-target="settings"]');
+        if (btn) btn.click();
+        else alert('Vui lòng click vào icon ⚙️ góc phải màn hình để mở Cài Đặt Hệ Thống.');
+    }
+
+    // Test ket noi dung cau hinh chung
+    async function wsTestConnectionGlobal() {
+        const cfg = wsGetGlobalSettings();
+        const statusEl = document.getElementById('wsVpsStatus');
+        if (!cfg.vpsUrl) {
+            statusEl.innerHTML = '<span style="color:var(--danger)">Chua co VPS URL trong Cai Dat Chung!</span>';
+            return;
+        }
+        statusEl.innerHTML = 'Dang ket noi toi ' + cfg.vpsUrl + '...';
+        try {
+            const res = await fetch(cfg.vpsUrl + '/health', {
+                headers: { 'x-vps-token': cfg.vpsToken, 'ngrok-skip-browser-warning': '1' },
+                signal: AbortSignal.timeout(8000)
+            });
+            if (res.ok) {
+                const txt = await res.text();
+                statusEl.innerHTML = '<span style="color:var(--success)">Ket noi VPS thanh cong! ' + txt.substring(0,80) + '</span>';
+            } else {
+                statusEl.innerHTML = '<span style="color:var(--danger)">VPS tra loi HTTP ' + res.status + '</span>';
+            }
+        } catch(e) {
+            statusEl.innerHTML = '<span style="color:var(--danger)">Khong ket noi duoc: ' + e.message + '</span>';
+        }
+    }
+
+    // Refresh info bar mỗi khi chuyển sang tab này
+    document.addEventListener('click', function(e) {
+        const t = e.target.closest && e.target.closest('[onclick]');
+        if (t && (t.getAttribute('onclick') || '').includes('tab10')) {
+        }
+    });
+
+    function wsPasteExample() {
+        document.getElementById('wsUrlInput').value = 'https://google.com\nhttps://facebook.com\nhttps://shopee.vn\nhttps://tiki.vn\nhttps://example-dead-site-xyz.com';
+    }
+
+    function wsResetTable() {
+        document.getElementById('wsResultBody').innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-muted);">Nhập danh sách URL và bấm <b>Bắt Đầu Kiểm Tra</b></td></tr>';
+        document.getElementById('wsSummary').style.display = 'none';
+        wsStats = { ok: 0, cf: 0, err: 0, to: 0 };
+        wsResultData = [];
+    }
+
+    function wsStatusBadge(status) {
+        const s = String(status || '').toUpperCase();
+        if (s === 'OK' || s === '200') return `<span style="background:rgba(16,185,129,0.2);color:#34d399;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;">✅ OK</span>`;
+        if (s === 'CLOUDFLARE') return `<span style="background:rgba(245,158,11,0.2);color:#fbbf24;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;">⚡ CF</span>`;
+        if (s === 'TIMEOUT' || s === 'TIME OUT') return `<span style="background:rgba(99,102,241,0.2);color:#818cf8;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;">⏱ TOut</span>`;
+        if (s === '' || s === '-') return `<span style="color:#64748b;font-size:11px;">-</span>`;
+        return `<span style="background:rgba(239,68,68,0.2);color:#f87171;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;">${status}</span>`;
+    }
+
+    async function checkVN_tool(vpsUrl, vpsToken, url, proxyHost, proxyPort, proxyUser, proxyPass) {
+        try {
+            const body = {
+                url: url,
+                proxy: { host: proxyHost, port: parseInt(proxyPort), user: proxyUser, pass: proxyPass },
+                mode: 'proxy'
+            };
+            const res = await fetch(vpsUrl + '/check-web-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },
+                body: JSON.stringify(body),
+                signal: AbortSignal.timeout(12000)
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return data.proxy || data.result || null;
+        } catch(e) { return null; }
+    }
+
+    async function checkDirect_tool(vpsUrl, vpsToken, url) {
+        try {
+            const body = { url: url, mode: 'direct' };
+            const res = await fetch(vpsUrl + '/check-web-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },
+                body: JSON.stringify(body),
+                signal: AbortSignal.timeout(12000)
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return data.direct || data.result || null;
+        } catch(e) { return null; }
+    }
+
+    function stopWebStatus() {
+        wsAbortController?.abort();
+        document.getElementById('btnStopWS').disabled = true;
+        document.getElementById('wsProgressText').textContent = 'Đã dừng.';
+    }
+
+    async function startWebStatus() {
+        // Đọc cấu hình từ Settings chung
+        const cfg = wsGetGlobalSettings();
+        const { vpsUrl, vpsToken, proxyHost, proxyPort, proxyUser, proxyPass } = cfg;
+
+        if (!vpsUrl) return alert('Chưa có VPS URL!\nVui lòng vào ⚙️ Cài Đặt Hệ Thống để nhập VPS URL.');
+
+        // Neu co active mode -> lay URLs tu Sheet; neu khong -> lay tu textarea
+        const activeMode = (typeof wsGetActiveMode === 'function') ? wsGetActiveMode() : null;
+        let rawUrls = [];
+        if (activeMode) {
+            // Chay theo mode: nap tu Sheet neu chua co
+            if (!window._wsLoadedUrls || window._wsLoadedUrls.length === 0) {
+                await wsLoadFromSheet();
+            }
+            rawUrls = (window._wsLoadedUrls || []).slice();
+            if (!rawUrls.length) return; // wsLoadFromSheet da alert loi
+        } else {
+            rawUrls = document.getElementById('wsUrlInput').value.split(/[\r\n]+/).map(u => u.trim()).filter(Boolean);
+            if (!rawUrls.length) return alert('Vui long nhap it nhat 1 URL!');
+        }
+
+        wsResultData = [];
+        wsStats = { ok: 0, cf: 0, err: 0, to: 0 };
+        document.getElementById('wsResultBody').innerHTML = '';
+        document.getElementById('wsSummary').style.display = 'none';
+        document.getElementById('wsProgress').style.display = 'flex';
+        document.getElementById('btnStartWS').disabled = true;
+        document.getElementById('btnStopWS').disabled = false;
+
+        wsAbortController = new AbortController();
+
+        for (let i = 0; i < rawUrls.length; i++) {
+            if (wsAbortController.signal.aborted) break;
+            let url = rawUrls[i];
+            if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+            try { url = new URL(url).href; } catch(e) {}
+
+            document.getElementById('wsProgressText').textContent = `(${i+1}/${rawUrls.length}) ${url}`;
+
+            let pStatus = '-', dStatus = '-', conclusion = '-', redirect = '';
+
+            try {
+                // Layer 1: VN Proxy
+                const pResult = await checkVN_tool(vpsUrl, vpsToken, url, proxyHost, proxyPort, proxyUser, proxyPass);
+                pStatus = pResult ? String(pResult.status || 'TIMEOUT') : 'TIMEOUT';
+                const pOk = pStatus === '200';
+
+                if (pOk) {
+                    conclusion = 'OK';
+                    wsStats.ok++;
+                    const finalUrl = pResult?.finalUrl || '';
+                    redirect = finalUrl !== url ? finalUrl : '';
+                } else {
+                    // Layer 2: Direct (international)
+                    const dResult = await checkDirect_tool(vpsUrl, vpsToken, url);
+                    dStatus = dResult ? String(dResult.status || 'TIMEOUT') : 'TIMEOUT';
+                    const dFinalUrl = dResult?.finalUrl || '';
+                    redirect = dFinalUrl && dFinalUrl !== url ? dFinalUrl : '';
+
+                    if (dStatus === '200') {
+                        conclusion = 'Cloudflare';
+                        wsStats.cf++;
+                    } else if (dStatus === 'TIMEOUT' || pStatus === 'TIMEOUT') {
+                        conclusion = 'Timeout';
+                        wsStats.to++;
+                    } else {
+                        conclusion = dStatus;
+                        wsStats.err++;
+                    }
+                }
+            } catch(e) {
+                conclusion = 'Lỗi';
+                wsStats.err++;
+            }
+
+            const seoName = (window._wsSeoNames && window._wsSeoNames[i]) ? window._wsSeoNames[i] : 'admin';
+            const row = { url, pStatus, dStatus, conclusion, redirect, seoName };
+            wsResultData.push(row);
+
+            // Render row
+            const tbody = document.getElementById('wsResultBody');
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+            tr.innerHTML = `
+                <td style="padding:10px; color:var(--text-muted); font-size:12px;">${i+1}</td>
+                <td style="padding:10px; font-size:12px; word-break:break-all;"><a href="${url}" target="_blank" style="color:var(--primary); text-decoration:none;">${url}</a></td>
+                <td style="padding:10px; text-align:center;">${wsStatusBadge(pStatus)}</td>
+                <td style="padding:10px; text-align:center;">${wsStatusBadge(dStatus)}</td>
+                <td style="padding:10px; text-align:center;">${wsStatusBadge(conclusion)}</td>
+                <td style="padding:10px; font-size:11px; color:#64748b; word-break:break-all;">${redirect ? `<a href="${redirect}" target="_blank" style="color:#94a3b8;">${redirect}</a>` : '-'}</td>
+            `;
+            tbody.appendChild(tr);
+
+            // Update stats
+            document.getElementById('wsStatOK').textContent = wsStats.ok;
+            document.getElementById('wsStatCF').textContent = wsStats.cf;
+            document.getElementById('wsStatErr').textContent = wsStats.err;
+            document.getElementById('wsStatTO').textContent = wsStats.to;
+            document.getElementById('wsStatTotal').textContent = wsResultData.length;
+            document.getElementById('wsSummary').style.display = 'block';
+        }
+
+        document.getElementById('wsProgress').style.display = 'none';
+        document.getElementById('btnStartWS').disabled = false;
+        document.getElementById('btnStopWS').disabled = true;
+        if (typeof wsShowWriteBtn === 'function') wsShowWriteBtn();
+    }
+
+    function exportWSCSV() {
+        if (!wsResultData.length) return alert('Chưa có dữ liệu để xuất!');
+        let csv = 'URL,Proxy VN,Truc Tiep QT,Ket Luan,URL Redirect,Ten SEO\n';
+        wsResultData.forEach(r => {
+            csv += `"${r.url}","${r.pStatus}","${r.dStatus}","${r.conclusion}","${r.redirect}","${r.seoName||'admin'}"\n`;
+        });
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `web_status_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+    }
+    function wsGetModes(){try{return JSON.parse(localStorage.getItem('ws_tool_modes')||'[]');}catch(e){return[];}}
+    function wsSaveModes(m){localStorage.setItem('ws_tool_modes',JSON.stringify(m));}
+    function wsGetActiveModeId(){return localStorage.getItem('ws_active_mode_id')||'';}
+    function wsSetActiveModeId(id){if(id)localStorage.setItem('ws_active_mode_id',id);else localStorage.removeItem('ws_active_mode_id');}
+    function wsGetActiveMode(){var id=wsGetActiveModeId();if(!id)return null;return wsGetModes().find(function(m){return m.id===id;})||null;}
+
+    // Render dropdown + show/hide edit/delete buttons
+    function wsRenderModes(){
+        var modes=wsGetModes(), activeId=wsGetActiveModeId();
+        var sel=document.getElementById('wsModeSelect');
+        if(!sel)return;
+        // Save current value to reselect
+        var curVal=sel.value;
+        sel.innerHTML='<option value="">— Chua chon mode —</option>';
+        modes.forEach(function(m){
+            var opt=document.createElement('option');
+            opt.value=m.id; opt.textContent=m.name;
+            if(m.id===activeId) opt.selected=true;
+            sel.appendChild(opt);
+        });
+        // If active mode not in list, clear selection
+        if(activeId && !modes.find(function(m){return m.id===activeId;})){
+            wsSetActiveModeId(''); sel.value='';
+        }
+        var hasActive=sel.value!=='';
+        var btnEdit=document.getElementById('btnEditSelMode');
+        var btnDel=document.getElementById('btnDelSelMode');
+        if(btnEdit) btnEdit.style.display=hasActive?'':'none';
+        if(btnDel)  btnDel.style.display=hasActive?'':'none';
+        // Show/hide write button
+        var btnW=document.getElementById('btnWSWriteSheet');
+        if(btnW) btnW.style.display=(hasActive&&(typeof wsResultData!=='undefined'&&wsResultData&&wsResultData.length)>0)?'':'none';
+    }
+
+    function wsSelectMode(id){
+        wsSetActiveModeId(id);
+        window._wsLoadedUrls = []; // Reset cache khi doi mode
+        window._wsSeoNames = [];
+        wsUpdateInputMode(); // Toggle hien/an textarea
+        wsRenderModes();
+    }
+
+    // Edit selected mode from dropdown
+    function wsOpenEditSelectedMode(){
+        var id=document.getElementById('wsModeSelect').value;
+        if(!id) return;
+        wsOpenEditMode(id);
+    }
+
+    // Delete selected mode from dropdown
+    function wsDeleteSelectedMode(){
+        var id=document.getElementById('wsModeSelect').value;
+        if(!id) return;
+        wsDeleteMode(id);
+    }
+
+    function wsOpenAddMode(){
+        document.getElementById('wsModeFormTitle').textContent='THEM MODE MOI';
+        ['wsModeFormId','wsModeFormName','wsModeFormSheet','wsModeFormTabName','wsModeFormColInput',
+         'wsModeFormColTT','wsModeFormColRed','wsModeFormColLS','wsModeFormColSeo'].forEach(function(id){
+            var el=document.getElementById(id); if(el) el.value='';
+        });
+        document.getElementById('wsModeForm').style.display='block';
+        document.getElementById('wsModeFormName').focus();
+    }
+    function wsOpenEditMode(id){
+        var mode=wsGetModes().find(function(m){return m.id===id;}); if(!mode) return;
+        document.getElementById('wsModeFormTitle').textContent='SUA MODE: '+mode.name.toUpperCase();
+        document.getElementById('wsModeFormId').value=mode.id;
+        document.getElementById('wsModeFormName').value=mode.name;
+        document.getElementById('wsModeFormSheet').value=mode.sheetUrl||'';
+        document.getElementById('wsModeFormColInput').value=mode.colInput||'';
+        document.getElementById('wsModeFormColTT').value=mode.colTrangThai||'';
+        document.getElementById('wsModeFormColRed').value=mode.colRedirect||'';
+        document.getElementById('wsModeFormColLS').value=mode.colLichSu301||'';
+        var seoEl=document.getElementById('wsModeFormColSeo');
+        if(seoEl) seoEl.value=mode.colSeoName||'';
+        var tabEl=document.getElementById('wsModeFormTabName');
+        if(tabEl) tabEl.value=mode.tabName||'';
+        document.getElementById('wsModeForm').style.display='block';
+        document.getElementById('wsModeFormName').focus();
+    }
+
+    function wsSaveModeForm(){
+        var name=document.getElementById('wsModeFormName').value.trim();
+        if(!name) return alert('Vui long nhap Ten Mode!');
+        var sheetUrl=document.getElementById('wsModeFormSheet').value.trim();
+        if(!sheetUrl) return alert('Vui long nhap Link Google Sheet!');
+        var eid=document.getElementById('wsModeFormId').value;
+        var seoEl=document.getElementById('wsModeFormColSeo');
+        var mode={
+            id:eid||('mode_'+Date.now()),
+            name:name, sheetUrl:sheetUrl,
+            colInput:(document.getElementById('wsModeFormColInput').value.trim().toUpperCase()||'B'),
+            colTrangThai:(document.getElementById('wsModeFormColTT').value.trim().toUpperCase()||'J'),
+            colRedirect:(document.getElementById('wsModeFormColRed').value.trim().toUpperCase()||'D'),
+            colLichSu301:(document.getElementById('wsModeFormColLS').value.trim().toUpperCase()||'C'),
+            colSeoName:(seoEl?seoEl.value.trim().toUpperCase():''),
+            tabName:(function(){var t=document.getElementById('wsModeFormTabName');return t?t.value.trim():'';})(),
+        };
+        var modes=wsGetModes(), idx=modes.findIndex(function(m){return m.id===mode.id;});
+        if(idx>=0) modes[idx]=mode; else modes.push(mode);
+        wsSaveModes(modes); wsSetActiveModeId(mode.id); wsCancelModeForm(); wsRenderModes();
+    }
+
+    function wsCancelModeForm(){document.getElementById('wsModeForm').style.display='none';}
+
+    function wsDeleteMode(id){
+        var modes=wsGetModes(), mode=modes.find(function(m){return m.id===id;}); if(!mode) return;
+        if(!confirm('Xoa mode "'+mode.name+'"?')) return;
+        var nm=modes.filter(function(m){return m.id!==id;});
+        wsSaveModes(nm);
+        if(wsGetActiveModeId()===id) wsSetActiveModeId(nm.length>0?nm[0].id:'');
+        wsRenderModes();
+    }
+    // Nap URLs + SEO names tu Sheet (dung getGoogleToken - service account hoac oauth)
+    async function wsLoadFromSheet(){
+        var mode=wsGetActiveMode();
+        if(!mode) return alert('Vui long chon hoac tao mot Mode truoc!\n(Bam + de them mode moi)');
+        if(!mode.sheetUrl) return alert('Mode nay chua co Link Google Sheet!');
+        var mt=mode.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if(!mt) return alert('Link Google Sheet khong hop le!');
+        var sheetId=mt[1];
+        var tabName=mode.tabName||'';
+        var colDomain=mode.colInput||'B';
+        var colSeo=mode.colSeoName||'';
+        function mkRange(col){ return tabName ? (encodeURIComponent(tabName)+'!'+col+'2:'+col+'2000') : (col+'2:'+col+'2000'); }
+
+        var token;
+        try { token = await getGoogleToken(); } catch(e){ token = null; }
+        if(!token) return alert('Chua co Google Token!\nVui long vao Cai Dat He Thong -> dan Service Account JSON.\nHoac them tai khoan Google o Tab GSC.');
+
+        var ta=document.getElementById('wsUrlInput');
+        if(ta) ta.value='Dang nap tu Sheet...';
+        try {
+            var res=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+mkRange(colDomain),
+                {headers:{'Authorization':'Bearer '+token}});
+            if(!res.ok){var ed=await res.json();throw new Error((ed.error&&ed.error.message)||'HTTP '+res.status);}
+            var data=await res.json();
+            if(!data.values||data.values.length===0){if(ta)ta.value='';return alert('Sheet rong hoac cot '+colDomain+' khong co du lieu tu dong 2!');}
+            var urls=data.values.map(function(r){return(r[0]||'').trim();}).filter(Boolean);
+            if(ta) ta.value=urls.join('\n');
+            window._wsLoadedUrls=urls.slice();
+            window._wsSeoNames=[];
+            if(colSeo){
+                var resSeo=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+mkRange(colSeo),
+                    {headers:{'Authorization':'Bearer '+token}});
+                if(resSeo.ok){
+                    var dSeo=await resSeo.json();
+                    window._wsSeoNames=(dSeo.values||[]).map(function(r){return(r[0]||'').trim()||'admin';});
+                }
+            }
+            if(typeof wsUpdateInputMode==='function') wsUpdateInputMode();
+        } catch(e){if(ta)ta.value='';alert('Loi doc Sheet:\n'+e.message);}
+    }
+
+    // Ghi ket qua ve Sheet (dung getGoogleToken)
+    async function wsWriteResultsToSheet(){
+        var mode=wsGetActiveMode();
+        if(!mode) return alert('Chua chon Mode!');
+        if(typeof wsResultData==='undefined'||!wsResultData||!wsResultData.length) return alert('Chua co ket qua de ghi!');
+        if(!mode.sheetUrl) return alert('Mode chua co Link Google Sheet!');
+        var mt=mode.sheetUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+        if(!mt) return alert('Link Google Sheet khong hop le!');
+        var token;
+        try { token = await getGoogleToken(); } catch(e){ token = null; }
+        if(!token) return alert('Chua co Google Token!\nVui long vao Cai Dat He Thong -> dan Service Account JSON.');
+        var sheetId=mt[1], n=wsResultData.length;
+        var colTT=mode.colTrangThai||'J', colRed=mode.colRedirect||'D', colLS=mode.colLichSu301||'C';
+        if(!confirm('Se ghi '+n+' dong ket qua vao Sheet?\n- Trang Thai -> Cot '+colTT+'\n- URL Redirect -> Cot '+colRed+'\n- Lich Su 301 -> Cot '+colLS+'\n\nDu lieu cu se bi ghi de!')) return;
+        var btnW=document.getElementById('btnWSWriteSheet'), orig=btnW.textContent;
+        btnW.textContent='Dang ghi...'; btnW.disabled=true;
+        async function writeCol(col,vals){
+            var tabPfx=mode.tabName?encodeURIComponent(mode.tabName)+'!':'';
+            var rng=tabPfx+col+'2:'+col+(1+vals.length);
+            var r=await fetch('https://sheets.googleapis.com/v4/spreadsheets/'+sheetId+'/values/'+encodeURIComponent(rng)+'?valueInputOption=USER_ENTERED',
+                {method:'PUT',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+                 body:JSON.stringify({values:vals.map(function(v){return[v];})})});
+            if(!r.ok){var e=await r.json();throw new Error((e.error&&e.error.message)||'HTTP '+r.status);}
+        }
+        try{
+            await writeCol(colTT, wsResultData.map(function(r){return r.conclusion;}));
+            await writeCol(colRed,wsResultData.map(function(r){return r.redirect;}));
+            await writeCol(colLS, wsResultData.map(function(r){return r.redirect;}));
+            alert('Da ghi '+n+' dong thanh cong vao Sheet (Mode: '+mode.name+')!');
+        }catch(e){alert('Loi ghi Sheet:\n'+e.message);}
+        finally{btnW.textContent=orig;btnW.disabled=false;}
+    }
+    function wsShowWriteBtn(){
+        var mode=wsGetActiveMode(), btn=document.getElementById('btnWSWriteSheet');
+        if(btn) btn.style.display=(mode&&mode.sheetUrl&&(typeof wsResultData!=='undefined'&&wsResultData&&wsResultData.length)>0)?'':'none';
+    }
+
+
+    // Toggle hien/an textarea tuy theo co mode hay khong
+    function wsUpdateInputMode() {
+        var hasMode = wsGetActiveModeId() !== '';
+        var inputSection = document.getElementById('wsManualInputSection');
+        var modeInputInfo = document.getElementById('wsModeInputInfo');
+        if (inputSection) inputSection.style.display = hasMode ? 'none' : '';
+        if (modeInputInfo) {
+            if (hasMode) {
+                var mode = wsGetActiveMode();
+                var cnt = (window._wsLoadedUrls && window._wsLoadedUrls.length) ? window._wsLoadedUrls.length + ' URLs da san sang' : 'Chua nap — se tu dong nap khi chay';
+                modeInputInfo.innerHTML = '<span style="color:#94a3b8;font-size:12px;">&#128202; Sheet: <b style="color:#e2e8f0;">' + (mode?mode.name:'') + '</b> &nbsp;|&nbsp; Col: <b style="color:#e2e8f0;">' + (mode?mode.colInput:'') + '</b> &nbsp;|&nbsp; <span style="color:#34d399;">' + cnt + '</span></span>';
+                modeInputInfo.style.display = '';
+            } else {
+                modeInputInfo.style.display = 'none';
+            }
+        }
+    }
+
+    window.addEventListener('load',function(){setTimeout(function(){wsRenderModes();wsUpdateInputMode();},150);});
+    document.addEventListener('click',function(e){
+        var t=e.target&&e.target.closest&&e.target.closest('[onclick]');
+        if(t&&(t.getAttribute('onclick')||'').indexOf('tab10')>=0) setTimeout(function(){wsRenderModes();wsUpdateInputMode();},60);
+    });
