@@ -1595,6 +1595,10 @@
     }
 
     function getVpsProxyUrl(url, raw = false) {
+        const cfg = typeof wsGetGlobalSettings === 'function' ? wsGetGlobalSettings() : {};
+        if (cfg.vpsUrl) {
+            return `${cfg.vpsUrl}/proxy?url=${encodeURIComponent(url)}&raw=${raw}`;
+        }
         const ip = document.getElementById('sysVpsIp')?.value.trim();
         if (ip) {
             const target = `http://${ip}:3001/proxy?url=${encodeURIComponent(url)}&raw=${raw}`;
@@ -3459,11 +3463,30 @@
     // Danh sách path wp-admin thử tự động
     const WP_ADMIN_PATHS = ['web_auth','kqbd_web_auth','kbd_web_auth','login','login_seo_top1_luon','seo-key-top-1','web_auth_pota','wp_hanaseo','wp-admin','wp_jisooseo'];
 
-    // Lấy HTML + HTTP status code + redirect URL thực sự qua allorigins
     async function fetchStatus(url) {
+        // Thu 0: VPS Proxy (Chinh chu, on dinh nhat hien nay do codetabs/allorigins dang sap)
+        try {
+            const cfg = typeof wsGetGlobalSettings === 'function' ? wsGetGlobalSettings() : {};
+            if (cfg.vpsUrl) {
+                const proxyUrl = `${cfg.vpsUrl}/proxy?url=${encodeURIComponent(url)}&raw=true`;
+                const ctrl = new AbortController();
+                const tid = setTimeout(() => ctrl.abort(), 12000);
+                const res = await fetch(proxyUrl, {
+                    headers: { 'x-vps-token': cfg.vpsToken || '', 'ngrok-skip-browser-warning': '1' },
+                    signal: ctrl.signal
+                });
+                clearTimeout(tid);
+                if (res.ok) {
+                    const text = await res.text();
+                    return { html: text, code: res.status, redirectUrl: '' };
+                }
+            }
+        } catch(e) {}
+
+        // Thu 1: allorigins (Dang bi loi 522 timeout)
         try {
             const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 9000);
+            const tid = setTimeout(() => ctrl.abort(), 6000);
             const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, {signal: ctrl.signal});
             clearTimeout(tid);
             if (res.ok) {
@@ -3473,15 +3496,27 @@
                 return { html: data.contents || '', code, redirectUrl };
             }
         } catch(e) {}
-        // Fallback codetabs
+        
+        // Thu 2: corsproxy.io
         try {
             const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 8000);
+            const tid = setTimeout(() => ctrl.abort(), 6000);
+            const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {signal: ctrl.signal});
+            clearTimeout(tid);
+            if (res.ok) return { html: await res.text(), code: res.status, redirectUrl: '' };
+            if (res.status !== 400 && res.status !== 403) return { html: '', code: res.status, redirectUrl: '' };
+        } catch(e) {}
+
+        // Thu 3: codetabs (Dang bi loi 400 Bad Request)
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 6000);
             const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, {signal: ctrl.signal});
             clearTimeout(tid);
             if (res.ok) return { html: await res.text(), code: 200, redirectUrl: '' };
             return { html: '', code: res.status, redirectUrl: '' };
         } catch(e) {}
+        
         return { html: null, code: 0, redirectUrl: '' };
     }
 
@@ -3688,15 +3723,10 @@
             if(!o.startsWith('http')) o='https://'+o;
             
             try {
-                const ctrl = new AbortController();
-                const tid = setTimeout(() => ctrl.abort(), 10000);
+                // Thay vì dùng cứng codetabs, dùng fetchStatus để tự fallback VPS -> allorigins -> corsproxy
+                const { html, code, redirectUrl } = await fetchStatus(o);
                 
-                // Dùng codetabs proxy vì nó ổn định hơn allorigins
-                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(o)}`, { signal: ctrl.signal });
-                clearTimeout(tid);
-                
-                if (res.ok) {
-                    const html = await res.text();
+                if (html) {
                     const doc = new DOMParser().parseFromString(html, 'text/html');
                     
                     let finalUrl = '';
