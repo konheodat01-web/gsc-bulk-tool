@@ -3839,7 +3839,14 @@ document.addEventListener("DOMContentLoaded", function() {
             try {
                 const ctrl = new AbortController();
                 const tid = setTimeout(() => ctrl.abort(), 8000);
-                const res = await fetch(makeUrl(url), { signal: ctrl.signal });
+                const cfg = typeof wsGetGlobalSettings === 'function' ? wsGetGlobalSettings() : {};
+                const res = await fetch(makeUrl(url), { 
+                    signal: ctrl.signal,
+                    headers: {
+                        'ngrok-skip-browser-warning': '1',
+                        'x-vps-token': cfg.vpsToken || ''
+                    }
+                });
                 clearTimeout(tid);
                 // Bỏ qua 403/429 từ proxy (bị chặn) — thử proxy tiếp theo
                 if (res.ok) {
