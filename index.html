@@ -449,7 +449,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.9.0/jsrsasign-all-min.js"></script>
 </head>
 <body>
-<div class="container">
+
+<div id="debug-banner" style="position:fixed; top:0; left:0; width:100%; background:red; color:white; text-align:center; padding:10px; z-index:99999999; font-weight:bold; font-size:16px;">
+    ĐÂY LÀ DỰ ÁN GSC-BULK-TOOL! Nếu sếp thấy dòng chữ này tức là đang xem đúng trang, và code đã được cập nhật! (Banner này sẽ được xóa sau)
+</div>
+
+<div class="wrapper">
+
     <div class="header">
         <h1>GSC Bulk & SEO Automation Pro</h1>
         <p>Hệ thống quản lý PBN: GSC, Sitemap, 301 & Outbound Link</p>
@@ -6050,7 +6056,8 @@
             document.body.style.paddingRight = show ? '450px' : '0px';
         }
         if (show) {
-            document.getElementById('managerChatBubble').style.animation = 'none';
+            const bubble = document.getElementById('ai-c-btn');
+            if (bubble) bubble.style.animation = 'none';
             setTimeout(() => document.getElementById('managerChatInput').focus(), 300);
         }
     }
@@ -7865,8 +7872,8 @@ window.wfClearProgress = function(nodeId) {
     });
 </script>
 
-<!-- UNIFIED FLOATING DOCK -->
-<div id="floatingDock" style="position:fixed; bottom:24px; right:24px; z-index:2147483647; display:flex; flex-direction:column; align-items:center; gap:8px;">
+<!-- UNIFIED APP NAV -->
+<div id="app-bottom-nav" style="position:fixed; bottom:24px; right:24px; z-index:2147483647; display:flex; flex-direction:column; align-items:center; gap:8px;">
     <!-- Settings -->
     <div onclick="toggleGlobalSettings(true)" title="Cai dat he thong"
          style="width:54px;height:54px;background:linear-gradient(135deg,#0ea5e9,#0284c7);border:2px solid #38bdf8;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(14,165,233,0.5);gap:3px;"
@@ -7876,7 +7883,7 @@ window.wfClearProgress = function(nodeId) {
         <span style="font-size:7px;color:white;font-weight:700;font-family:sans-serif;letter-spacing:0.3px;">CÀI ĐẶT</span>
     </div>
     <!-- AI Copilot -->
-    <div onclick="toggleManagerChat(true)" title="Tro ly AI" id="managerChatBubble"
+    <div onclick="toggleManagerChat(true)" title="Tro ly AI" id="ai-c-btn"
          style="width:54px;height:54px;background:linear-gradient(135deg,#8b5cf6,#d946ef);border:2px solid #c084fc;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(139,92,246,0.6);gap:3px;"
          onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 30px rgba(217,70,239,0.8)';"
          onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(139,92,246,0.6)';">
@@ -7884,7 +7891,7 @@ window.wfClearProgress = function(nodeId) {
         <span style="font-size:7px;color:white;font-weight:700;font-family:sans-serif;letter-spacing:0.3px;">AI</span>
     </div>
     <!-- Workflow -->
-    <button id="automationBtn" onclick="openAutomationPanel()" title="Workflow Builder"
+    <button id="wfl-sys-btn" onclick="openAutomationPanel()" title="Workflow Builder"
             style="width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,#10b981,#059669);border:2px solid #34d399;color:white;cursor:pointer;box-shadow:0 4px 20px rgba(16,185,129,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;"
             onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 6px 30px rgba(16,185,129,0.8)';"
             onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 4px 20px rgba(16,185,129,0.5)';">
@@ -7893,8 +7900,8 @@ window.wfClearProgress = function(nodeId) {
     </button>
 </div>
 <style>
-#floatingDock { display:flex !important; visibility:visible !important; opacity:1 !important; }
-#floatingDock > * { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+#app-bottom-nav { display:flex !important; visibility:visible !important; opacity:1 !important; }
+#app-bottom-nav > * { transition: transform 0.2s ease, box-shadow 0.2s ease; }
 </style>
 
 </body>
