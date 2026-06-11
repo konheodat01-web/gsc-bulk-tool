@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -3253,6 +3253,23 @@
         const checkAdmin = true;
         const basicUser = localStorage.getItem('basicAuthUser') || '';
         const basicPass = localStorage.getItem('basicAuthPass') || '';
+
+        // Kiểm tra mạng/VPN trước khi chạy
+        const vpsUrl = localStorage.getItem('wpVpsUrl') ? localStorage.getItem('wpVpsUrl').replace(/\/$/, '') : '';
+        if (vpsUrl) {
+            const btn = document.querySelector('button[onclick="startCheckAdmin()"]');
+            const origText = btn ? btn.innerText : '⏳ Đang quét...';
+            if (btn) { btn.innerText = 'Đang kiểm tra kết nối mạng...'; btn.disabled = true; }
+            try {
+                // Ping health endpoint if exists, or just check the root
+                const hRes = await fetch(vpsUrl + '/health', { signal: AbortSignal.timeout(5000) });
+            } catch (e) {
+                if (btn) { btn.innerText = origText; btn.disabled = false; }
+                return alert('LỖI MẠNG: Không thể kết nối tới VPS!\n\nLý do: ' + e.message + '\n\nNguyên nhân:\n1. Server Node.js trên VPS đang tắt.\n2. Cổng mạng VPN đang đóng.\n\n=> Vui lòng mở cổng VPN hoặc chạy lại VPS trước khi tiếp tục!');
+            }
+            if (btn) { btn.innerText = origText; btn.disabled = false; }
+        }
+
         const tbody = document.getElementById('checkAdminResultBody');
         tbody.innerHTML = '';
 
@@ -7481,6 +7498,20 @@ window.wfClearProgress = function(nodeId) {
         const { vpsUrl, vpsToken, proxyHost, proxyPort, proxyUser, proxyPass } = cfg;
 
         if (!vpsUrl) return alert('Chưa có VPS URL!\nVui lòng vào ⚙️ Cài Đặt Hệ Thống để nhập VPS URL.');
+
+        // Kiểm tra ping nhanh tới VPS xem có sập không
+        try {
+            document.getElementById('wsProgress').style.display = 'flex';
+            document.getElementById('wsProgressText').textContent = 'Đang kiểm tra kết nối mạng/VPN tới VPS...';
+            const hRes = await fetch(vpsUrl + '/health', {
+                headers: { 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },
+                signal: AbortSignal.timeout(5000)
+            });
+            if (!hRes.ok) throw new Error('HTTP ' + hRes.status);
+        } catch (e) {
+            document.getElementById('wsProgress').style.display = 'none';
+            return alert('LỖI MẠNG: Không thể kết nối tới VPS!\n\nLý do: ' + e.message + '\n\nNguyên nhân phổ biến:\n1. Server Node.js trên VPS đang tắt.\n2. Cổng mạng VPN hoặc proxy ngrok đang đóng.\n\n=> Vui lòng mở cổng VPN hoặc chạy lại VPS trước khi tiếp tục!');
+        }
 
         // Neu co active mode -> lay URLs tu Sheet; neu khong -> lay tu textarea
         const activeMode = (typeof wsGetActiveMode === 'function') ? wsGetActiveMode() : null;
