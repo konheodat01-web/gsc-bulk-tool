@@ -1638,77 +1638,55 @@ document.addEventListener("DOMContentLoaded", function() {
         return null;
     }
 
-        async function vpsProxyRaw(url, signal) {
+    async function proxyFetch(url, options = {}, raw = true) {
         const cfg = typeof wsGetGlobalSettings === 'function' ? wsGetGlobalSettings() : {};
+        let proxyUrl = url;
+        let headers = { ...(options.headers || {}) };
+        
         if (cfg.vpsUrl) {
-            try {
-                const ctrl2 = new AbortController();
-                const tid = setTimeout(() => ctrl2.abort(), 15000);
-                const proxyUrl = `${cfg.vpsUrl}/proxy?url=${encodeURIComponent(url)}&raw=true`;
-                const res = await fetch(proxyUrl, {
-                    headers: { 'x-vps-token': cfg.vpsToken || '' },
-                    signal: ctrl2.signal
-                });
-                clearTimeout(tid);
-                if (res.ok) return await res.text();
-                throw new Error('VPS Direct Proxy returned error');
-            } catch(e) {
-                console.error('VPS Direct Proxy failed:', e);
-                throw e;
+            proxyUrl = `${cfg.vpsUrl}/proxy?url=${encodeURIComponent(url)}&raw=${raw}`;
+            headers['x-vps-token'] = cfg.vpsToken || '';
+        } else {
+            const ip = document.getElementById('sysVpsIp')?.value.trim();
+            if (ip) {
+                const target = `http://${ip}:3001/proxy?url=${encodeURIComponent(url)}&raw=${raw}`;
+                proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`;
+            } else {
+                proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
             }
         }
-        const ip = document.getElementById('sysVpsIp')?.value.trim();
-        if (ip) {
-            try {
-                const ctrl2 = new AbortController();
-                const tid = setTimeout(() => ctrl2.abort(), 15000);
-                const vpsUrl = `http://${ip}:3001/proxy?url=${encodeURIComponent(url)}&raw=true`;
-                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(vpsUrl)}`;
-                const res = await fetch(proxyUrl, { signal: ctrl2.signal });
-                clearTimeout(tid);
-                if (res.ok) return await res.text();
-                throw new Error('VPS Proxy returned error');
-            } catch(e) { 
-                console.error('VPS Proxy failed:', e);
-                throw e;
-            }
+        
+        const fetchOpts = { ...options, headers };
+        return await fetch(proxyUrl, fetchOpts);
+    }
+
+    async function vpsProxyRaw(url, signal) {
+        try {
+            const res = await proxyFetch(url, { signal }, true);
+            if (res.ok) return await res.text();
+            throw new Error('Proxy returned status ' + res.status);
+        } catch(e) {
+            console.error('vpsProxyRaw failed:', e);
+            throw e;
         }
-        const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`, { signal });
-        if (res.ok) return await res.text();
-        throw new Error('Public Proxy failed');
     }
 
     async function vpsProxyJson(url, signal) {
         const cfg = typeof wsGetGlobalSettings === 'function' ? wsGetGlobalSettings() : {};
         if (cfg.vpsUrl) {
             try {
-                const ctrl2 = new AbortController();
-                const tid = setTimeout(() => ctrl2.abort(), 15000);
-                const proxyUrl = `${cfg.vpsUrl}/proxy?url=${encodeURIComponent(url)}`;
-                const res = await fetch(proxyUrl, {
-                    headers: { 'x-vps-token': cfg.vpsToken || '' },
-                    signal: ctrl2.signal
-                });
-                clearTimeout(tid);
-                if (res.ok) {
-                    const data = await res.json();
-                    return data;
-                }
+                const res = await proxyFetch(url, { signal }, false);
+                if (res.ok) return await res.json();
                 throw new Error('VPS Direct JSON Proxy failed');
             } catch(e) {
-                console.error('VPS Direct JSON Proxy failed:', e);
+                console.error('vpsProxyJson failed:', e);
                 throw e;
             }
         }
         const ip = document.getElementById('sysVpsIp')?.value.trim();
         if (ip) {
             try {
-                const ctrl2 = new AbortController();
-                const tid = setTimeout(() => ctrl2.abort(), 15000);
-                const vpsUrl = `http://${ip}:3001/proxy?url=${encodeURIComponent(url)}`;
-                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(vpsUrl)}`;
-                const res = await fetch(proxyUrl, { signal: ctrl2.signal });
-                clearTimeout(tid);
+                const res = await proxyFetch(url, { signal }, false);
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.status) return data;
@@ -1728,12 +1706,20 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     async function callVps(ip, path) {
-        // Phải đi qua HTTPS proxy vì trang chạy trên HTTPS (Mixed Content block)
-        const vpsUrl = 'http://' + ip + ':3001' + path;
-        const proxyUrl = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(vpsUrl);
+        const cfg = typeof wsGetGlobalSettings === 'function' ? wsGetGlobalSettings() : {};
+        let url = '';
+        let headers = {};
+        if (cfg.vpsUrl) {
+            url = cfg.vpsUrl + path;
+            headers['x-vps-token'] = cfg.vpsToken || '';
+        } else {
+            const vpsUrl = 'http://' + ip + ':3001' + path;
+            url = 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(vpsUrl);
+        }
         const ctrl = new AbortController();
-        setTimeout(() => ctrl.abort(), 12000);
-        const res = await fetch(proxyUrl, { signal: ctrl.signal });
+        const tid = setTimeout(() => ctrl.abort(), 15000);
+        const res = await fetch(url, { signal: ctrl.signal, headers });
+        clearTimeout(tid);
         return res.json();
     }
 
@@ -3615,7 +3601,7 @@ document.addEventListener("DOMContentLoaded", function() {
             try {
                 const ctrl = new AbortController();
                 const tid = setTimeout(() => ctrl.abort(), 6000);
-                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(dst + path)}`, {signal: ctrl.signal});
+                const res = await proxyFetch(dst + path, {signal: ctrl.signal}, true);
                 clearTimeout(tid);
                 if (res.ok) {
                     const h = await res.text();
@@ -4057,7 +4043,7 @@ document.addEventListener("DOMContentLoaded", function() {
         try {
             const ctrl = new AbortController();
             const tid = setTimeout(() => ctrl.abort(), 8000);
-            const check = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`, { signal: ctrl.signal });
+            const check = await proxyFetch(link, { signal: ctrl.signal }, true);
             clearTimeout(tid);
             stEl.innerHTML = check.ok ? '<span class="status-badge status-success">✅ SỐNG</span>' : '<span class="status-badge status-error">❌ LỖI</span>';
             coEl.innerText = check.status;
@@ -4232,10 +4218,9 @@ document.addEventListener("DOMContentLoaded", function() {
             
             let statusText = "🟢 MỞ BOT (Tốt)"; 
             let isBlocked = false;
-            
             try {
                 // 1. Check robots.txt
-                const robotRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url + '/robots.txt')}`);
+                const robotRes = await proxyFetch(url + '/robots.txt', {}, true);
                 if (robotRes.ok) {
                     const txt = await robotRes.text();
                     if (/(disallow:\s*\/\s*$)|(disallow:\s*\/$)/im.test(txt)) {
@@ -4246,7 +4231,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 
                 // 2. Check Meta Tag
                 if (!isBlocked) {
-                    const htmlRes = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`);
+                    const htmlRes = await proxyFetch(url, {}, true);
                     if (htmlRes.ok) {
                         const html = await htmlRes.text();
                         const doc = new DOMParser().parseFromString(html, 'text/html');
