@@ -2217,7 +2217,7 @@ document.addEventListener("DOMContentLoaded", function() {
             "        var body = { url: url, proxy: { host: proxyHost, port: parseInt(proxyPort), user: proxyUser, pass: proxyPass }, mode: 'proxy' };",
             "        var res = await fetch(vpsUrl + '/check-web-status', {",
             "            method: 'POST',",
-            "            headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },",
+            "            headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken },",
             "            body: JSON.stringify(body),",
             "            signal: AbortSignal.timeout(10000)",
             "        });",
@@ -2233,7 +2233,7 @@ document.addEventListener("DOMContentLoaded", function() {
             "        var body = { url: url, mode: 'direct' };",
             "        var res = await fetch(vpsUrl + '/check-web-status', {",
             "            method: 'POST',",
-            "            headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },",
+            "            headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken },",
             "            body: JSON.stringify(body),",
             "            signal: AbortSignal.timeout(10000)",
             "        });",
@@ -3503,7 +3503,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 const ctrl = new AbortController();
                 const tid = setTimeout(() => ctrl.abort(), 12000);
                 const res = await fetch(proxyUrl, {
-                    headers: { 'x-vps-token': cfg.vpsToken || '', 'ngrok-skip-browser-warning': '1' },
+                    headers: { 'x-vps-token': cfg.vpsToken || '' },
                     signal: ctrl.signal
                 });
                 clearTimeout(tid);
@@ -3843,7 +3843,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 const res = await fetch(makeUrl(url), { 
                     signal: ctrl.signal,
                     headers: {
-                        'ngrok-skip-browser-warning': '1',
                         'x-vps-token': cfg.vpsToken || ''
                     }
                 });
@@ -7464,7 +7463,7 @@ window.wfClearProgress = function(nodeId) {
         statusEl.innerHTML = 'Dang ket noi toi ' + cfg.vpsUrl + '...';
         try {
             const res = await fetch(cfg.vpsUrl + '/health', {
-                headers: { 'x-vps-token': cfg.vpsToken, 'ngrok-skip-browser-warning': '1' },
+                headers: { 'x-vps-token': cfg.vpsToken },
                 signal: AbortSignal.timeout(8000)
             });
             if (res.ok) {
@@ -7514,7 +7513,7 @@ window.wfClearProgress = function(nodeId) {
             };
             const res = await fetch(vpsUrl + '/check-web-status', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },
+                headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken },
                 body: JSON.stringify(body),
                 signal: AbortSignal.timeout(12000)
             });
@@ -7529,7 +7528,7 @@ window.wfClearProgress = function(nodeId) {
             const body = { url: url, mode: 'direct' };
             const res = await fetch(vpsUrl + '/check-web-status', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },
+                headers: { 'Content-Type': 'application/json', 'x-vps-token': vpsToken },
                 body: JSON.stringify(body),
                 signal: AbortSignal.timeout(12000)
             });
@@ -7557,7 +7556,7 @@ window.wfClearProgress = function(nodeId) {
             document.getElementById('wsProgress').style.display = 'flex';
             document.getElementById('wsProgressText').textContent = 'Đang kiểm tra kết nối mạng/VPN tới VPS...';
             const hRes = await fetch(vpsUrl + '/health', {
-                headers: { 'x-vps-token': vpsToken, 'ngrok-skip-browser-warning': '1' },
+                headers: { 'x-vps-token': vpsToken },
                 signal: AbortSignal.timeout(5000)
             });
             if (!hRes.ok) throw new Error('HTTP ' + hRes.status);
