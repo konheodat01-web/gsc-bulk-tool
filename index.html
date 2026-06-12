@@ -2977,9 +2977,33 @@ document.addEventListener("DOMContentLoaded", function() {
     // Call it on load
     setTimeout(renderVpsProfilesList, 500);
 
+    function getUnifiedVpsUrl() {
+        const sys = JSON.parse(localStorage.getItem('wf_system_settings') || '{}');
+        let url = sys.vpsUrl || '';
+        if (!url) {
+            url = localStorage.getItem('vps_ip') || '';
+        }
+        if (url && !url.startsWith('http')) {
+            url = 'http://' + url;
+        }
+        return url.replace(/\/$/, '');
+    }
+
+    function getGscApiUrl() {
+        const base = getUnifiedVpsUrl();
+        if (!base) return '';
+        const isDomain = /[a-zA-Z]/.test(base.replace('https://', '').replace('http://', '').split('/')[0].split(':')[0]);
+        if (isDomain || base.includes(':300') || base.includes(':400') || base.includes(':900')) {
+            return base;
+        }
+        const useHttps = location.protocol === 'https:';
+        const cleanIp = base.replace(/https?:\/\//, '').split(':')[0];
+        return useHttps ? 'https://' + cleanIp + ':3001' : 'http://' + cleanIp + ':3002';
+    }
+
     // --- VPS AUTOMATION LOGIC ---
     async function startVpsProcess() {
-        const vpsIp = localStorage.getItem('vps_ip') || '';
+        const vpsIp = getUnifiedVpsUrl();
         const lines = document.getElementById('domainList').value.split('\n').filter(l => l.trim());
         
         const cbs = document.querySelectorAll('.vps-profile-cb:checked');
@@ -2987,11 +3011,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if(!vpsIp) return alert("Sếp chưa điền IP VPS ở phần Cài đặt chung (icon Bánh răng góc phải)!");
         if(selectedProfiles.length === 0) return alert("Vui lòng chọn ít nhất 1 Profile VPS!");
-        // Tự động dùng HTTPS (port 3001) nếu trang đang chạy HTTPS để tránh Mixed Content
-        const useHttps = location.protocol === 'https:';
-        const apiUrl = useHttps
-            ? 'https://' + vpsIp.replace(/https?:\/\//, '').split(':')[0] + ':3001'
-            : (vpsIp.includes('http') ? vpsIp.replace(/:300\d/,'') : 'http://' + vpsIp) + ':3002';
+        const apiUrl = getGscApiUrl();
         if(lines.length === 0) return alert("Vui lòng nhập ít nhất 1 domain!");
         
         const tbody = document.getElementById('resultBody'); tbody.innerHTML = '';
@@ -3290,7 +3310,7 @@ document.addEventListener("DOMContentLoaded", function() {
         const basicPass = localStorage.getItem('basicAuthPass') || '';
 
         // Kiểm tra mạng/VPN trước khi chạy
-        const vpsUrl = localStorage.getItem('wpVpsUrl') ? localStorage.getItem('wpVpsUrl').replace(/\/$/, '') : '';
+        const vpsUrl = getGscApiUrl();
         if (vpsUrl) {
             const btn = document.querySelector('button[onclick="startCheckAdmin()"]');
             const origText = btn ? btn.innerText : '⏳ Đang quét...';
@@ -3342,7 +3362,7 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById(`cAd8_${i}`).innerHTML = '⏳...';
         document.getElementById(`cLo8_${i}`).innerHTML = '⏳...';
         
-        const apiUrl = localStorage.getItem('wpVpsUrl') ? localStorage.getItem('wpVpsUrl').replace(/\/$/, '') + '/check-wp-admin' : '';
+        const apiUrl = getGscApiUrl() ? getGscApiUrl() + '/check-wp-admin' : '';
         if (!apiUrl) {
             document.getElementById(`cAd8_${i}`).innerHTML = '<span style="color:var(--danger)">❌ Lỗi</span>';
             document.getElementById(`cLo8_${i}`).innerHTML = 'Chưa điền API VPS trong Cài đặt Hệ thống';
@@ -6389,7 +6409,6 @@ ${appState}`;
         overlay.style.display = show ? 'flex' : 'none';
         overlay.style.pointerEvents = show ? 'auto' : 'none';
         if (show) {
-            document.getElementById('sysWpVpsUrl').value = localStorage.getItem('wpVpsUrl') || '';
             document.getElementById('sysWpBasicUser').value = localStorage.getItem('basicAuthUser') || '';
             document.getElementById('sysWpBasicPass').value = localStorage.getItem('basicAuthPass') || '';
             // AI Engine
@@ -6427,7 +6446,9 @@ ${appState}`;
     }
 
     function saveSystemSettings() {
-        localStorage.setItem('wpVpsUrl', document.getElementById('sysWpVpsUrl').value);
+        const vpsUrl = document.getElementById('sysVpsUrl').value.trim().replace(/\/$/, '');
+        const vpsToken = document.getElementById('sysVpsToken').value.trim();
+        localStorage.setItem('wpVpsUrl', vpsUrl);
         localStorage.setItem('basicAuthUser', document.getElementById('sysWpBasicUser').value);
         localStorage.setItem('basicAuthPass', document.getElementById('sysWpBasicPass').value);
         // AI
@@ -6441,8 +6462,6 @@ ${appState}`;
         localStorage.setItem('telegram_bot_token', document.getElementById('sysTeleToken').value.trim());
         localStorage.setItem('tele_chat_id', document.getElementById('sysTeleChatId').value.trim());
         // VPS Automation
-        const vpsUrl = document.getElementById('sysVpsUrl').value.trim().replace(/\/$/, '');
-        const vpsToken = document.getElementById('sysVpsToken').value.trim();
         localStorage.setItem('wf_system_settings', JSON.stringify({ vpsUrl, vpsToken }));
         // Google
         const clientId = document.getElementById('sysGoogleClientId').value.trim();
@@ -7033,7 +7052,7 @@ return items.map(item => {
                                 <p style="color:#94a3b8;font-size:11px;margin:0 0 12px 0;line-height:1.5;">Nếu PBN của bạn cài mã bảo vệ cấp 1 (HTTP Basic Auth), nhập User/Pass chung vào đây. Tool sẽ tự động dùng khi gặp lỗi 401.</p>
                                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                                     <div>
-                                        </div><div style="grid-column: span 2; margin-bottom: 12px;"><label class="acc-label">URL API VPS (Puppeteer)</label><input type="text" id="sysWpVpsUrl" placeholder="https://103.82.195.87:3001" class="acc-input" style="border-color:rgba(14,165,233,0.4);"></div><div><label class="acc-label">User Bảo Mật Cấp 1</label>
+                                        <label class="acc-label">User Bảo Mật Cấp 1</label>
                                         <input type="text" id="sysWpBasicUser" placeholder="Tài khoản cấp 1..." class="acc-input" style="border-color:rgba(14,165,233,0.4);">
                                     </div>
                                     <div>
