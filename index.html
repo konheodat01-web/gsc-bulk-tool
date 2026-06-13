@@ -4515,7 +4515,9 @@ document.addEventListener("DOMContentLoaded", function() {
     function openWfCreateModal() {
         document.getElementById('wfCreateModal').style.display = 'flex';
         document.getElementById('newWfName').value = '';
-        setTimeout(() => document.getElementById('newWfName').focus(), 100);
+        if (window.self === window.top) {
+            setTimeout(() => document.getElementById('newWfName').focus(), 100);
+        }
     }
     
     function closeWfCreateModal() {
@@ -5697,7 +5699,7 @@ ${appState}`;
         <div class="wf-modal-overlay" id="wfCreateModal">
             <div class="wf-modal">
                 <div class="wf-modal-title">Tạo Workflow Mới</div>
-                <input type="text" id="newWfName" class="wf-modal-input" placeholder="Tên workflow (vd: Tự động check lỗi website)..." autofocus>
+                <input type="text" id="newWfName" class="wf-modal-input" placeholder="Tên workflow (vd: Tự động check lỗi website)...">
                 <div class="wf-modal-actions">
                     <button class="wf-modal-btn wf-modal-btn-cancel" onclick="closeWfCreateModal()">Hủy</button>
                     <button class="wf-modal-btn wf-modal-btn-create" onclick="submitCreateWf()">Tiếp tục ➔</button>
