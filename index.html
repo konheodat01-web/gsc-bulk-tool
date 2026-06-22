@@ -970,6 +970,23 @@ document.addEventListener("DOMContentLoaded", function() {
                 console.log("☁️ Đã tải & đồng bộ Settings từ Firebase!");
             }
         } catch (e) { console.error("Lỗi load Settings Firebase:", e); }
+    function updateAutomationBadge() {
+        const stored = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
+        const old = document.getElementById('wfBadge');
+        if (old) old.remove();
+        if (stored.length > 0) {
+            const wrapper = document.getElementById('wfl-sys-btn');
+            if (!wrapper) return;
+            // Đảm bảo wrapper ở chế độ relative để hiển thị badge tuyệt đối
+            if (wrapper.style.position !== 'relative') {
+                wrapper.style.position = 'relative';
+            }
+            const badge = document.createElement('span');
+            badge.id = 'wfBadge';
+            badge.textContent = stored.length;
+            badge.style.cssText = 'position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:10px;font-weight:bold;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:1001;';
+            wrapper.appendChild(badge);
+        }
     }
 
     function startWorkflowRealTimeSync() {
@@ -2410,21 +2427,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             } catch(_) {}
         } catch(e) { console.warn('Canvas restore failed', e); }
-    }
-    
-    function updateAutomationBadge() {
-        const stored = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
-        const old = document.getElementById('wfBadge');
-        if (old) old.remove();
-        if (stored.length > 0) {
-            const wrapper = document.getElementById('automationBtnWrapper');
-            if (!wrapper) return;
-            const badge = document.createElement('span');
-            badge.id = 'wfBadge';
-            badge.textContent = stored.length;
-            badge.style.cssText = 'position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:10px;font-weight:bold;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:1001;';
-            wrapper.appendChild(badge);
-        }
     }
     
 
