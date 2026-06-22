@@ -970,6 +970,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 console.log("☁️ Đã tải & đồng bộ Settings từ Firebase!");
             }
         } catch (e) { console.error("Lỗi load Settings Firebase:", e); }
+    }
     function updateAutomationBadge() {
         const stored = JSON.parse(localStorage.getItem('wf_builder_list') || '[]');
         const old = document.getElementById('wfBadge');
