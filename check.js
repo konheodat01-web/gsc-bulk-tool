@@ -1,4 +1,4 @@
-﻿    // --- FIREBASE SYNC CONFIG ---
+    // --- FIREBASE SYNC CONFIG ---
     const firebaseConfig = {
       apiKey: "AIzaSyB9FnjWvhtQVoTntV9wOvrLQJu2eOnskfE",
       authDomain: "gsc-bulk-tool-e4e1c.firebaseapp.com",
@@ -2735,40 +2735,47 @@
         const rdrEl = document.getElementById(`audRdr_${i}`);
         stEl.innerHTML = '<span style="color:var(--warning)">⏳ Quét...</span>';
 
-        // Bước 1: Check sống/chết
         try {
             const ctrl = new AbortController();
             const tid = setTimeout(() => ctrl.abort(), 8000);
-            const check = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(link)}`, { signal: ctrl.signal });
+            const proxyUrl = `https://api.nthieucloud.shop/proxy?url=${encodeURIComponent(link)}`;
+            const check = await fetch(proxyUrl, { signal: ctrl.signal });
             clearTimeout(tid);
-            stEl.innerHTML = check.ok ? '<span class="status-badge status-success">✅ SỐNG</span>' : '<span class="status-badge status-error">❌ LỖI</span>';
+            
+            // Đọc header redirect tùy chỉnh từ Proxy của chúng ta
+            const redirectUrl = check.headers.get('X-Redirect-Url') || '';
+            
+            stEl.innerHTML = check.ok ? '<span class="status-badge status-success">✅ SỐNG</span>' : '<span class="status-badge status-warning">⚠️ BLOCK/LỖI</span>';
             coEl.innerText = check.status;
             
-            if (check.ok) {
+            let finalUrl = redirectUrl;
+
+            // Nếu không có header từ proxy, thử parse HTML fallback
+            if (!finalUrl && check.ok) {
                 const html = await check.text();
                 const doc2 = new DOMParser().parseFromString(html, 'text/html');
-                let finalUrl = doc2.querySelector('link[rel="canonical"]')?.getAttribute('href') || 
-                               doc2.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
+                finalUrl = doc2.querySelector('link[rel="canonical"]')?.getAttribute('href') || 
+                           doc2.querySelector('meta[property="og:url"]')?.getAttribute('content') || '';
                 
                 if (!finalUrl) {
                     const content = doc2.querySelector('meta[http-equiv="refresh"]')?.getAttribute('content') || '';
                     const m = content.match(/url=([^;\s]+)/i);
                     if (m) finalUrl = m[1].trim().replace(/["']/g, '');
                 }
+            }
 
-                if (finalUrl) {
-                    try {
-                        const fHost = new URL(finalUrl).hostname.replace('www.', '');
-                        const oHost = new URL(link).hostname.replace('www.', '');
-                        if (fHost !== oHost) {
-                            rdrEl.innerHTML = `<a href="${finalUrl}" target="_blank" style="color:var(--warning); font-size:10px; word-break:break-all;">➡️ ${finalUrl}</a>`;
-                        } else {
-                            rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không redirect</span>';
-                        }
-                    } catch(e) { rdrEl.innerText = '-'; }
-                } else {
-                    rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">-</span>';
-                }
+            if (finalUrl) {
+                try {
+                    const fHost = new URL(finalUrl).hostname.replace('www.', '');
+                    const oHost = new URL(link).hostname.replace('www.', '');
+                    if (fHost !== oHost) {
+                        rdrEl.innerHTML = `<a href="${finalUrl}" target="_blank" style="color:var(--warning); font-size:10px; word-break:break-all;">➡️ ${finalUrl}</a>`;
+                    } else {
+                        rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không redirect</span>';
+                    }
+                } catch(e) { rdrEl.innerText = '-'; }
+            } else {
+                rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">-</span>';
             }
         } catch(e) {
             stEl.innerHTML = '<span class="status-badge status-error">❌ Timeout</span>';
