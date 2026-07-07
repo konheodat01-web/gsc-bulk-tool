@@ -2745,9 +2745,6 @@
             // Đọc header redirect tùy chỉnh từ Proxy của chúng ta
             const redirectUrl = check.headers.get('X-Redirect-Url') || '';
             
-            stEl.innerHTML = check.ok ? '<span class="status-badge status-success">✅ SỐNG</span>' : '<span class="status-badge status-warning">⚠️ BLOCK/LỖI</span>';
-            coEl.innerText = check.status;
-            
             let finalUrl = redirectUrl;
 
             // Nếu không có header từ proxy, thử parse HTML fallback
@@ -2764,11 +2761,13 @@
                 }
             }
 
+            let didRedirect = false;
             if (finalUrl) {
                 try {
                     const fHost = new URL(finalUrl).hostname.replace('www.', '');
                     const oHost = new URL(link).hostname.replace('www.', '');
                     if (fHost !== oHost) {
+                        didRedirect = true;
                         rdrEl.innerHTML = `<a href="${finalUrl}" target="_blank" style="color:var(--warning); font-size:10px; word-break:break-all;">➡️ ${finalUrl}</a>`;
                     } else {
                         rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">Không redirect</span>';
@@ -2777,6 +2776,14 @@
             } else {
                 rdrEl.innerHTML = '<span style="color:var(--text-muted); font-size:10px;">-</span>';
             }
+
+            // Nếu redirect thành công thì hiển thị SỐNG/OK màu xanh lá, bất kể status của trang đích là gì
+            if (didRedirect) {
+                stEl.innerHTML = '<span class="status-badge status-success">✅ 301 OK</span>';
+            } else {
+                stEl.innerHTML = check.ok ? '<span class="status-badge status-success">✅ SỐNG</span>' : '<span class="status-badge status-error">❌ LỖI</span>';
+            }
+            coEl.innerText = check.status;
         } catch(e) {
             stEl.innerHTML = '<span class="status-badge status-error">❌ Timeout</span>';
             coEl.innerText = 'ERR';
