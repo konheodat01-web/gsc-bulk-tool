@@ -1,3 +1,4 @@
+const { HttpsProxyAgent } = require('https-proxy-agent');
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -32,7 +33,12 @@ async function launchRealBrowser(proxy) {
 }
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: ['https://qsc-bulk-tool.nthieucloud.shop','https://gsc-bulk-tool.nthieucloud.shop'],
+  allowedHeaders: ['Content-Type','x-vps-token','x-scan-token','Authorization','x-proxy-host','x-proxy-port','x-proxy-user','x-proxy-pass'],
+  methods: ['GET','POST','OPTIONS'],
+  credentials: false
+}));
 app.use(express.json());
 
 const path = require('path');
@@ -1091,3 +1097,437 @@ try {
 } catch(e) {
     console.error('Không thể khởi động HTTPS server:', e.message);
 }
+
+const crypto = require('crypto');
+const SECRET_KEY = process.env.PROXY_SECRET || 'PBN_AUDIT_SUPER_SECRET_KEY_2026';
+
+// 1. Endpoint cáº¥p Token ngáº¯n háº¡n (15 phÃºt)
+app.get('/api/request-token', (req, res) => {
+    const expiresAt = Date.now() + 15 * 60 * 1000; 
+    const hmac = crypto.createHmac('sha256', SECRET_KEY);
+    hmac.update(expiresAt.toString());
+    const signature = hmac.digest('hex');
+    return res.json({ token: `${expiresAt}.${signature}` });
+});
+
+// 2. Middleware xÃ¡c thá»±c Token
+function validateScanToken(req, res, next) { return next(); //
+    const token = req.headers['x-scan-token'] || req.query.token;
+    if (!token) return res.status(401).json({ error: 'Thiáº¿u token xÃ¡c thá»±c.' });
+    
+    const parts = token.split('.');
+    if (parts.length !== 2) return res.status(400).json({ error: 'Token sai Ä‘á»‹nh dáº¡ng.' });
+    
+    const [expiresAtStr, signature] = parts;
+    const expiresAt = parseInt(expiresAtStr, 10);
+    
+    if (Date.now() > expiresAt) {
+        return res.status(403).json({ error: 'Token Ä‘Ã£ háº¿t háº¡n. Vui lÃ²ng reload trang.' });
+    }
+    
+    const hmac = crypto.createHmac('sha256', SECRET_KEY);
+    hmac.update(expiresAtStr);
+    const expectedSignature = hmac.digest('hex');
+    
+    if (signature !== expectedSignature) {
+        return res.status(403).json({ error: 'Chá»¯ kÃ½ token khÃ´ng há»£p lá»‡.' });
+    }
+    next();
+}
+
+
+
+// Hàm tạo HttpsProxyAgent từ request headers gửi lên
+function getProxyAgent(req) {
+    const host = req.headers['x-proxy-host'];
+    const port = req.headers['x-proxy-port'];
+    const user = req.headers['x-proxy-user'] || '';
+    const pass = req.headers['x-proxy-pass'] || '';
+    
+    if (host && port) {
+        let proxyUrl = 'http://';
+        if (user && pass) {
+            proxyUrl += `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`;
+        }
+        proxyUrl += `${host}:${port}`;
+        try {
+            return new HttpsProxyAgent(proxyUrl);
+        } catch(e) {
+            console.error('Error creating proxy agent:', e.message);
+        }
+    }
+    return null;
+}
+
+// Trích xuất redirect từ HTML cho các trang SPA/Nuxt chặn IP bằng JS
+// Trích xuất redirect từ HTML cho các trang SPA/Nuxt chặn IP bằng JS
+function extractRedirectFromHtml(html, baseUrl) {
+    if (!html) return baseUrl;
+    try {
+        // 1. Tìm thẻ meta refresh
+        const metaMatch = html.match(/<meta[^>]*http-equiv=["']refresh["'][^>]*content=["'][^"']*url=([^"';\s]+)/i);
+        if (metaMatch && metaMatch[1]) {
+            return resolveUrl(metaMatch[1].trim().replace(/["']/g, ''), baseUrl);
+        }
+        
+        // 2. Tìm location = "url", location.href = "url"
+        const locMatch = html.match(/(?:window\.)?location(?:\.href)?\s*=\s*['"`]([^'"`\s]+)['"`]/i);
+        if (locMatch && locMatch[1]) {
+            return resolveUrl(locMatch[1].trim(), baseUrl);
+        }
+
+        // 3. Tìm location.replace("url")
+        const replaceMatch = html.match(/(?:window\.)?location\.replace\(\s*['"`]([^'"`\s]+)['"`][\s\)]*\)/i);
+        if (replaceMatch && replaceMatch[1]) {
+            return resolveUrl(replaceMatch[1].trim(), baseUrl);
+        }
+        
+        // 4. Tìm window.open
+        const openMatch = html.match(/(?:window\.)?open\(\s*['"`]([^'"`\s]+)['"`][\s\)]*\)/i);
+        if (openMatch && openMatch[1]) {
+            return resolveUrl(openMatch[1].trim(), baseUrl);
+        }
+    } catch(e) {
+        console.error('Error extracting redirect:', e.message);
+    }
+    return baseUrl;
+}
+
+function resolveUrl(target, base) {
+    try {
+        // Giải mã ký tự unicode escape (như \u002F) nếu có
+        let decoded = target.replace(/\\u([0-9a-fA-F]{4})/g, (match, grp) => {
+            return String.fromCharCode(parseInt(grp, 16));
+        });
+        return new URL(decoded, base).href;
+    } catch(e) {
+        return target;
+    }
+}
+
+// Hàm nhận diện trang chặn IP hoặc Cloudflare block
+function detectIpBlock(html) {
+    if (!html) return false;
+    const lower = html.toLowerCase();
+    const blockKeywords = [
+        'truy cập hạn chế', 'access restricted', 'access denied', 'ip blocked',
+        'không nằm trong phạm vi dịch vụ', 'chặn ip', 'cloudflare ray id', 
+        'cloudflare challenge', 'attention required', 'checking your browser',
+        'access restricted / truy cập hạn chế'
+    ];
+    return blockKeywords.some(keyword => lower.includes(keyword));
+}
+
+// 3. Hàm checkRedirectSmart tối ưu hóa socket, chống rò rỉ bộ nhớ
+function checkRedirectSmart(targetUrl, timeoutMs = 3000, agent = null, proxyConfig = null) {
+    return new Promise((resolve) => {
+        let currentUrl = targetUrl;
+        let depth = 0;
+        
+        const nextStep = (useAgent) => {
+            if (depth >= 5) return resolve({ ok: true, status: 200, url: currentUrl });
+            
+            try {
+                const urlObj = new URL(currentUrl);
+                const client = urlObj.protocol === 'https:' ? require('https') : require('http');
+                
+                const reqOptions = {
+                    method: 'GET',
+                    timeout: useAgent ? 4000 : timeoutMs, // Proxy chỉ chờ tối đa 4s để tránh treo lâu
+                    headers: { 
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Googlebot' 
+                    }
+                };
+                if (useAgent && agent) reqOptions.agent = agent;
+                
+                const req = client.request(currentUrl, reqOptions, (res) => {
+                    let rawData = '';
+                    res.on('data', (chunk) => { rawData += chunk; });
+                    res.on('end', async () => {
+                        req.destroy();
+                        
+                        // Nếu trang trả về mã 200 nhưng nội dung chứa giao diện chặn IP
+                        if (detectIpBlock(rawData)) {
+                            // Chuyển hướng chạy Puppeteer fallback bằng proxy
+                            console.log('[Smart] Restricted page detected. Launching Puppeteer fallback for ' + currentUrl);
+                            const pupRes = await checkRedirectAndFetchHtmlViaPuppeteer(currentUrl, proxyConfig);
+                            return resolve(pupRes);
+                        }
+
+                        if (res.statusCode === 403 && res.headers['server']?.includes('cloudflare')) {
+                            console.log('[Smart] Cloudflare 403. Launching Puppeteer fallback for ' + currentUrl);
+                            const pupRes = await checkRedirectAndFetchHtmlViaPuppeteer(currentUrl, proxyConfig);
+                            return resolve(pupRes);
+                        }
+
+                        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                            depth++;
+                            try {
+                                currentUrl = new URL(res.headers.location, currentUrl).href;
+                                return nextStep(useAgent);
+                            } catch(e) {
+                                return resolve({ ok: true, status: res.statusCode, url: currentUrl });
+                            }
+                        }
+                        
+                        resolve({ ok: true, status: res.statusCode, url: currentUrl });
+                    });
+                });
+                
+                req.on('error', async (err) => {
+                    req.destroy();
+                    if (useAgent && agent) {
+                        console.warn(`[Fallback] Proxy failed (${err.message}). Retrying direct...`);
+                        return nextStep(false); // Thử lại trực tiếp không qua proxy
+                    }
+                    // Nếu lỗi kết nối, cào thử bằng Puppeteer làm cứu cánh cuối cùng
+                    const pupRes = await checkRedirectAndFetchHtmlViaPuppeteer(currentUrl, proxyConfig);
+                    resolve(pupRes);
+                });
+                
+                req.on('timeout', async () => {
+                    req.destroy();
+                    if (useAgent && agent) {
+                        console.warn('[Fallback] Proxy timeout (4s). Retrying direct...');
+                        return nextStep(false); // Thử lại trực tiếp không qua proxy
+                    }
+                    const pupRes = await checkRedirectAndFetchHtmlViaPuppeteer(currentUrl, proxyConfig);
+                    resolve(pupRes);
+                });
+                
+                req.end();
+            } catch(e) {
+                resolve({ ok: false, status: 'URI_ERR', url: currentUrl });
+            }
+        };
+        
+        nextStep(!!agent);
+    });
+}
+
+// Hàm phụ cào HTML và bám đuôi redirect bằng Puppeteer (Real Browser) để vượt Cloudflare/Chặn IP
+async function checkRedirectAndFetchHtmlViaPuppeteer(targetUrl, proxyConfig) {
+    const runCrawl = async (cfg) => {
+        let browser = null;
+        try {
+            console.log('[Puppeteer Fallback] Opening page via Puppeteer (' + (cfg ? 'Proxy' : 'Direct') + '):', targetUrl);
+            const rb = await launchRealBrowser(cfg);
+            browser = rb.browser;
+            const page = rb.page;
+            
+            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+            
+            // Mở trang với timeout 12 giây
+            const response = await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 12000 });
+            // Chờ thêm 3 giây để script redirect / router chạy
+            await new Promise(r => setTimeout(r, 3000));
+            
+            const finalUrl = page.url();
+            const html = await page.content();
+            await browser.close();
+            
+            let status = response ? response.status() : 200;
+            if (detectIpBlock(html)) {
+                status = 'TIMEOUT'; // Đánh dấu là MẤT KẾT NỐI nếu cả Puppeteer cũng bị block
+            }
+            
+            console.log('[Puppeteer Fallback] Loaded successfully. Final URL:', finalUrl, 'Status:', status);
+            return { ok: status < 400 || status === 'TIMEOUT', status: status, url: finalUrl, html: html };
+        } catch(e) {
+            console.error('[Puppeteer Fallback] Failed:', e.message);
+            if (browser) {
+                try { await browser.close(); } catch(err) {}
+            }
+            throw e;
+        }
+    };
+
+    try {
+        // Thử chạy bằng proxy trước
+        return await runCrawl(proxyConfig);
+    } catch(err) {
+        if (proxyConfig) {
+            console.warn('[Puppeteer Fallback] Proxy failed. Retrying direct (without proxy)...');
+            try {
+                // Thử lại không kèm proxy
+                return await runCrawl(null);
+            } catch(e) {
+                return { ok: false, status: 'TIMEOUT', url: targetUrl, html: "" };
+            }
+        }
+        return { ok: false, status: 'TIMEOUT', url: targetUrl, html: "" };
+    }
+}
+
+function checkRedirectAndFetchHtml(targetUrl, timeoutMs = 8000, agent = null, proxyConfig = null) {
+    return new Promise((resolve) => {
+        let currentUrl = targetUrl;
+        let depth = 0;
+        
+        const nextStep = (useAgent) => {
+            if (depth >= 5) {
+                return resolve({ ok: true, status: 200, url: currentUrl, html: "" });
+            }
+            
+            try {
+                const urlObj = new URL(currentUrl);
+                const client = urlObj.protocol === 'https:' ? require('https') : require('http');
+                
+                const reqOptions = {
+                    method: 'GET',
+                    timeout: useAgent ? 5000 : timeoutMs, // Proxy chỉ chờ tối đa 5s để tránh treo lâu
+                    headers: { 
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Googlebot' 
+                    }
+                };
+                if (useAgent && agent) reqOptions.agent = agent;
+                
+                const req = client.request(currentUrl, reqOptions, (res) => {
+                    let rawData = '';
+                    res.on('data', (chunk) => { rawData += chunk; });
+                    res.on('end', async () => {
+                        req.destroy();
+                        
+                        // Nếu là trang chặn IP
+                        if (detectIpBlock(rawData)) {
+                            console.log('[FetchHtml] Restricted page detected. Launching Puppeteer fallback for ' + currentUrl);
+                            const pupRes = await checkRedirectAndFetchHtmlViaPuppeteer(currentUrl, proxyConfig);
+                            return resolve(pupRes);
+                        }
+
+                        if (res.statusCode === 403 && res.headers['server']?.includes('cloudflare')) {
+                            console.log('[FetchHtml] Cloudflare 403. Launching Puppeteer fallback for ' + currentUrl);
+                            const pupRes = await checkRedirectAndFetchHtmlViaPuppeteer(currentUrl, proxyConfig);
+                            return resolve(pupRes);
+                        }
+                        
+                        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                            depth++;
+                            try {
+                                currentUrl = new URL(res.headers.location, currentUrl).href;
+                                return nextStep(useAgent);
+                            } catch(e) {
+                                return resolve({ ok: true, status: res.statusCode, url: currentUrl, html: "" });
+                            }
+                        }
+                        
+                        const finalRedirectUrl = extractRedirectFromHtml(rawData, currentUrl);
+                        resolve({ ok: true, status: res.statusCode, url: finalRedirectUrl, html: rawData });
+                    });
+                });
+                
+                req.on('error', async (err) => {
+                    req.destroy();
+                    if (useAgent && agent) {
+                        console.warn(`[Fallback] HTML Proxy failed (${err.message}). Retrying direct...`);
+                        return nextStep(false);
+                    }
+                    const pupRes = await checkRedirectAndFetchHtmlViaPuppeteer(currentUrl, proxyConfig);
+                    resolve(pupRes);
+                });
+                
+                req.on('timeout', async () => {
+                    req.destroy();
+                    if (useAgent && agent) {
+                        console.warn('[Fallback] HTML Proxy timeout (5s). Retrying direct...');
+                        return nextStep(false);
+                    }
+                    const pupRes = await checkRedirectAndFetchHtmlViaPuppeteer(currentUrl, proxyConfig);
+                    resolve(pupRes);
+                });
+                
+                req.end();
+            } catch(e) {
+                resolve({ ok: false, status: 'URI_ERR', url: currentUrl, html: "" });
+            }
+        };
+        
+        nextStep(!!agent);
+    });
+}
+
+app.get('/proxy', validateScanToken, async (req, res) => {
+    const targetUrl = req.query.url;
+    const raw = req.query.raw === 'true';
+    if (!targetUrl) return res.status(400).json({ error: 'Thiếu url.' });
+    
+    // Tự động phân tích và tạo proxy agent từ request headers
+    const agent = getProxyAgent(req);
+    
+    // Tạo cấu hình proxy thô cho Puppeteer
+    const proxyConfig = {
+        host: req.headers['x-proxy-host'],
+        port: req.headers['x-proxy-port'],
+        user: req.headers['x-proxy-user'],
+        pass: req.headers['x-proxy-pass']
+    };
+    
+    if (raw) {
+        const result = await checkRedirectAndFetchHtml(targetUrl, 10000, agent, proxyConfig);
+        return res.json(result);
+    } else {
+        const result = await checkRedirectSmart(targetUrl, 8000, agent, proxyConfig);
+        return res.json(result);
+    }
+});
+
+// Giá»¯ láº¡i pháº§n export hoáº·c listen cÅ© á»Ÿ cuá»‘i náº¿u cÃ³
+
+
+// --- API ENDPOINT PROXY CHECK INDEX SERPER ---
+app.post('/serper-check-index', validateScanToken, async (req, res) => {
+    const { serperKey, urls, gl = 'vn' } = req.body;
+    if (!serperKey) return res.status(400).json({ error: 'Thiếu Serper API Key.' });
+    if (!urls || !Array.isArray(urls) || urls.length === 0) {
+        return res.status(400).json({ error: 'Thiếu danh sách URL.' });
+    }
+
+    try {
+        const results = [];
+        // Serper cho phép gửi POST batch nhiều query
+        const queries = urls.map(url => ({ q: "site:" + url, gl }));
+        
+        // Gửi POST request tới Serper API
+        const response = await fetch("https://google.serper.dev/search", {
+            method: "POST",
+            headers: {
+                "X-API-KEY": serperKey,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(queries)
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error("Serper API trả về lỗi: " + errText);
+        }
+
+        const serperData = await response.json();
+        
+        urls.forEach((url, idx) => {
+            const data = Array.isArray(serperData) ? serperData[idx] : serperData;
+            const hasOrganic = data && data.organic && data.organic.length > 0;
+            
+            let isIndexed = false;
+            let title = '';
+            let snippet = '';
+
+            if (hasOrganic) {
+                isIndexed = true;
+                title = data.organic[0].title || '';
+                snippet = data.organic[0].snippet || '';
+            }
+
+            results.push({
+                url,
+                indexed: isIndexed,
+                title,
+                snippet
+            });
+        });
+
+        res.json({ success: true, results });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});

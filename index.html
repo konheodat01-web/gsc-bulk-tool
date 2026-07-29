@@ -493,6 +493,7 @@ document.addEventListener("DOMContentLoaded", function() {
         <button class="tab-btn" onclick="switchTab('tab4')">🤖 Check Mở Bot</button>
         <button class="tab-btn" onclick="switchTab('tab5')">📝 SEO Content</button>
         <button class="tab-btn" onclick="switchTab('tab9')" id="tab9-btn">🔎 Check Rank</button>
+        <button class="tab-btn" onclick="switchTab('tab10')">📌 Check Index (Serper)</button>
     </div>
 
     
@@ -899,6 +900,79 @@ document.addEventListener("DOMContentLoaded", function() {
     </div>
 
 
+
+    <!-- TAB 10: Check Index Serper -->
+    <div id="tab10" class="tab-content">
+        <div class="card">
+            <h3 style="margin-top:0">Check Index Google bằng API Serper <button class="help-btn" onclick="showHelp('checkIndexSerper')" title="Hướng dẫn sử dụng">?</button></h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:15px;">
+                <div>
+                    <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:5px;">🔑 Serper API Key</label>
+                    <input type="text" id="serperApiKey" value="3be5c076c563dbf0a05bf27081e93dfe3f172d52" placeholder="Nhập API Key Serper.dev..." style="padding:8px 12px; width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px; font-size:12px;">
+                </div>
+                <div>
+                    <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:5px;">🌐 Quốc Gia Tìm Kiếm (Google Country)</label>
+                    <select id="serperCountry" style="padding:8px 12px; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:6px; font-size:12px; width:100%;">
+                        <option value="vn" selected>🇻🇳 Việt Nam</option>
+                        <option value="us">🇺🇸 USA</option>
+                        <option value="gb">🇬🇧 UK</option>
+                        <option value="au">🇦🇺 Australia</option>
+                        <option value="sg">🇸🇬 Singapore</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Input URLs -->
+            <div style="margin-bottom:15px;">
+                <label style="font-size:11px; color:var(--text-muted); display:block; margin-bottom:5px;">📝 Danh Sách URL Cần Kiểm Tra Index (mỗi dòng 1 URL, tối đa 1000 URL)</label>
+                <textarea id="serperUrls" placeholder="https://example.com/page-1&#10;https://example.com/page-2&#10;..." style="height:150px; font-family:monospace; font-size:13px;"></textarea>
+            </div>
+
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:15px;">
+                <button id="btnStartCheckIndex" class="btn btn-success" onclick="startCheckIndexSerper()">🚀 Bắt Đầu Check Index</button>
+                <button class="btn btn-secondary" onclick="exportIndexSerperCSV()">📥 Xuất CSV</button>
+                <button class="btn" style="background:#0284c7; color:#fff;" onclick="copySerperStatusColumn(this)">📋 Copy Trạng Thái</button>
+                <button class="btn" style="background:#475569;" onclick="clearSerperResults()">🗑 Xóa kết quả</button>
+                <div id="serperProgress" style="display:none; font-size:12px; color:var(--warning); margin-left:auto;">⏳ <span id="serperProgressText">Đang kiểm tra...</span></div>
+            </div>
+
+            <!-- Summary Badges -->
+            <div id="serperSummary" style="display:none; margin-bottom:15px;">
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <div style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:10px 16px; text-align:center; min-width:100px;">
+                        <div style="font-size:10px; color:var(--success); margin-bottom:3px;">ĐÃ INDEX</div>
+                        <div id="serperSumIndexed" style="font-size:20px; font-weight:700; color:var(--success);">0</div>
+                    </div>
+                    <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:10px 16px; text-align:center; min-width:100px;">
+                        <div style="font-size:10px; color:var(--danger); margin-bottom:3px;">CHƯA INDEX</div>
+                        <div id="serperSumNotIndexed" style="font-size:20px; font-weight:700; color:var(--danger);">0</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:10px 16px; text-align:center; min-width:100px;">
+                        <div style="font-size:10px; color:var(--text-muted); margin-bottom:3px;">TỔNG CẦN CHECK</div>
+                        <div id="serperSumTotal" style="font-size:20px; font-weight:700;">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px;" id="serperTable">
+                    <thead>
+                        <tr>
+                            <th style="padding:10px; text-align:left; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="5%">#</th>
+                            <th style="padding:10px; text-align:left; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="45%">URL</th>
+                            <th style="padding:10px; text-align:center; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="15%">Trạng thái</th>
+                            <th style="padding:10px; text-align:left; background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;" width="35%">Thông tin Google (Tiêu đề / Snippet)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="serperResultBody">
+                        <tr><td colspan="4" style="text-align:center; padding:40px; color:var(--text-muted);">Nhập danh sách URL và bấm <b>Bắt Đầu Check Index</b></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 <!-- HELP MODAL -->
 
 
@@ -915,6 +989,282 @@ document.addEventListener("DOMContentLoaded", function() {
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
     // --- FIREBASE SYNC CONFIG ---
+    
+    // --- SERPER CHECK INDEX LOGIC ---
+    let serperCheckActive = false;
+    let serperResults = [];
+
+    // Tự động load API Key cũ từ LocalStorage
+    document.addEventListener("DOMContentLoaded", () => {
+        const savedKey = localStorage.getItem("serper_api_key");
+        if (savedKey) {
+            document.getElementById("serperApiKey").value = savedKey;
+        }
+    });
+
+    function clearSerperResults() {
+        document.getElementById('serperResultBody').innerHTML = '<tr><td colspan="4" style="text-align:center; padding:40px; color:var(--text-muted);">Nhập danh sách URL và bấm <b>Bắt Đầu Check Index</b></td></tr>';
+        document.getElementById('serperSummary').style.display = 'none';
+        document.getElementById('serperProgress').style.display = 'none';
+        serperResults = [];
+    }
+
+    async function startCheckIndexSerper() {
+        if (serperCheckActive) {
+            serperCheckActive = false;
+            return;
+        }
+
+        const apiKey = document.getElementById("serperApiKey").value.trim();
+        const urlsText = document.getElementById("serperUrls").value.trim();
+        const gl = document.getElementById("serperCountry").value;
+
+        if (!apiKey) {
+            alert("Vui lòng nhập Serper API Key!");
+            return;
+        }
+        if (!urlsText) {
+            alert("Vui lòng nhập danh sách URL cần check!");
+            return;
+        }
+
+        // Lưu API Key vào LocalStorage
+        localStorage.setItem("serper_api_key", apiKey);
+
+        const urls = urlsText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        if (urls.length === 0) {
+            alert("Vui lòng nhập ít nhất 1 URL hợp lệ!");
+            return;
+        }
+
+        serperCheckActive = true;
+        serperResults = [];
+        
+        const btn = document.getElementById("btnStartCheckIndex");
+        btn.textContent = "🛑 Dừng Check Index";
+        btn.style.backgroundColor = "var(--danger)";
+        
+        const progressDiv = document.getElementById("serperProgress");
+        const progressText = document.getElementById("serperProgressText");
+        progressDiv.style.display = "block";
+
+        const tbody = document.getElementById("serperResultBody");
+        tbody.innerHTML = "";
+
+        // Hiển thị khung Summary
+        document.getElementById("serperSummary").style.display = "block";
+        updateSerperSummary(0, 0, urls.length);
+
+        const batchSize = 10; // Batch 10 URL để đảm bảo tốc độ và giới hạn API
+        let countIndexed = 0;
+        let countNotIndexed = 0;
+
+        for (let i = 0; i < urls.length; i += batchSize) {
+            if (!serperCheckActive) break;
+
+            const batch = urls.slice(i, i + batchSize);
+            progressText.textContent = `Đang quét ${i + 1} - ${Math.min(i + batchSize, urls.length)} / ${urls.length} URL...`;
+
+            try {
+                // Thử gọi trực tiếp Serper API (client-side) để tăng tốc độ phản hồi
+                const queries = batch.map(url => ({ q: `site:${url}`, gl }));
+                
+                let resData;
+                let clientCallSuccess = false;
+                try {
+                    const response = await fetch("https://google.serper.dev/search", {
+                        method: "POST",
+                        headers: {
+                            "X-API-KEY": apiKey,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(queries)
+                    });
+                    
+                    if (!response.ok) throw new Error("CORS or API Key Invalid");
+                    resData = await response.json();
+                    clientCallSuccess = true;
+                } catch (e) {
+                    console.log("Client call failed/CORS, falling back to VPS proxy...", e.message);
+                    // Fallback qua Backend Proxy của VPS
+                    const vpsUrl = getVpsUrl();
+                    const vpsToken = getVpsToken();
+                    const response = await fetch(`${vpsUrl}/serper-check-index`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "x-vps-token": vpsToken
+                        },
+                        body: JSON.stringify({ serperKey: apiKey, urls: batch, gl })
+                    });
+                    
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.error || "Lỗi gọi API proxy VPS");
+                    }
+                    const data = await response.json();
+                    resData = data.results;
+                }
+
+                // Render kết quả của Batch
+                batch.forEach((url, idx) => {
+                    let isIndexed = false;
+                    let title = "";
+                    let snippet = "";
+
+                    // Xử lý dữ liệu trả về tùy theo client-side hay proxy backend
+                    if (!clientCallSuccess) {
+                        // Cấu trúc từ Proxy Backend
+                        const r = resData[idx];
+                        isIndexed = r.indexed;
+                        title = r.title;
+                        snippet = r.snippet;
+                    } else {
+                        // Cấu trúc trực tiếp từ Serper
+                        const data = Array.isArray(resData) ? resData[idx] : resData;
+                        const hasOrganic = data && data.organic && data.organic.length > 0;
+                        if (hasOrganic) {
+                            isIndexed = true;
+                            title = data.organic[0].title || "";
+                            snippet = data.organic[0].snippet || "";
+                        }
+                    }
+
+                    if (isIndexed) countIndexed++;
+                    else countNotIndexed++;
+
+                    const item = {
+                        no: serperResults.length + 1,
+                        url,
+                        status: isIndexed ? "Đã Index ✅" : "Chưa Index ❌",
+                        title: title,
+                        snippet: snippet
+                    };
+                    serperResults.push(item);
+
+                    // Chèn dòng mới vào bảng
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td style="padding:10px; border-bottom:1px solid var(--border);">${item.no}</td>
+                        <td style="padding:10px; border-bottom:1px solid var(--border); word-break:break-all;"><a href="${url}" target="_blank" style="color:var(--text); text-decoration:none;">${url}</a></td>
+                        <td style="padding:10px; border-bottom:1px solid var(--border); text-align:center;">
+                            <span style="padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:&quot;${isIndexed ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}&quot;; color:&quot;${isIndexed ? '#10b981' : '#ef4444'}&quot;;">
+                                ${isIndexed ? 'ĐÃ INDEX' : 'CHƯA INDEX'}
+                            </span>
+                        </td>
+                        <td style="padding:10px; border-bottom:1px solid var(--border); color:var(--text-muted); font-size:12px;">
+                            <b>${title || ''}</b><br>${snippet || ''}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                updateSerperSummary(countIndexed, countNotIndexed, urls.length);
+
+            } catch (err) {
+                console.error(err);
+                // Ghi nhận lỗi cho cả batch
+                batch.forEach(url => {
+                    const item = {
+                        no: serperResults.length + 1,
+                        url,
+                        status: "Lỗi ⚠️",
+                        title: err.message,
+                        snippet: ""
+                    };
+                    serperResults.push(item);
+                    
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td style="padding:10px; border-bottom:1px solid var(--border);">${item.no}</td>
+                        <td style="padding:10px; border-bottom:1px solid var(--border); word-break:break-all;">${url}</td>
+                        <td style="padding:10px; border-bottom:1px solid var(--border); text-align:center;">
+                            <span style="padding:3px 8px; border-radius:12px; font-size:11px; font-weight:700; background:rgba(245,158,11,0.15); color:#f59e0b;">
+                                LỖI API ⚠️
+                            </span>
+                        </td>
+                        <td style="padding:10px; border-bottom:1px solid var(--border); color:var(--danger); font-size:12px;">
+                            ${err.message}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Nghỉ 1s giữa các batch để tránh spam API
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        serperCheckActive = false;
+        btn.textContent = "🚀 Bắt Đầu Check Index";
+        btn.style.backgroundColor = "var(--success)";
+        progressText.textContent = "Hoàn thành quét!";
+    }
+
+    function updateSerperSummary(indexed, notIndexed, total) {
+        document.getElementById("serperSumIndexed").textContent = indexed;
+        document.getElementById("serperSumNotIndexed").textContent = notIndexed;
+        document.getElementById("serperSumTotal").textContent = total;
+    }
+
+    function copySerperStatusColumn(btn) {
+        if (serperResults.length === 0) {
+            alert("Không có dữ liệu để copy!");
+            return;
+        }
+        const textToCopy = serperResults.map(r => {
+            if (r.status.includes("Đã Index")) return "ĐÃ INDEX";
+            if (r.status.includes("Chưa Index")) return "CHƯA INDEX";
+            return "LỖI API";
+        }).join('\n');
+
+        const oldText = btn.innerHTML;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            btn.innerHTML = "✅ Đã Copy Cột!";
+            btn.style.background = "#10b981";
+            setTimeout(() => {
+                btn.innerHTML = oldText;
+                btn.style.background = "#0284c7";
+            }, 1200);
+        }).catch(err => {
+            const textArea = document.createElement("textarea");
+            textArea.value = textToCopy;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textArea);
+            
+            btn.innerHTML = "✅ Đã Copy Cột!";
+            btn.style.background = "#10b981";
+            setTimeout(() => {
+                btn.innerHTML = oldText;
+                btn.style.background = "#0284c7";
+            }, 1200);
+        });
+    }
+
+    function exportIndexSerperCSV() {
+        if (serperResults.length === 0) {
+            alert("Không có dữ liệu để xuất!");
+            return;
+        }
+
+        let csv = "\uFEFFSTT,URL,Trạng Thái,Tiêu Đề Google,Snippet\n";
+        serperResults.forEach(r => {
+            const cleanTitle = (r.title || '').replace(/"/g, '""');
+            const cleanSnippet = (r.snippet || '').replace(/"/g, '""');
+            csv += `${r.no},"${r.url}","${r.status}","${cleanTitle}","${cleanSnippet}"\n`;
+        });
+
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", `serper_index_report_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
     const firebaseConfig = {
       apiKey: "AIzaSyB9FnjWvhtQVoTntV9wOvrLQJu2eOnskfE",
       authDomain: "gsc-bulk-tool-e4e1c.firebaseapp.com",
@@ -1369,11 +1719,29 @@ document.addEventListener("DOMContentLoaded", function() {
     async function proxyFetch(url, options = {}, raw = true) {
         const cfg = typeof wsGetGlobalSettings === 'function' ? wsGetGlobalSettings() : {};
         let proxyUrl = url;
-        let headers = { ...(options.headers || {}) };
+        let headers = {}; // Khởi tạo object headers trống
+        
+        // Giữ lại các header tiêu chuẩn do options truyền vào (tránh custom headers của chúng ta)
+        if (options.headers) {
+            Object.keys(options.headers).forEach(k => {
+                if (!['x-vps-token', 'x-scan-token', 'x-proxy-host', 'x-proxy-port', 'x-proxy-user', 'x-proxy-pass'].includes(k.toLowerCase())) {
+                    headers[k] = options.headers[k];
+                }
+            });
+        }
         
         if (cfg.vpsUrl) {
             proxyUrl = `${cfg.vpsUrl}/proxy?url=${encodeURIComponent(url)}&raw=${raw}`;
             headers['x-vps-token'] = cfg.vpsToken || '';
+            if (window.currentScanToken) {
+                headers['x-scan-token'] = window.currentScanToken;
+            }
+            if (cfg.proxyHost && cfg.proxyPort && window.useProxyForThisScan !== false) {
+                headers['x-proxy-host'] = cfg.proxyHost;
+                headers['x-proxy-port'] = cfg.proxyPort;
+                if (cfg.proxyUser) headers['x-proxy-user'] = cfg.proxyUser;
+                if (cfg.proxyPass) headers['x-proxy-pass'] = cfg.proxyPass;
+            }
         } else {
             const ip = document.getElementById('sysVpsIp')?.value.trim();
             if (ip) {
@@ -1452,7 +1820,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // --- TELEGRAM LOGIC ---
-    const TELE_JSON_URL = "https://api.restful-api.dev/objects/ff8081819d82fab6019dd7f81ef5626c";
+    // TELE_JSON_URL removed
     
         async function syncCredentialsToVps() {
             const ip = document.getElementById('sysVpsIp').value.trim();
@@ -1689,7 +2057,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     window.addEventListener('load', () => {
-        loadTeleSettings();
+        // loadTeleSettings();
         loadAccountsFromLocal();
         // Hiển thị badge workflow đã lưu
         updateAutomationBadge();
@@ -2852,7 +3220,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 // Ping health endpoint if exists, or just check the root
                 const hRes = await fetch(vpsUrl + '/health', { signal: AbortSignal.timeout(5000) });
             } catch (e) {
-                if (btn) { btn.innerText = origText; btn.disabled = false; }
+                if (btn) { btn.innerText = origText; btn.disabled = false;
+        window.useProxyForThisScan = true; }
                 return alert('LỖI MẠNG: Không thể kết nối tới VPS!\n\nLý do: ' + e.message + '\n\nNguyên nhân:\n1. Server Node.js trên VPS đang tắt.\n2. Cổng mạng VPN đang đóng.\n\n=> Vui lòng mở cổng VPN hoặc chạy lại VPS trước khi tiếp tục!');
             }
             if (btn) { btn.innerText = origText; btn.disabled = false; }
@@ -3300,6 +3669,7 @@ document.addEventListener("DOMContentLoaded", function() {
         outputContainer.style.display = 'block';
         outputArea.value = '';
         
+        window.useProxyForThisScan = false;
         let results = [];
 
         for (let i = 0; i < srcLines.length; i++) {
@@ -3705,6 +4075,13 @@ document.addEventListener("DOMContentLoaded", function() {
         const lines = document.getElementById('checkBotList').value.split('\n').filter(l => l.trim());
         if(lines.length === 0) return alert("Nhập danh sách website sếp ơi!");
         
+        // Lấy Serper API Key từ ô cấu hình hoặc LocalStorage
+        const apiKey = (document.getElementById('serperApiKey')?.value || '').trim() || localStorage.getItem('serper_api_key') || '';
+        if (!apiKey) {
+            alert("Vui lòng cấu hình Serper API Key tại tab 'Check Index (Serper)' trước sếp ơi!");
+            return;
+        }
+        
         btn.innerText = "⏳ Đang quét...";
         btn.disabled = true;
         
@@ -3717,64 +4094,120 @@ document.addEventListener("DOMContentLoaded", function() {
         let errorCount = 0;
         let blockedCount = 0;
         let openCount = 0;
-
-        for (let rawUrl of lines) {
-            let url = rawUrl.trim();
-            if (!url.startsWith('http')) url = 'https://' + url;
-            try {
-                let parsed = new URL(url);
-                url = parsed.origin; // Chỉ check trang chủ
-            } catch(e) {}
-            
-            let statusText = "🟢 MỞ BOT (Tốt)"; 
-            let isBlocked = false;
-            try {
-                // 1. Check robots.txt
-                const robotRes = await proxyFetch(url + '/robots.txt', {}, true);
-                if (robotRes.ok) {
-                    const txt = await robotRes.text();
-                    if (/(disallow:\s*\/\s*$)|(disallow:\s*\/$)/im.test(txt)) {
-                        statusText = "🔴 ĐÓNG BOT (chặn trong robots.txt)";
-                        isBlocked = true;
+        
+        const batchSize = 10; // Gửi batch 10 URL lên Serper cùng lúc
+        
+        for (let i = 0; i < lines.length; i += batchSize) {
+            const batch = lines.slice(i, i + batchSize);
+            const cleanUrls = batch.map(rawUrl => {
+                let url = rawUrl.trim();
+                if (url.startsWith('http://') || url.startsWith('https://')) {
+                    try {
+                        return new URL(url).hostname;
+                    } catch(e) {
+                        return url;
                     }
                 }
+                return url;
+            });
+            
+            try {
+                const queries = cleanUrls.map(domain => ({ q: `site:${domain}`, gl: 'vn' }));
                 
-                // 2. Check Meta Tag
-                if (!isBlocked) {
-                    const htmlRes = await proxyFetch(url, {}, true);
-                    if (htmlRes.ok) {
-                        const html = await htmlRes.text();
-                        const doc = new DOMParser().parseFromString(html, 'text/html');
-                        const metaRobots = doc.querySelector('meta[name="robots"], meta[name="googlebot"]');
-                        if (metaRobots && (metaRobots.getAttribute('content') || '').toLowerCase().includes('noindex')) {
-                            statusText = "🔴 ĐÓNG BOT (chặn bởi meta noindex)";
+                // Thử gọi trực tiếp Serper API từ client
+                let resData;
+                let clientCallSuccess = false;
+                try {
+                    const response = await fetch("https://google.serper.dev/search", {
+                        method: "POST",
+                        headers: {
+                            "X-API-KEY": apiKey,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(queries)
+                    });
+                    if (!response.ok) throw new Error("Client CORS or Invalid Key");
+                    resData = await response.json();
+                    clientCallSuccess = true;
+                } catch(e) {
+                    // Fallback qua API proxy của VPS
+                    const vpsUrl = getVpsUrl();
+                    const vpsToken = getVpsToken();
+                    const response = await fetch(`${vpsUrl}/serper-check-index`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "x-vps-token": vpsToken
+                        },
+                        body: JSON.stringify({ serperKey: apiKey, urls: cleanUrls, gl: 'vn' })
+                    });
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.error || "Lỗi API VPS proxy");
+                    }
+                    const data = await response.json();
+                    resData = data.results;
+                }
+                
+                // Phân tích kết quả
+                cleanUrls.forEach((domain, idx) => {
+                    let statusText = "🟢 MỞ BOT (Tốt)";
+                    let isBlocked = false;
+                    
+                    if (!clientCallSuccess) {
+                        // Nhận từ VPS proxy
+                        const r = resData[idx];
+                        if (r && r.indexed) {
+                            const snippet = (r.snippet || '').toLowerCase();
+                            if (snippet.includes('robots.txt') || snippet.includes('không có sẵn') || snippet.includes('not available')) {
+                                statusText = "🔴 ĐÓNG BOT (chặn trong robots.txt)";
+                                isBlocked = true;
+                            }
+                        } else {
+                            statusText = "🔴 ĐÓNG BOT hoặc CHƯA INDEX";
                             isBlocked = true;
                         }
                     } else {
-                        statusText = `🟡 Không vào được web (HTTP ${htmlRes.status})`;
-                        errorCount++;
-                        isBlocked = null;
+                        // Nhận trực tiếp từ Serper client
+                        const data = Array.isArray(resData) ? resData[idx] : resData;
+                        const hasOrganic = data && data.organic && data.organic.length > 0;
+                        if (hasOrganic) {
+                            const snippet = (data.organic[0].snippet || '').toLowerCase();
+                            if (snippet.includes('robots.txt') || snippet.includes('không có sẵn') || snippet.includes('not available')) {
+                                statusText = "🔴 ĐÓNG BOT (chặn trong robots.txt)";
+                                isBlocked = true;
+                            }
+                        } else {
+                            statusText = "🔴 ĐÓNG BOT hoặc CHƯA INDEX";
+                            isBlocked = true;
+                        }
                     }
-                }
-            } catch(e) {
-                statusText = "❌ Lỗi mạng/Timeout";
-                errorCount++;
-                isBlocked = null;
+                    
+                    if (isBlocked) blockedCount++;
+                    else openCount++;
+                    
+                    results.push(`[${statusText}] ${domain}`);
+                    outArea.value = results.join('\n');
+                });
+                
+            } catch(err) {
+                console.error(err);
+                batch.forEach(domain => {
+                    statusText = "❌ Lỗi API Serper: " + err.message;
+                    errorCount++;
+                    results.push(`[${statusText}] ${domain}`);
+                    outArea.value = results.join('\n');
+                });
             }
             
-            if (isBlocked === true) blockedCount++;
-            else if (isBlocked === false) openCount++;
-
-            results.push(`[${statusText}] ${url}`);
-            outArea.value = results.join('\n');
             await new Promise(r => setTimeout(r, 600));
         }
         
         btn.innerText = "🤖 Bắt đầu Check Mở Bot";
         btn.disabled = false;
         
-        let teleMsg = `<b>🤖 BÁO CÁO CHECK MỞ BOT</b>\n`;
-        teleMsg += `Tổng: ${lines.length} | 🟢 Mở: ${openCount} | 🔴 Đóng: ${blockedCount} | ❌ Lỗi: ${errorCount}\n\n`;
+        let teleMsg = `<b>🤖 BÁO CÁO CHECK MỞ BOT (SERPER API)</b>\n`;
+        teleMsg += `Tổng: ${lines.length} | 🟢 Mở: ${openCount} | 🔴 Đóng/Chưa Index: ${blockedCount} | ❌ Lỗi: ${errorCount}\n\n`;
         results.forEach(r => { teleMsg += `${r}\n`; });
         await sendToTelegram(teleMsg);
     }
