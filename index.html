@@ -4090,10 +4090,8 @@ document.addEventListener("DOMContentLoaded", function() {
         outArea.value = '';
         
         let results = [];
-        let errorCount = 0;
         let blockedCount = 0;
         let openCount = 0;
-        let notIndexedCount = 0;
         
         const batchSize = 10;
         
@@ -4147,12 +4145,10 @@ document.addEventListener("DOMContentLoaded", function() {
                     resData = data.results;
                 }
                 
-                // Xử lý từng URL
                 for (let idx = 0; idx < cleanUrls.length; idx++) {
                     const domain = cleanUrls[idx];
-                    let statusText = "🟢 MỞ BOT (Tốt)";
+                    let statusText = "🟢 MỞ BOT";
                     let isBlocked = false;
-                    let isNotIndexed = false;
                     
                     let hasOrganic = false;
                     let snippet = '';
@@ -4168,41 +4164,37 @@ document.addEventListener("DOMContentLoaded", function() {
                     }
                     
                     if (hasOrganic) {
-                        // Nếu tìm thấy trên Google, kiểm tra snippet xem có bị robots.txt chặn không
                         if (snippet.includes('robots.txt') || snippet.includes('không có sẵn') || snippet.includes('not available')) {
-                            statusText = "🔴 ĐÓNG BOT (chặn trong robots.txt)";
+                            statusText = "🔴 ĐÓNG BOT";
                             isBlocked = true;
                         }
                     } else {
-                        // Nếu KHÔNG tìm thấy trên Google (rỗng), kích hoạt Fallback cào trực tiếp robots.txt qua VPS
+                        // Nếu chưa có trên Google, check nhanh robots.txt trực tiếp để biết đóng hay mở
                         try {
-                            window.useProxyForThisScan = false; // Tắt proxy xoay để cào direct nhanh
-                            const checkUrl = `https://${domain}/robots.txt`;
-                            const robotRes = await proxyFetch(checkUrl, {}, true);
+                            window.useProxyForThisScan = false;
+                            const robotRes = await proxyFetch(`https://${domain}/robots.txt`, {}, true);
                             if (robotRes.ok) {
                                 const resJson = await robotRes.json();
                                 const txt = resJson.html || '';
-                                if (/(disallow:\s*\/\s*$)|(disallow:\s*\/$)/im.test(txt)) {
-                                    statusText = "🔴 ĐÓNG BOT (chặn trong robots.txt)";
+                                if (/(disallow:\s*\/\s*$) | (disallow:\s*\/$)/im.test(txt)) {
+                                    statusText = "🔴 ĐÓNG BOT";
                                     isBlocked = true;
                                 } else {
-                                    statusText = "❌ CHƯA INDEX (Nhưng mở bot)";
-                                    isNotIndexed = true;
+                                    statusText = "🟢 MỞ BOT";
                                 }
                             } else {
-                                statusText = "❌ CHƯA INDEX (Không đọc được robots.txt)";
-                                isNotIndexed = true;
+                                statusText = "🔴 ĐÓNG BOT";
+                                isBlocked = true;
                             }
                         } catch(errRobots) {
-                            statusText = "❌ CHƯA INDEX (Không đọc được robots.txt)";
-                            isNotIndexed = true;
+                            statusText = "🔴 ĐÓNG BOT";
+                            isBlocked = true;
                         } finally {
-                            window.useProxyForThisScan = true; // Khôi phục cài đặt proxy
+                            window.useProxyForThisScan = true;
                         }
                     }
                     
                     if (isBlocked) blockedCount++;
-                    else if (isNotIndexed) notIndexedCount++;
                     else openCount++;
                     
                     results.push(`[${statusText}] ${domain}`);
@@ -4212,8 +4204,8 @@ document.addEventListener("DOMContentLoaded", function() {
             } catch(err) {
                 console.error(err);
                 batch.forEach(domain => {
-                    statusText = "❌ Lỗi API Serper: " + err.message;
-                    errorCount++;
+                    statusText = "🔴 ĐÓNG BOT";
+                    blockedCount++;
                     results.push(`[${statusText}] ${domain}`);
                     outArea.value = results.join('\n');
                 });
@@ -4225,8 +4217,8 @@ document.addEventListener("DOMContentLoaded", function() {
         btn.innerText = "🤖 Bắt đầu Check Mở Bot";
         btn.disabled = false;
         
-        let teleMsg = `<b>🤖 BÁO CÁO CHECK MỞ BOT (TỐI ƯU HÓA)</b>\n`;
-        teleMsg += `Tổng: ${lines.length} | 🟢 Mở: ${openCount} | 🔴 Đóng: ${blockedCount} | ❌ Chưa Index: ${notIndexedCount} | ⚠️ Lỗi: ${errorCount}\n\n`;
+        let teleMsg = `<b>🤖 BÁO CÁO CHECK MỞ BOT</b>\n`;
+        teleMsg += `Tổng: ${lines.length} | 🟢 Mở: ${openCount} | 🔴 Đóng: ${blockedCount}\n\n`;
         results.forEach(r => { teleMsg += `${r}\n`; });
         await sendToTelegram(teleMsg);
     }
