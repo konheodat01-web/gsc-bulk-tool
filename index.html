@@ -4075,12 +4075,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const lines = document.getElementById('checkBotList').value.split('\n').filter(l => l.trim());
         if(lines.length === 0) return alert("Nhập danh sách website sếp ơi!");
         
-        const apiKey = (document.getElementById('serperApiKey')?.value || '').trim() || localStorage.getItem('serper_api_key') || '';
-        if (!apiKey) {
-            alert("Vui lòng cấu hình Serper API Key tại tab 'Check Index (Serper)' trước sếp ơi!");
-            return;
-        }
-        
         btn.innerText = "⏳ Đang quét...";
         btn.disabled = true;
         
@@ -4093,134 +4087,56 @@ document.addEventListener("DOMContentLoaded", function() {
         let blockedCount = 0;
         let openCount = 0;
         
-        const batchSize = 10;
-        
-        for (let i = 0; i < lines.length; i += batchSize) {
-            const batch = lines.slice(i, i + batchSize);
-            const cleanUrls = batch.map(rawUrl => {
-                let url = rawUrl.trim();
-                if (url.startsWith('http://') || url.startsWith('https://')) {
-                    try {
-                        return new URL(url).hostname;
-                    } catch(e) {
-                        return url;
+        const cleanUrls = lines.map(rawUrl => {
+            let url = rawUrl.trim();
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                try {
+                    return new URL(url).hostname;
+                } catch(e) {
+                    return url;
+                }
+            }
+            return url;
+        });
+
+        // Định nghĩa fetch kiểm tra live qua VPS
+        const checkBotPromises = cleanUrls.map(async (domain) => {
+            try {
+                // Check trực tiếp live robots.txt qua proxy Fetch của VPS
+                const robotRes = await proxyFetch(`https://${domain}/robots.txt`, {}, true);
+                if (robotRes.ok) {
+                    const resJson = await robotRes.json();
+                    const txt = resJson.html || '';
+                    if (/(disallow:\s*\/\s*$) | (disallow:\s*\/$)/im.test(txt)) {
+                        return { domain, statusText: "🔴 ĐÓNG BOT", isBlocked: true };
+                    } else {
+                        return { domain, statusText: "🟢 MỞ BOT", isBlocked: false };
                     }
                 }
-                return url;
+            } catch(e){}
+            return { domain, statusText: "🔴 ĐÓNG BOT", isBlocked: true };
+        });
+
+        // Chạy song song đồng loạt toàn bộ danh sách
+        Promise.all(checkBotPromises).then(batchResults => {
+            batchResults.forEach(r => {
+                if (r.isBlocked) blockedCount++;
+                else openCount++;
+                results.push(`[${r.statusText}] ${r.domain}`);
             });
             
-            try {
-                const queries = cleanUrls.map(domain => ({ q: `site:${domain}`, gl: 'vn' }));
-                
-                let resData;
-                let clientCallSuccess = false;
-                try {
-                    const response = await fetch("https://google.serper.dev/search", {
-                        method: "POST",
-                        headers: {
-                            "X-API-KEY": apiKey,
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify(queries)
-                    });
-                    if (!response.ok) throw new Error("Client CORS or Invalid Key");
-                    resData = await response.json();
-                    clientCallSuccess = true;
-                } catch(e) {
-                    const vpsUrl = getVpsUrl();
-                    const vpsToken = getVpsToken();
-                    const response = await fetch(`${vpsUrl}/serper-check-index`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "x-vps-token": vpsToken
-                        },
-                        body: JSON.stringify({ serperKey: apiKey, urls: cleanUrls, gl: 'vn' })
-                    });
-                    if (!response.ok) {
-                        const err = await response.json();
-                        throw new Error(err.error || "Lỗi API VPS proxy");
-                    }
-                    const data = await response.json();
-                    resData = data.results;
-                }
-                
-                for (let idx = 0; idx < cleanUrls.length; idx++) {
-                    const domain = cleanUrls[idx];
-                    let statusText = "🟢 MỞ BOT";
-                    let isBlocked = false;
-                    
-                    let hasOrganic = false;
-                    let snippet = '';
-                    
-                    if (!clientCallSuccess) {
-                        const r = resData[idx];
-                        hasOrganic = r && r.indexed;
-                        snippet = r ? (r.snippet || '').toLowerCase() : '';
-                    } else {
-                        const data = Array.isArray(resData) ? resData[idx] : resData;
-                        hasOrganic = data && data.organic && data.organic.length > 0;
-                        snippet = hasOrganic ? (data.organic[0].snippet || '').toLowerCase() : '';
-                    }
-                    
-                    if (hasOrganic) {
-                        if (snippet.includes('robots.txt') || snippet.includes('không có sẵn') || snippet.includes('not available')) {
-                            statusText = "🔴 ĐÓNG BOT";
-                            isBlocked = true;
-                        }
-                    } else {
-                        // Nếu chưa có trên Google, check nhanh robots.txt trực tiếp để biết đóng hay mở
-                        try {
-                            window.useProxyForThisScan = false;
-                            const robotRes = await proxyFetch(`https://${domain}/robots.txt`, {}, true);
-                            if (robotRes.ok) {
-                                const resJson = await robotRes.json();
-                                const txt = resJson.html || '';
-                                if (/(disallow:\s*\/\s*$) | (disallow:\s*\/$)/im.test(txt)) {
-                                    statusText = "🔴 ĐÓNG BOT";
-                                    isBlocked = true;
-                                } else {
-                                    statusText = "🟢 MỞ BOT";
-                                }
-                            } else {
-                                statusText = "🔴 ĐÓNG BOT";
-                                isBlocked = true;
-                            }
-                        } catch(errRobots) {
-                            statusText = "🔴 ĐÓNG BOT";
-                            isBlocked = true;
-                        } finally {
-                            window.useProxyForThisScan = true;
-                        }
-                    }
-                    
-                    if (isBlocked) blockedCount++;
-                    else openCount++;
-                    
-                    results.push(`[${statusText}] ${domain}`);
-                    outArea.value = results.join('\n');
-                }
-                
-            } catch(err) {
-                console.error(err);
-                batch.forEach(domain => {
-                    statusText = "🔴 ĐÓNG BOT";
-                    blockedCount++;
-                    results.push(`[${statusText}] ${domain}`);
-                    outArea.value = results.join('\n');
-                });
-            }
+            // Hiển thị báo cáo
+            outArea.value = results.join('\n');
+            btn.innerText = "Check Mở Bot";
+            btn.disabled = false;
             
-            await new Promise(r => setTimeout(r, 600));
-        }
-        
-        btn.innerText = "🤖 Bắt đầu Check Mở Bot";
-        btn.disabled = false;
-        
-        let teleMsg = `<b>🤖 BÁO CÁO CHECK MỞ BOT</b>\n`;
-        teleMsg += `Tổng: ${lines.length} | 🟢 Mở: ${openCount} | 🔴 Đóng: ${blockedCount}\n\n`;
-        results.forEach(r => { teleMsg += `${r}\n`; });
-        await sendToTelegram(teleMsg);
+            toast(`Quét hoàn tất: ${openCount} mở, ${blockedCount} đóng!`, "#10b981", 3000);
+        }).catch(err => {
+            console.error(err);
+            btn.innerText = "Check Mở Bot";
+            btn.disabled = false;
+            alert("Có lỗi xảy ra khi quét!");
+        });
     }
 </script>
 
