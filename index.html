@@ -4099,12 +4099,14 @@ document.addEventListener("DOMContentLoaded", function() {
             return url;
         });
 
-        // Định nghĩa fetch kiểm tra live qua VPS
+        // Định nghĩa fetch kiểm tra live song song qua VPS
         const checkBotPromises = cleanUrls.map(async (domain) => {
             try {
-                // Check trực tiếp live robots.txt qua proxy Fetch của VPS
+                // Tắt proxy cưỡng bức cho quét robots.txt live
+                window.useProxyForThisScan = false;
                 const robotRes = await proxyFetch(`https://${domain}/robots.txt`, {}, true);
-                if (robotRes.ok) {
+                
+                if (robotRes && robotRes.ok) {
                     const resJson = await robotRes.json();
                     const txt = resJson.html || '';
                     if (/(disallow:\s*\/\s*$) | (disallow:\s*\/$)/im.test(txt)) {
@@ -4119,6 +4121,9 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Chạy song song đồng loạt toàn bộ danh sách
         Promise.all(checkBotPromises).then(batchResults => {
+            // Khôi phục lại proxy cho hệ thống
+            window.useProxyForThisScan = true;
+            
             batchResults.forEach(r => {
                 if (r.isBlocked) blockedCount++;
                 else openCount++;
@@ -4132,6 +4137,7 @@ document.addEventListener("DOMContentLoaded", function() {
             
             toast(`Quét hoàn tất: ${openCount} mở, ${blockedCount} đóng!`, "#10b981", 3000);
         }).catch(err => {
+            window.useProxyForThisScan = true;
             console.error(err);
             btn.innerText = "Check Mở Bot";
             btn.disabled = false;
