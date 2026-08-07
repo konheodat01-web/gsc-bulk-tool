@@ -4101,27 +4101,53 @@ document.addEventListener("DOMContentLoaded", function() {
 
         // Định nghĩa fetch kiểm tra live song song qua VPS
         const checkBotPromises = cleanUrls.map(async (domain) => {
+            let txt = '';
+            let isSuccess = false;
+            
+            // Bước 1: Thử cào bằng HTTPS trước
             try {
-                // Tắt proxy cưỡng bức cho quét robots.txt live
                 window.useProxyForThisScan = false;
                 const robotRes = await proxyFetch(`https://${domain}/robots.txt`, {}, true);
-                
                 if (robotRes && robotRes.ok) {
                     const resJson = await robotRes.json();
-                    const txt = resJson.html || '';
-                    if (txt.replace(/\s+/g, ' ').toLowerCase().includes('disallow: /')) {
-                        return { domain, statusText: "🔴 ĐÓNG BOT", isBlocked: true };
-                    } else {
-                        return { domain, statusText: "🟢 MỞ BOT", isBlocked: false };
-                    }
+                    txt = resJson.html || '';
+                    isSuccess = true;
+                } else if (robotRes && robotRes.status === 404) {
+                    // Nếu trả về 404 (Không có file robots.txt) thì mặc định Googlebot được vào => MỞ BOT
+                    return { domain, statusText: "🟢 MỞ BOT", isBlocked: false };
                 }
             } catch(e){}
-            return { domain, statusText: "🔴 ĐÓNG BOT", isBlocked: true };
+            
+            // Bước 2: Nếu HTTPS lỗi, thử lại bằng HTTP thường
+            if (!isSuccess) {
+                try {
+                    window.useProxyForThisScan = false;
+                    const robotRes = await proxyFetch(`http://${domain}/robots.txt`, {}, true);
+                    if (robotRes && robotRes.ok) {
+                        const resJson = await robotRes.json();
+                        txt = resJson.html || '';
+                        isSuccess = true;
+                    } else if (robotRes && robotRes.status === 404) {
+                        return { domain, statusText: "🟢 MỞ BOT", isBlocked: false };
+                    }
+                } catch(e){}
+            }
+            
+            // Bước 3: Phân tích nội dung file robots.txt
+            if (isSuccess && txt) {
+                const cleanTxt = txt.replace(/\s+/g, ' ').toLowerCase();
+                // Tìm kiếm disallow: / hoặc disallow:/
+                if (cleanTxt.includes('disallow: /') || cleanTxt.includes('disallow:/')) {
+                    return { domain, statusText: "🔴 ĐÓNG BOT", isBlocked: true };
+                }
+            }
+            
+            // Nếu không có file, lỗi kết nối hoặc không chứa chỉ thị disallow: / => MỞ BOT
+            return { domain, statusText: "🟢 MỞ BOT", isBlocked: false };
         });
 
         // Chạy song song đồng loạt toàn bộ danh sách
         Promise.all(checkBotPromises).then(batchResults => {
-            // Khôi phục lại proxy cho hệ thống
             window.useProxyForThisScan = true;
             
             batchResults.forEach(r => {
@@ -4135,8 +4161,9 @@ document.addEventListener("DOMContentLoaded", function() {
             btn.innerText = "Check Mở Bot";
             btn.disabled = false;
             
-            // Bỏ toast do trang này không định nghĩa
+            toast(`Quét hoàn tất: ${openCount} mở, ${blockedCount} đóng!`, "#10b981", 3000);
         }).catch(err => {
+            window.useProxyForThisScan = true;
             console.error(err);
             btn.innerText = "Check Mở Bot";
             btn.disabled = false;
