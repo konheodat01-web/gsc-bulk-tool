@@ -4109,7 +4109,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (robotRes && robotRes.ok) {
                     const resJson = await robotRes.json();
                     const txt = resJson.html || '';
-                    if (/(disallow:\s*\/\s*$) | (disallow:\s*\/$)/im.test(txt)) {
+                    if (txt.replace(/\s+/g, ' ').toLowerCase().includes('disallow: /')) {
                         return { domain, statusText: "🔴 ĐÓNG BOT", isBlocked: true };
                     } else {
                         return { domain, statusText: "🟢 MỞ BOT", isBlocked: false };
