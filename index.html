@@ -4108,13 +4108,14 @@ document.addEventListener("DOMContentLoaded", function() {
             try {
                 window.useProxyForThisScan = false;
                 const robotRes = await proxyFetch(`https://${domain}/robots.txt`, {}, true);
-                if (robotRes && robotRes.ok) {
-                    const resJson = await robotRes.json();
-                    txt = resJson.html || '';
-                    isSuccess = true;
-                } else if (robotRes && robotRes.status === 404) {
-                    // Nếu trả về 404 (Không có file robots.txt) thì mặc định Googlebot được vào => MỞ BOT
-                    return { domain, statusText: "🟢 MỞ BOT", isBlocked: false };
+                if (robotRes) {
+                    if (robotRes.ok) {
+                        const resJson = await robotRes.json();
+                        txt = resJson.html || '';
+                        isSuccess = true;
+                    } else if (robotRes.status === 404) {
+                        return { domain, statusText: "🟢 MỞ BOT", isBlocked: false };
+                    }
                 }
             } catch(e){}
             
@@ -4123,12 +4124,14 @@ document.addEventListener("DOMContentLoaded", function() {
                 try {
                     window.useProxyForThisScan = false;
                     const robotRes = await proxyFetch(`http://${domain}/robots.txt`, {}, true);
-                    if (robotRes && robotRes.ok) {
-                        const resJson = await robotRes.json();
-                        txt = resJson.html || '';
-                        isSuccess = true;
-                    } else if (robotRes && robotRes.status === 404) {
-                        return { domain, statusText: "🟢 MỞ BOT", isBlocked: false };
+                    if (robotRes) {
+                        if (robotRes.ok) {
+                            const resJson = await robotRes.json();
+                            txt = resJson.html || '';
+                            isSuccess = true;
+                        } else if (robotRes.status === 404) {
+                            return { domain, statusText: "🟢 MỞ BOT", isBlocked: false };
+                        }
                     }
                 } catch(e){}
             }
@@ -4136,7 +4139,6 @@ document.addEventListener("DOMContentLoaded", function() {
             // Bước 3: Phân tích nội dung file robots.txt
             if (isSuccess && txt) {
                 const cleanTxt = txt.replace(/\s+/g, ' ').toLowerCase();
-                // Tìm kiếm disallow: / hoặc disallow:/
                 if (cleanTxt.includes('disallow: /') || cleanTxt.includes('disallow:/')) {
                     return { domain, statusText: "🔴 ĐÓNG BOT", isBlocked: true };
                 }
@@ -4160,8 +4162,6 @@ document.addEventListener("DOMContentLoaded", function() {
             outArea.value = results.join('\n');
             btn.innerText = "Check Mở Bot";
             btn.disabled = false;
-            
-            toast(`Quét hoàn tất: ${openCount} mở, ${blockedCount} đóng!`, "#10b981", 3000);
         }).catch(err => {
             window.useProxyForThisScan = true;
             console.error(err);
